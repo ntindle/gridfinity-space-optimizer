@@ -97,9 +97,9 @@ const GridfinityCalculator = () => {
       }, maxPrintSizeX, maxPrintSizeY));
     }
 
+    let halfSizeBins = [];
+    let updatedSpacers = [];
     if (useHalfSize || preferHalfSize) {
-      let halfSizeBins = [];
-      let updatedSpacers = [];
       spacers.forEach(spacer => {
         const { halfSizeBins: bins, remainingSpacers } = fillSpacerWithHalfSizeBins(spacer);
         halfSizeBins = halfSizeBins.concat(bins);
@@ -133,9 +133,15 @@ const GridfinityCalculator = () => {
         return acc;
       }, {});
 
-    const halfSizeBinCount = newLayout.filter(item => item.type === 'half-size').length;
+    const halfSizeBinCounts = newLayout
+      .filter(item => item.type === 'half-size')
+      .reduce((acc, bin) => {
+        const key = `${bin.width}x${bin.height}`;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
     
-    setResult({ baseplates: counts, spacers: spacerCounts, halfSizeBins: halfSizeBinCount });
+    setResult({ baseplates: counts, spacers: spacerCounts, halfSizeBins: halfSizeBinCounts });
     setLayout(newLayout);
   };
 

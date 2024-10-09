@@ -10,10 +10,14 @@ const GridfinityResults = ({ result, useHalfSize, preferHalfSize }) => {
           <li key={size}>{count} {size} baseplate(s)</li>
         ))}
       </ul>
-      {(useHalfSize || preferHalfSize) && result.halfSizeBins > 0 && (
+      {(useHalfSize || preferHalfSize) && result.halfSizeBins && (
         <>
           <h4 className="text-md font-semibold mt-2">Half-size Bins:</h4>
-          <p>{result.halfSizeBins} half-size bin(s)</p>
+          <ul className="list-disc list-inside">
+            {Object.entries(result.halfSizeBins).map(([size, count]) => (
+              <li key={size}>{count} {size} half-size bin(s)</li>
+            ))}
+          </ul>
         </>
       )}
       <h4 className="text-md font-semibold mt-2">Spacers:</h4>
