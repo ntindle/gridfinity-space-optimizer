@@ -9,6 +9,7 @@ export const printerSizes = {
   'Custom': { x: 0, y: 0 },
 };
 
+const splitSpacerIfNeeded = (spacer, maxWidth, maxHeight) => {
 export const splitSpacerIfNeeded = (spacer, maxWidth, maxHeight) => {
   const spacers = [];
   const fullWidthParts = Math.floor(spacer.pixelWidth / maxWidth);
@@ -42,6 +43,7 @@ export const splitSpacerIfNeeded = (spacer, maxWidth, maxHeight) => {
 };
 
 const createSpacer = (originalSpacer, offsetX, offsetY, width, height) => ({
+const createSpacer = (originalSpacer, offsetX, offsetY, width, height) => ({
   ...originalSpacer,
   pixelX: originalSpacer.pixelX + offsetX,
   pixelY: originalSpacer.pixelY + offsetY,
@@ -50,7 +52,9 @@ const createSpacer = (originalSpacer, offsetX, offsetY, width, height) => ({
   width: Math.round(width / FULL_GRID_SIZE * 100) / 100,
   height: Math.round(height / FULL_GRID_SIZE * 100) / 100,
 });
+});
 
+const fillSpacerWithHalfSizeBins = (spacer) => {
 export const fillSpacerWithHalfSizeBins = (spacer) => {
   const halfBinsX = Math.floor(spacer.pixelWidth / HALF_GRID_SIZE);
   const halfBinsY = Math.floor(spacer.pixelHeight / HALF_GRID_SIZE);
@@ -74,7 +78,9 @@ export const fillSpacerWithHalfSizeBins = (spacer) => {
 
   return { halfSizeBins, remainingSpacers };
 };
+};
 
+const createHalfSizeBin = (spacer, x, y) => ({
 const createHalfSizeBin = (spacer, x, y) => ({
   x: spacer.x + (x * HALF_GRID_SIZE / FULL_GRID_SIZE),
   y: spacer.y + (y * HALF_GRID_SIZE / FULL_GRID_SIZE),
@@ -86,7 +92,9 @@ const createHalfSizeBin = (spacer, x, y) => ({
   pixelWidth: HALF_GRID_SIZE,
   pixelHeight: HALF_GRID_SIZE
 });
+});
 
+const combineHalfSizeBins = (halfSizeBins, maxWidth, maxHeight) => {
 export const combineHalfSizeBins = (halfSizeBins, maxWidth, maxHeight) => {
   const sortedBins = halfSizeBins.sort((a, b) => a.pixelX - b.pixelX || a.pixelY - b.pixelY);
   const combinedBins = [];
@@ -111,7 +119,9 @@ export const combineHalfSizeBins = (halfSizeBins, maxWidth, maxHeight) => {
 
   return combineBinsHorizontally(combinedBins, maxWidth);
 };
+};
 
+const combineBinsHorizontally = (bins, maxWidth) => {
 const combineBinsHorizontally = (bins, maxWidth) => {
   const sortedBins = bins.sort((a, b) => a.pixelY - b.pixelY || a.pixelX - b.pixelX);
   const finalBins = [];
@@ -137,7 +147,9 @@ const combineBinsHorizontally = (bins, maxWidth) => {
 
   return finalBins;
 };
+};
 
+const combineRow = (row, maxWidth) => {
 const combineRow = (row, maxWidth) => {
   const combinedRow = [];
   let currentBin = null;
@@ -162,19 +174,22 @@ const combineRow = (row, maxWidth) => {
 
   return combinedRow;
 };
+};
 
+export const getColor = (type, index) => {
 export const getColor = (type, index) => {
   if (type === 'spacer') return 'rgba(255, 0, 0, 0.3)';
   if (type === 'half-size') return 'rgba(0, 255, 0, 0.3)';
   const hue = (index * 137.5) % 360;
   return `hsl(${hue}, 70%, 80%)`;
 };
+};
 
 export const calculateGrids = (drawerSize, printerSize, useHalfSize, preferHalfSize) => {
   const drawerWidth = drawerSize.width * INCH_TO_MM;
   const drawerHeight = drawerSize.height * INCH_TO_MM;
   
-  const gridSize = FULL_GRID_SIZE;
+  const gridSize = useHalfSize ? HALF_GRID_SIZE : FULL_GRID_SIZE;
   const gridCountX = Math.floor(drawerWidth / gridSize);
   const gridCountY = Math.floor(drawerHeight / gridSize);
   
@@ -190,15 +205,20 @@ export const calculateGrids = (drawerSize, printerSize, useHalfSize, preferHalfS
     for (let x = 0; x < gridCountX; x += maxPrintSizeX / gridSize) {
       const width = Math.min(maxPrintSizeX / gridSize, gridCountX - x);
       const height = Math.min(maxPrintSizeY / gridSize, gridCountY - y);
-      baseplates.push(`${width}x${height}`);
-      newLayout.push({ 
+      const item = { 
         x, y, width, height, 
-        type: 'baseplate',
+        type: useHalfSize ? 'half-size' : 'baseplate',
         pixelX: x * gridSize,
         pixelY: y * gridSize,
         pixelWidth: width * gridSize,
         pixelHeight: height * gridSize
-      });
+      };
+      if (useHalfSize) {
+        newLayout.push(item);
+      } else {
+        baseplates.push(`${width}x${height}`);
+        newLayout.push(item);
+      }
     }
   }
   
@@ -251,7 +271,7 @@ export const calculateGrids = (drawerSize, printerSize, useHalfSize, preferHalfS
 
   let halfSizeBins = [];
   let updatedSpacers = [];
-  if (useHalfSize || preferHalfSize) {
+  if (preferHalfSize && !useHalfSize) {
     spacers.forEach(spacer => {
       const { halfSizeBins: bins, remainingSpacers } = fillSpacerWithHalfSizeBins(spacer);
       halfSizeBins = halfSizeBins.concat(bins);
@@ -261,14 +281,9 @@ export const calculateGrids = (drawerSize, printerSize, useHalfSize, preferHalfS
     // Combine half-size bins into grids, constrained by max print size
     const combinedHalfSizeBins = combineHalfSizeBins(halfSizeBins, maxPrintSizeX, maxPrintSizeY);
     
-    if (preferHalfSize) {
-      // Only replace spacers with half-size bins
-      newLayout = newLayout.concat(combinedHalfSizeBins, updatedSpacers);
-    } else {
-      // Replace everything with half-size bins
-      newLayout = combinedHalfSizeBins.concat(updatedSpacers);
-    }
-  } else {
+    // Only replace spacers with half-size bins
+    newLayout = newLayout.concat(combinedHalfSizeBins, updatedSpacers);
+  } else if (!useHalfSize) {
     newLayout = newLayout.concat(spacers);
   }
   
@@ -280,7 +295,7 @@ export const calculateGrids = (drawerSize, printerSize, useHalfSize, preferHalfS
   const spacerCounts = newLayout
     .filter(item => item.type === 'spacer')
     .reduce((acc, spacer) => {
-      const key = `${(spacer.width * FULL_GRID_SIZE).toFixed(2)}mm x ${(spacer.height * FULL_GRID_SIZE).toFixed(2)}mm`;
+      const key = `${(spacer.width * gridSize).toFixed(2)}mm x ${(spacer.height * gridSize).toFixed(2)}mm`;
       acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {});
