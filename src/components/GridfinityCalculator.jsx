@@ -106,8 +106,8 @@ const GridfinityCalculator = () => {
         updatedSpacers = updatedSpacers.concat(remainingSpacers);
       });
       
-      // Combine half-size bins into grids
-      const combinedHalfSizeBins = combineHalfSizeBins(halfSizeBins);
+      // Combine half-size bins into grids, constrained by max print size
+      const combinedHalfSizeBins = combineHalfSizeBins(halfSizeBins, maxPrintSizeX, maxPrintSizeY);
       
       if (preferHalfSize) {
         // Only replace spacers with half-size bins

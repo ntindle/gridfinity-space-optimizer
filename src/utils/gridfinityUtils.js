@@ -109,28 +109,80 @@ export const fillSpacerWithHalfSizeBins = (spacer) => {
   return { halfSizeBins, remainingSpacers };
 };
 
-export const combineHalfSizeBins = (halfSizeBins) => {
+export const combineHalfSizeBins = (halfSizeBins, maxWidth, maxHeight) => {
   const sortedBins = halfSizeBins.sort((a, b) => a.pixelX - b.pixelX || a.pixelY - b.pixelY);
   const combinedBins = [];
 
   let currentBin = null;
   for (const bin of sortedBins) {
     if (!currentBin) {
-      currentBin = { ...bin, height: 1 };
-    } else if (currentBin.pixelX === bin.pixelX && 
-               currentBin.pixelY + currentBin.pixelHeight === bin.pixelY) {
+      currentBin = { ...bin, width: 1, height: 1 };
+    } else if (currentBin.pixelX === bin.pixelX &&
+               currentBin.pixelY + currentBin.pixelHeight === bin.pixelY &&
+               currentBin.pixelHeight + HALF_GRID_SIZE <= maxHeight) {
       currentBin.pixelHeight += bin.pixelHeight;
       currentBin.height += 1;
     } else {
       combinedBins.push(currentBin);
-      currentBin = { ...bin, height: 1 };
+      currentBin = { ...bin, width: 1, height: 1 };
     }
   }
   if (currentBin) {
     combinedBins.push(currentBin);
   }
 
-  return combinedBins;
+  return combineBinsHorizontally(combinedBins, maxWidth);
+};
+
+export const combineBinsHorizontally = (bins, maxWidth) => {
+  const sortedBins = bins.sort((a, b) => a.pixelY - b.pixelY || a.pixelX - b.pixelX);
+  const finalBins = [];
+
+  let currentRow = [];
+  let currentY = null;
+
+  for (const bin of sortedBins) {
+    if (currentY === null || bin.pixelY !== currentY) {
+      if (currentRow.length > 0) {
+        finalBins.push(...combineRow(currentRow, maxWidth));
+      }
+      currentRow = [bin];
+      currentY = bin.pixelY;
+    } else {
+      currentRow.push(bin);
+    }
+  }
+
+  if (currentRow.length > 0) {
+    finalBins.push(...combineRow(currentRow, maxWidth));
+  }
+
+  return finalBins;
+};
+
+const combineRow = (row, maxWidth) => {
+  const combinedRow = [];
+  let currentBin = null;
+
+  for (const bin of row) {
+    if (!currentBin) {
+      currentBin = { ...bin };
+    } else if (currentBin.pixelX + currentBin.pixelWidth === bin.pixelX &&
+               currentBin.height === bin.height &&
+               currentBin.pixelWidth + bin.pixelWidth <= maxWidth) {
+      currentBin.pixelWidth += bin.pixelWidth;
+      currentBin.width += bin.width;
+    } else {
+      combinedRow.push(currentBin);
+      currentBin = { ...bin };
+    }
+  }
+
+  if (currentBin) {
+    combinedRow.push(currentBin);
+  }
+
+  return combinedRow;
 };
 
 export const getColor = (type, index) => {

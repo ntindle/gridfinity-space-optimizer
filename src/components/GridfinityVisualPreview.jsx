@@ -31,7 +31,7 @@ const GridfinityVisualPreview = ({ layout, drawerSize }) => {
             }}
           >
             {item.type === 'baseplate' ? `${item.width}x${item.height}` : 
-             item.type === 'half-size' ? `1x${item.height}` : 'Spacer'}
+             item.type === 'half-size' ? `${item.width}x${item.height}` : 'Spacer'}
           </div>
         ))}
       </div>
