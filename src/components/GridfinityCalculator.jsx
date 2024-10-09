@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { FULL_GRID_SIZE, HALF_GRID_SIZE, INCH_TO_MM, printerSizes, splitSpacerIfNeeded, fillSpacerWithHalfSizeBins, getColor } from '../utils/gridfinityUtils';
+import { FULL_GRID_SIZE, HALF_GRID_SIZE, INCH_TO_MM, printerSizes, splitSpacerIfNeeded, fillSpacerWithHalfSizeBins, combineHalfSizeBins, getColor } from '../utils/gridfinityUtils';
 import GridfinityResults from './GridfinityResults';
 import GridfinityVisualPreview from './GridfinityVisualPreview';
 
@@ -106,12 +106,15 @@ const GridfinityCalculator = () => {
         updatedSpacers = updatedSpacers.concat(remainingSpacers);
       });
       
+      // Combine half-size bins into grids
+      const combinedHalfSizeBins = combineHalfSizeBins(halfSizeBins);
+      
       if (preferHalfSize) {
         // Only replace spacers with half-size bins
-        newLayout = newLayout.concat(halfSizeBins, updatedSpacers);
+        newLayout = newLayout.concat(combinedHalfSizeBins, updatedSpacers);
       } else {
         // Replace everything with half-size bins
-        newLayout = halfSizeBins.concat(updatedSpacers);
+        newLayout = combinedHalfSizeBins.concat(updatedSpacers);
       }
     } else {
       newLayout = newLayout.concat(spacers);

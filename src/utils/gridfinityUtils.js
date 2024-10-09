@@ -72,8 +72,8 @@ export const fillSpacerWithHalfSizeBins = (spacer) => {
   const remainderHeight = spacer.pixelHeight % HALF_GRID_SIZE;
 
   const halfSizeBins = [];
-  for (let y = 0; y < halfBinsY; y++) {
-    for (let x = 0; x < halfBinsX; x++) {
+  for (let x = 0; x < halfBinsX; x++) {
+    for (let y = 0; y < halfBinsY; y++) {
       halfSizeBins.push({
         x: spacer.x + (x * HALF_GRID_SIZE / FULL_GRID_SIZE),
         y: spacer.y + (y * HALF_GRID_SIZE / FULL_GRID_SIZE),
@@ -107,6 +107,30 @@ export const fillSpacerWithHalfSizeBins = (spacer) => {
   }
 
   return { halfSizeBins, remainingSpacers };
+};
+
+export const combineHalfSizeBins = (halfSizeBins) => {
+  const sortedBins = halfSizeBins.sort((a, b) => a.pixelX - b.pixelX || a.pixelY - b.pixelY);
+  const combinedBins = [];
+
+  let currentBin = null;
+  for (const bin of sortedBins) {
+    if (!currentBin) {
+      currentBin = { ...bin, height: 1 };
+    } else if (currentBin.pixelX === bin.pixelX && 
+               currentBin.pixelY + currentBin.pixelHeight === bin.pixelY) {
+      currentBin.pixelHeight += bin.pixelHeight;
+      currentBin.height += 1;
+    } else {
+      combinedBins.push(currentBin);
+      currentBin = { ...bin, height: 1 };
+    }
+  }
+  if (currentBin) {
+    combinedBins.push(currentBin);
+  }
+
+  return combinedBins;
 };
 
 export const getColor = (type, index) => {
