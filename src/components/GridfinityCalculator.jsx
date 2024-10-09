@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { FULL_GRID_SIZE, HALF_GRID_SIZE, INCH_TO_MM, printerSizes, splitSpacerIfNeeded, fillSpacerWithHalfSizeBins, combineHalfSizeBins, getColor } from '../utils/gridfinityUtils';
+import { INCH_TO_MM, printerSizes, calculateGrids } from '../utils/gridfinityUtils';
 import GridfinityResults from './GridfinityResults';
 import GridfinityVisualPreview from './GridfinityVisualPreview';
 
@@ -18,135 +18,10 @@ const GridfinityCalculator = () => {
   const [result, setResult] = useState(null);
   const [layout, setLayout] = useState([]);
 
-  const calculateGrids = () => {
-    const drawerWidth = drawerSize.width * INCH_TO_MM;
-    const drawerHeight = drawerSize.height * INCH_TO_MM;
-    
-    const gridSize = FULL_GRID_SIZE;
-    const gridCountX = Math.floor(drawerWidth / gridSize);
-    const gridCountY = Math.floor(drawerHeight / gridSize);
-    
-    const maxPrintSizeX = Math.floor(printerSize.x / gridSize) * gridSize;
-    const maxPrintSizeY = Math.floor(printerSize.y / gridSize) * gridSize;
-    
-    let baseplates = [];
-    let newLayout = [];
-    let remainingWidth = drawerWidth - (gridCountX * gridSize);
-    let remainingHeight = drawerHeight - (gridCountY * gridSize);
-    
-    for (let y = 0; y < gridCountY; y += maxPrintSizeY / gridSize) {
-      for (let x = 0; x < gridCountX; x += maxPrintSizeX / gridSize) {
-        const width = Math.min(maxPrintSizeX / gridSize, gridCountX - x);
-        const height = Math.min(maxPrintSizeY / gridSize, gridCountY - y);
-        baseplates.push(`${width}x${height}`);
-        newLayout.push({ 
-          x, y, width, height, 
-          type: 'baseplate',
-          pixelX: x * gridSize,
-          pixelY: y * gridSize,
-          pixelWidth: width * gridSize,
-          pixelHeight: height * gridSize
-        });
-      }
-    }
-    
-    let spacers = [];
-
-    // Add horizontal spacer if needed
-    if (remainingWidth > 0) {
-      spacers = spacers.concat(splitSpacerIfNeeded({
-        x: gridCountX,
-        y: 0,
-        width: remainingWidth / gridSize,
-        height: gridCountY,
-        type: 'spacer',
-        pixelX: gridCountX * gridSize,
-        pixelY: 0,
-        pixelWidth: remainingWidth,
-        pixelHeight: gridCountY * gridSize
-      }, maxPrintSizeX, maxPrintSizeY));
-    }
-    
-    // Add vertical spacer if needed
-    if (remainingHeight > 0) {
-      spacers = spacers.concat(splitSpacerIfNeeded({
-        x: 0,
-        y: gridCountY,
-        width: gridCountX,
-        height: remainingHeight / gridSize,
-        type: 'spacer',
-        pixelX: 0,
-        pixelY: gridCountY * gridSize,
-        pixelWidth: gridCountX * gridSize,
-        pixelHeight: remainingHeight
-      }, maxPrintSizeX, maxPrintSizeY));
-    }
-    
-    // Add corner spacer if needed
-    if (remainingWidth > 0 && remainingHeight > 0) {
-      spacers = spacers.concat(splitSpacerIfNeeded({
-        x: gridCountX,
-        y: gridCountY,
-        width: remainingWidth / gridSize,
-        height: remainingHeight / gridSize,
-        type: 'spacer',
-        pixelX: gridCountX * gridSize,
-        pixelY: gridCountY * gridSize,
-        pixelWidth: remainingWidth,
-        pixelHeight: remainingHeight
-      }, maxPrintSizeX, maxPrintSizeY));
-    }
-
-    let halfSizeBins = [];
-    let updatedSpacers = [];
-    if (useHalfSize || preferHalfSize) {
-      spacers.forEach(spacer => {
-        const { halfSizeBins: bins, remainingSpacers } = fillSpacerWithHalfSizeBins(spacer);
-        halfSizeBins = halfSizeBins.concat(bins);
-        updatedSpacers = updatedSpacers.concat(remainingSpacers);
-      });
-      
-      // Combine half-size bins into grids, constrained by max print size
-      const combinedHalfSizeBins = combineHalfSizeBins(halfSizeBins, maxPrintSizeX, maxPrintSizeY);
-      
-      if (preferHalfSize) {
-        // Only replace spacers with half-size bins
-        newLayout = newLayout.concat(combinedHalfSizeBins, updatedSpacers);
-      } else {
-        // Replace everything with half-size bins
-        newLayout = combinedHalfSizeBins.concat(updatedSpacers);
-      }
-    } else {
-      newLayout = newLayout.concat(spacers);
-    }
-    
-    const counts = baseplates.reduce((acc, plate) => {
-      acc[plate] = (acc[plate] || 0) + 1;
-      return acc;
-    }, {});
-
-    const spacerCounts = newLayout
-      .filter(item => item.type === 'spacer')
-      .reduce((acc, spacer) => {
-        const key = `${spacer.pixelWidth.toFixed(2)}mm x ${spacer.pixelHeight.toFixed(2)}mm`;
-        acc[key] = (acc[key] || 0) + 1;
-        return acc;
-      }, {});
-
-    const halfSizeBinCounts = newLayout
-      .filter(item => item.type === 'half-size')
-      .reduce((acc, bin) => {
-        const key = `${bin.width}x${bin.height}`;
-        acc[key] = (acc[key] || 0) + 1;
-        return acc;
-      }, {});
-    
-    setResult({ baseplates: counts, spacers: spacerCounts, halfSizeBins: halfSizeBinCounts });
-    setLayout(newLayout);
-  };
-
   useEffect(() => {
-    calculateGrids();
+    const { baseplates, spacers, halfSizeBins, layout } = calculateGrids(drawerSize, printerSize, useHalfSize, preferHalfSize);
+    setResult({ baseplates, spacers, halfSizeBins });
+    setLayout(layout);
   }, [drawerSize, printerSize, useHalfSize, preferHalfSize]);
 
   return (
@@ -245,8 +120,6 @@ const GridfinityCalculator = () => {
             />
             <Label htmlFor="prefer-half-size">Prefer half-size bins for spacers</Label>
           </div>
-          
-          <Button onClick={calculateGrids}>Calculate</Button>
           
           {result && <GridfinityResults result={result} useHalfSize={useHalfSize} preferHalfSize={preferHalfSize} />}
           
