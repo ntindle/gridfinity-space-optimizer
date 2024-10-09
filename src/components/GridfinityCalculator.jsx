@@ -16,12 +16,30 @@ const GridfinityCalculator = () => {
   const [preferHalfSize, setPreferHalfSize] = useState(false);
   const [result, setResult] = useState(null);
   const [layout, setLayout] = useState([]);
+  const [customSize, setCustomSize] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const { baseplates, spacers, halfSizeBins, layout } = calculateGrids(drawerSize, printerSize, useHalfSize, preferHalfSize);
     setResult({ baseplates, spacers, halfSizeBins });
     setLayout(layout);
   }, [drawerSize, printerSize, useHalfSize, preferHalfSize]);
+
+  const handlePrinterChange = (value) => {
+    setSelectedPrinter(value);
+    if (value === 'Custom') {
+      setPrinterSize(customSize);
+    } else {
+      setPrinterSize(printerSizes[value]);
+    }
+  };
+
+  const handleCustomSizeChange = (axis, value) => {
+    const newCustomSize = { ...customSize, [axis]: parseInt(value) };
+    setCustomSize(newCustomSize);
+    if (selectedPrinter === 'Custom') {
+      setPrinterSize(newCustomSize);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -59,13 +77,7 @@ const GridfinityCalculator = () => {
           <div className="space-y-4">
             <div>
               <Label htmlFor="printerModel">Printer Model</Label>
-              <Select
-                value={selectedPrinter}
-                onValueChange={(value) => {
-                  setSelectedPrinter(value);
-                  setPrinterSize(value === 'Custom' ? { x: 0, y: 0 } : printerSizes[value]);
-                }}
-              >
+              <Select onValueChange={handlePrinterChange} value={selectedPrinter}>
                 <SelectTrigger className="w-full mt-1">
                   <SelectValue placeholder="Select a printer" />
                 </SelectTrigger>
@@ -86,8 +98,8 @@ const GridfinityCalculator = () => {
                   <Input
                     id="customWidth"
                     type="number"
-                    value={printerSize.x}
-                    onChange={(e) => setPrinterSize({ ...printerSize, x: parseInt(e.target.value) })}
+                    value={customSize.x}
+                    onChange={(e) => handleCustomSizeChange('x', e.target.value)}
                     className="mt-1"
                   />
                 </div>
@@ -96,8 +108,8 @@ const GridfinityCalculator = () => {
                   <Input
                     id="customHeight"
                     type="number"
-                    value={printerSize.y}
-                    onChange={(e) => setPrinterSize({ ...printerSize, y: parseInt(e.target.value) })}
+                    value={customSize.y}
+                    onChange={(e) => handleCustomSizeChange('y', e.target.value)}
                     className="mt-1"
                   />
                 </div>
@@ -137,20 +149,19 @@ const GridfinityCalculator = () => {
         </CardContent>
       </Card>
 
-      {result && (
-        <Card>
-          <CardContent className="p-4">
-            <GridfinityResults result={result} useHalfSize={useHalfSize} preferHalfSize={preferHalfSize} />
-          </CardContent>
-        </Card>
-      )}
-      
-      {layout.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
-            <GridfinityVisualPreview layout={layout} drawerSize={drawerSize} />
-          </CardContent>
-        </Card>
+      {result && layout.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardContent className="p-4">
+              <GridfinityResults result={result} useHalfSize={useHalfSize} preferHalfSize={preferHalfSize} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <GridfinityVisualPreview layout={layout} drawerSize={drawerSize} />
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
