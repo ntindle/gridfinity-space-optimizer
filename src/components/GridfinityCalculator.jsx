@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -10,19 +10,23 @@ import GridfinityVisualPreview from './GridfinityVisualPreview';
 
 const GridfinityCalculator = () => {
   const [drawerSize, setDrawerSize] = useState({ width: 16.5, height: 22.5 });
-  const [printerSize, setPrinterSize] = useState(printerSizes['Bambu Lab A1']);
   const [selectedPrinter, setSelectedPrinter] = useState('Bambu Lab A1');
+  const [printerSize, setPrinterSize] = useState(printerSizes['Bambu Lab A1']);
   const [useHalfSize, setUseHalfSize] = useState(false);
   const [preferHalfSize, setPreferHalfSize] = useState(false);
   const [result, setResult] = useState(null);
   const [layout, setLayout] = useState([]);
   const [customSize, setCustomSize] = useState({ x: 0, y: 0 });
 
-  useEffect(() => {
+  const calculateResults = useCallback(() => {
     const { baseplates, spacers, halfSizeBins, layout } = calculateGrids(drawerSize, printerSize, useHalfSize, preferHalfSize);
     setResult({ baseplates, spacers, halfSizeBins });
     setLayout(layout);
   }, [drawerSize, printerSize, useHalfSize, preferHalfSize]);
+
+  useEffect(() => {
+    calculateResults();
+  }, [calculateResults]);
 
   const handlePrinterChange = (value) => {
     setSelectedPrinter(value);
@@ -34,11 +38,14 @@ const GridfinityCalculator = () => {
   };
 
   const handleCustomSizeChange = (axis, value) => {
-    const newCustomSize = { ...customSize, [axis]: parseInt(value) };
-    setCustomSize(newCustomSize);
-    if (selectedPrinter === 'Custom') {
-      setPrinterSize(newCustomSize);
-    }
+    const parsedValue = parseInt(value) || 0;
+    setCustomSize(prev => {
+      const newSize = { ...prev, [axis]: parsedValue };
+      if (selectedPrinter === 'Custom') {
+        setPrinterSize(newSize);
+      }
+      return newSize;
+    });
   };
 
   return (
@@ -53,7 +60,7 @@ const GridfinityCalculator = () => {
                 id="drawerWidth"
                 type="number"
                 value={drawerSize.width}
-                onChange={(e) => setDrawerSize({ ...drawerSize, width: parseFloat(e.target.value) })}
+                onChange={(e) => setDrawerSize(prev => ({ ...prev, width: parseFloat(e.target.value) || 0 }))}
                 className="mt-1"
               />
             </div>
@@ -63,7 +70,7 @@ const GridfinityCalculator = () => {
                 id="drawerHeight"
                 type="number"
                 value={drawerSize.height}
-                onChange={(e) => setDrawerSize({ ...drawerSize, height: parseFloat(e.target.value) })}
+                onChange={(e) => setDrawerSize(prev => ({ ...prev, height: parseFloat(e.target.value) || 0 }))}
                 className="mt-1"
               />
             </div>
