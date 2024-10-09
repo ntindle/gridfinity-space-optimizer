@@ -16,12 +16,13 @@ const GridfinityCalculator = () => {
   const [preferHalfSize, setPreferHalfSize] = useState(false);
   const [result, setResult] = useState(null);
   const [layout, setLayout] = useState([]);
+  const [numDrawers, setNumDrawers] = useState(1);
 
   const calculateResults = useCallback(() => {
     const { baseplates, spacers, halfSizeBins, layout } = calculateGrids(drawerSize, printerSize, useHalfSize, preferHalfSize);
-    setResult({ baseplates, spacers, halfSizeBins });
+    setResult({ baseplates, spacers, halfSizeBins, numDrawers });
     setLayout(layout);
-  }, [drawerSize, printerSize, useHalfSize, preferHalfSize]);
+  }, [drawerSize, printerSize, useHalfSize, preferHalfSize, numDrawers]);
 
   useEffect(() => {
     calculateResults();
@@ -109,6 +110,23 @@ const GridfinityCalculator = () => {
               />
               <Label htmlFor="prefer-half-size">Prefer half-size bins for spacers</Label>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4">
+          <h3 className="text-lg font-semibold mb-4">Drawer Options</h3>
+          <div>
+            <Label htmlFor="numDrawers">Number of Duplicate Drawers</Label>
+            <Input
+              id="numDrawers"
+              type="number"
+              min="1"
+              value={numDrawers}
+              onChange={(e) => setNumDrawers(Math.max(1, parseInt(e.target.value) || 1))}
+              className="mt-1"
+            />
           </div>
         </CardContent>
       </Card>
