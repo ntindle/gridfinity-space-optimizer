@@ -8,7 +8,7 @@ import GridfinityResults from "./GridfinityResults";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
 
 const GridfinityCalculator = () => {
-  const [drawerSize, setDrawerSize] = useState({ width: 16.5, height: 22.5 });
+  const [drawerSize, setDrawerSize] = useState({ width: 22.5, height: 16.5 });
   const [printerSize, setPrinterSize] = useState({ x: 256, y: 256 });
   const [useHalfSize, setUseHalfSize] = useState(false);
   const [preferHalfSize, setPreferHalfSize] = useState(false);
