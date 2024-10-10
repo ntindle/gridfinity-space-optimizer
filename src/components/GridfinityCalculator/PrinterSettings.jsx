@@ -6,17 +6,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { printerSizes } from "../../lib/utils";
 
-const PrinterSettings = ({ selectedPrinter, setSelectedPrinter, customPrinterSize, setCustomPrinterSize }) => {
+const PrinterSettings = ({ selectedPrinter, setSelectedPrinter }) => {
   const handlePrinterChange = (value) => {
     setSelectedPrinter(value);
-  };
-
-  const handleCustomSizeChange = (axis, value) => {
-    setCustomPrinterSize(prev => ({ ...prev, [axis]: parseInt(value) || 0 }));
   };
 
   return (
@@ -35,33 +30,9 @@ const PrinterSettings = ({ selectedPrinter, setSelectedPrinter, customPrinterSiz
                   {printer}
                 </SelectItem>
               ))}
-              <SelectItem value="Custom">Custom</SelectItem>
             </SelectContent>
           </Select>
         </div>
-
-        {selectedPrinter === "Custom" && (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="customWidth">Custom Width (mm)</Label>
-              <Input
-                id="customWidth"
-                type="number"
-                value={customPrinterSize.x}
-                onChange={(e) => handleCustomSizeChange("x", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customHeight">Custom Height (mm)</Label>
-              <Input
-                id="customHeight"
-                type="number"
-                value={customPrinterSize.y}
-                onChange={(e) => handleCustomSizeChange("y", e.target.value)}
-              />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

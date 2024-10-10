@@ -11,7 +11,6 @@ import { saveUserSettings, loadUserSettings, printerSizes } from "../lib/utils";
 const GridfinityCalculator = () => {
   const [drawerSize, setDrawerSize] = useState({ width: 22.5, height: 16.5 });
   const [selectedPrinter, setSelectedPrinter] = useState("Bambu Lab A1");
-  const [customPrinterSize, setCustomPrinterSize] = useState({ x: 0, y: 0 });
   const [useHalfSize, setUseHalfSize] = useState(false);
   const [preferHalfSize, setPreferHalfSize] = useState(false);
   const [result, setResult] = useState(null);
@@ -24,7 +23,6 @@ const GridfinityCalculator = () => {
     if (savedSettings) {
       setDrawerSize(savedSettings.drawerSize);
       setSelectedPrinter(savedSettings.selectedPrinter);
-      setCustomPrinterSize(savedSettings.customPrinterSize || { x: 0, y: 0 });
       setUseHalfSize(savedSettings.useHalfSize);
       setPreferHalfSize(savedSettings.preferHalfSize);
       setNumDrawers(savedSettings.numDrawers);
@@ -33,7 +31,7 @@ const GridfinityCalculator = () => {
   }, []);
 
   useEffect(() => {
-    const printerSize = selectedPrinter === "Custom" ? customPrinterSize : printerSizes[selectedPrinter];
+    const printerSize = printerSizes[selectedPrinter];
     const { baseplates, spacers, halfSizeBins, layout } = calculateGrids(
       drawerSize,
       printerSize,
@@ -46,13 +44,19 @@ const GridfinityCalculator = () => {
     saveUserSettings({
       drawerSize,
       selectedPrinter,
-      customPrinterSize,
       useHalfSize,
       preferHalfSize,
       numDrawers,
       useMm,
     });
-  }, [drawerSize, selectedPrinter, customPrinterSize, useHalfSize, preferHalfSize, numDrawers, useMm]);
+  }, [
+    drawerSize,
+    selectedPrinter,
+    useHalfSize,
+    preferHalfSize,
+    numDrawers,
+    useMm,
+  ]);
 
   useEffect(() => {
     const logWindowSize = () => {
@@ -104,8 +108,6 @@ const GridfinityCalculator = () => {
           <PrinterSettings
             selectedPrinter={selectedPrinter}
             setSelectedPrinter={setSelectedPrinter}
-            customPrinterSize={customPrinterSize}
-            setCustomPrinterSize={setCustomPrinterSize}
           />
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
