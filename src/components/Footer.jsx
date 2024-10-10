@@ -10,11 +10,11 @@ const Footer = () => {
         <p className="text-gray-300 mb-8">
           An open-source project to help you design custom Gridfinity layouts.
         </p>
-        <div className="flex justify-center space-x-4 mb-8">
+        <div className="flex flex-col sm:flex-row justify-center sm:space-x-4 space-y-4 sm:space-y-0 mb-8">
           <Button
             variant="secondary"
             size="lg"
-            className="text-lg px-6 py-4"
+            className="text-lg px-6 py-4 w-full sm:w-auto"
             onClick={() =>
               window.open(
                 "https://github.com/ntindle/gridfinity-space-optimizer",
@@ -28,7 +28,7 @@ const Footer = () => {
           <Button
             variant="secondary"
             size="lg"
-            className="text-lg px-6 py-4"
+            className="text-lg px-6 py-4 w-full sm:w-auto"
             onClick={() =>
               window.open("https://github.com/sponsors/ntindle", "_blank")
             }
@@ -39,7 +39,7 @@ const Footer = () => {
           <Button
             variant="secondary"
             size="lg"
-            className="text-lg px-6 py-4"
+            className="text-lg px-6 py-4 w-full sm:w-auto"
             onClick={() =>
               window.open(
                 "https://github.com/ntindle/gridfinity-space-optimizer/blob/main/LICENSE",
