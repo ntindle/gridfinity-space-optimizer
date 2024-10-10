@@ -2,13 +2,6 @@ export const FULL_GRID_SIZE = 42; // mm
 export const HALF_GRID_SIZE = 21; // mm
 export const INCH_TO_MM = 25.4;
 
-export const printerSizes = {
-  "Bambu Lab A1": { x: 256, y: 256 },
-  "Prusa i3 MK3S+": { x: 250, y: 210 },
-  "Ender 3": { x: 220, y: 220 },
-  Custom: { x: 0, y: 0 },
-};
-
 export const splitSpacerIfNeeded = (spacer, maxWidth, maxHeight) => {
   const spacers = [];
   const fullWidthParts = Math.floor(spacer.pixelWidth / maxWidth);
