@@ -6,17 +6,34 @@ import BinOptions from "./GridfinityCalculator/BinOptions";
 import DrawerOptions from "./GridfinityCalculator/DrawerOptions";
 import GridfinityResults from "./GridfinityResults";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
+import { saveUserSettings, loadUserSettings, printerSizes } from "../lib/utils";
 
 const GridfinityCalculator = () => {
   const [drawerSize, setDrawerSize] = useState({ width: 22.5, height: 16.5 });
-  const [printerSize, setPrinterSize] = useState({ x: 256, y: 256 });
+  const [selectedPrinter, setSelectedPrinter] = useState("Bambu Lab A1");
+  const [customPrinterSize, setCustomPrinterSize] = useState({ x: 0, y: 0 });
   const [useHalfSize, setUseHalfSize] = useState(false);
   const [preferHalfSize, setPreferHalfSize] = useState(false);
   const [result, setResult] = useState(null);
   const [layout, setLayout] = useState([]);
   const [numDrawers, setNumDrawers] = useState(1);
+  const [useMm, setUseMm] = useState(false);
 
   useEffect(() => {
+    const savedSettings = loadUserSettings();
+    if (savedSettings) {
+      setDrawerSize(savedSettings.drawerSize);
+      setSelectedPrinter(savedSettings.selectedPrinter);
+      setCustomPrinterSize(savedSettings.customPrinterSize || { x: 0, y: 0 });
+      setUseHalfSize(savedSettings.useHalfSize);
+      setPreferHalfSize(savedSettings.preferHalfSize);
+      setNumDrawers(savedSettings.numDrawers);
+      setUseMm(savedSettings.useMm || false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const printerSize = selectedPrinter === "Custom" ? customPrinterSize : printerSizes[selectedPrinter];
     const { baseplates, spacers, halfSizeBins, layout } = calculateGrids(
       drawerSize,
       printerSize,
@@ -25,7 +42,17 @@ const GridfinityCalculator = () => {
     );
     setResult({ baseplates, spacers, halfSizeBins, numDrawers });
     setLayout(layout);
-  }, [drawerSize, printerSize, useHalfSize, preferHalfSize, numDrawers]);
+
+    saveUserSettings({
+      drawerSize,
+      selectedPrinter,
+      customPrinterSize,
+      useHalfSize,
+      preferHalfSize,
+      numDrawers,
+      useMm,
+    });
+  }, [drawerSize, selectedPrinter, customPrinterSize, useHalfSize, preferHalfSize, numDrawers, useMm]);
 
   useEffect(() => {
     const logWindowSize = () => {
@@ -69,12 +96,16 @@ const GridfinityCalculator = () => {
           <DrawerDimensions
             drawerSize={drawerSize}
             setDrawerSize={setDrawerSize}
+            useMm={useMm}
+            setUseMm={setUseMm}
           />
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <PrinterSettings
-            printerSize={printerSize}
-            setPrinterSize={setPrinterSize}
+            selectedPrinter={selectedPrinter}
+            setSelectedPrinter={setSelectedPrinter}
+            customPrinterSize={customPrinterSize}
+            setCustomPrinterSize={setCustomPrinterSize}
           />
         </div>
         <div className="bg-white p-4 rounded-lg shadow">

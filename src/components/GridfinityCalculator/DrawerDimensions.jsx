@@ -3,8 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-const DrawerDimensions = ({ drawerSize, setDrawerSize }) => {
-  const [useMm, setUseMm] = useState(false);
+const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
   const [localWidth, setLocalWidth] = useState("");
   const [localHeight, setLocalHeight] = useState("");
 

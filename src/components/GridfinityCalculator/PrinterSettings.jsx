@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Select,
   SelectContent,
@@ -8,23 +8,15 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { printerSizes } from "@/lib/utils";
+import { printerSizes } from "../../lib/utils";
 
-const PrinterSettings = ({ printerSize, setPrinterSize }) => {
-  const [selectedPrinter, setSelectedPrinter] = useState("Bambu Lab A1");
-  const [customSize, setCustomSize] = useState({ x: 0, y: 0 });
-
+const PrinterSettings = ({ selectedPrinter, setSelectedPrinter, customPrinterSize, setCustomPrinterSize }) => {
   const handlePrinterChange = (value) => {
     setSelectedPrinter(value);
-    setPrinterSize(value === "Custom" ? customSize : printerSizes[value]);
   };
 
   const handleCustomSizeChange = (axis, value) => {
-    const newCustomSize = { ...customSize, [axis]: parseInt(value) || 0 };
-    setCustomSize(newCustomSize);
-    if (selectedPrinter === "Custom") {
-      setPrinterSize(newCustomSize);
-    }
+    setCustomPrinterSize(prev => ({ ...prev, [axis]: parseInt(value) || 0 }));
   };
 
   return (
@@ -43,6 +35,7 @@ const PrinterSettings = ({ printerSize, setPrinterSize }) => {
                   {printer}
                 </SelectItem>
               ))}
+              <SelectItem value="Custom">Custom</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -54,7 +47,7 @@ const PrinterSettings = ({ printerSize, setPrinterSize }) => {
               <Input
                 id="customWidth"
                 type="number"
-                value={customSize.x}
+                value={customPrinterSize.x}
                 onChange={(e) => handleCustomSizeChange("x", e.target.value)}
               />
             </div>
@@ -63,7 +56,7 @@ const PrinterSettings = ({ printerSize, setPrinterSize }) => {
               <Input
                 id="customHeight"
                 type="number"
-                value={customSize.y}
+                value={customPrinterSize.y}
                 onChange={(e) => handleCustomSizeChange("y", e.target.value)}
               />
             </div>

@@ -22,3 +22,12 @@ export const printerSizes = {
   "Voron 2.4 (350mm)": { x: 350, y: 350, z: 350 },
   // "Custom": { x: 0, y: 0, z: 0 }, // Allow users to input custom dimensions
 }
+
+export function saveUserSettings(settings) {
+  localStorage.setItem('gridfinitySettings', JSON.stringify(settings));
+}
+
+export function loadUserSettings() {
+  const savedSettings = localStorage.getItem('gridfinitySettings');
+  return savedSettings ? JSON.parse(savedSettings) : null;
+}
