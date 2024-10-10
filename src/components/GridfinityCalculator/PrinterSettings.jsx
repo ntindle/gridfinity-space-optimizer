@@ -60,9 +60,9 @@ const PrinterSettings = ({ selectedPrinter, setSelectedPrinter }) => {
                         key={printer.value}
                         value={printer.value}
                         onSelect={(currentValue) => {
-                          setSelectedPrinter(
-                            currentValue === selectedPrinter ? "" : currentValue
-                          );
+                          if (currentValue !== selectedPrinter) {
+                            setSelectedPrinter(currentValue);
+                          }
                           setOpen(false);
                         }}
                       >
