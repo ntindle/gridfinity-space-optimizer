@@ -6,15 +6,19 @@ import BinOptions from "./GridfinityCalculator/BinOptions";
 import DrawerOptions from "./GridfinityCalculator/DrawerOptions";
 import GridfinityResults from "./GridfinityResults";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
+import { Card, CardContent } from "@/components/ui/card";
+import { printerSizes } from "@/lib/utils";
 
 const GridfinityCalculator = () => {
-  const [drawerSize, setDrawerSize] = useState({ width: 22.5, height: 16.5 });
+  const [drawerSize, setDrawerSize] = useState({ width: 571.5, height: 419.1 }); // Default in mm
   const [printerSize, setPrinterSize] = useState({ x: 256, y: 256 });
+  const [selectedPrinter, setSelectedPrinter] = useState("Bambu Lab A1");
   const [useHalfSize, setUseHalfSize] = useState(false);
   const [preferHalfSize, setPreferHalfSize] = useState(false);
   const [result, setResult] = useState(null);
   const [layout, setLayout] = useState([]);
   const [numDrawers, setNumDrawers] = useState(1);
+  const [unit, setUnit] = useState('mm');
 
   useEffect(() => {
     const { baseplates, spacers, halfSizeBins, layout } = calculateGrids(
@@ -27,33 +31,10 @@ const GridfinityCalculator = () => {
     setLayout(layout);
   }, [drawerSize, printerSize, useHalfSize, preferHalfSize, numDrawers]);
 
-  useEffect(() => {
-    const logWindowSize = () => {
-      console.log(`Window size: ${window.innerWidth}x${window.innerHeight}`);
-    };
-
-    logWindowSize();
-    window.addEventListener("resize", logWindowSize);
-
-    return () => window.removeEventListener("resize", logWindowSize);
-  }, []);
-
-  useEffect(() => {
-    const gridContainer = document.querySelector(".grid");
-    if (gridContainer) {
-      const computedStyle = window.getComputedStyle(gridContainer);
-      console.log(
-        "Computed grid-template-columns:",
-        computedStyle.gridTemplateColumns
-      );
-    }
-  }, []);
-
-  console.log("Rendering GridfinityCalculator");
-  console.log(
-    "Tailwind classes applied:",
-    "grid grid-cols-1 md:grid-cols-2 gap-6"
-  );
+  const handlePrinterChange = (value) => {
+    setSelectedPrinter(value);
+    setPrinterSize(printerSizes[value]);
+  };
 
   return (
     <div className="space-y-6">
@@ -65,32 +46,42 @@ const GridfinityCalculator = () => {
           gridAutoRows: "1fr",
         }}
       >
-        <div className="bg-white p-4 rounded-lg shadow">
-          <DrawerDimensions
-            drawerSize={drawerSize}
-            setDrawerSize={setDrawerSize}
-          />
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <PrinterSettings
-            printerSize={printerSize}
-            setPrinterSize={setPrinterSize}
-          />
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <BinOptions
-            useHalfSize={useHalfSize}
-            setUseHalfSize={setUseHalfSize}
-            preferHalfSize={preferHalfSize}
-            setPreferHalfSize={setPreferHalfSize}
-          />
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <DrawerOptions
-            numDrawers={numDrawers}
-            setNumDrawers={setNumDrawers}
-          />
-        </div>
+        <Card>
+          <CardContent>
+            <DrawerDimensions
+              drawerSize={drawerSize}
+              setDrawerSize={setDrawerSize}
+              unit={unit}
+              setUnit={setUnit}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <PrinterSettings
+              selectedPrinter={selectedPrinter}
+              handlePrinterChange={handlePrinterChange}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <BinOptions
+              useHalfSize={useHalfSize}
+              setUseHalfSize={setUseHalfSize}
+              preferHalfSize={preferHalfSize}
+              setPreferHalfSize={setPreferHalfSize}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <DrawerOptions
+              numDrawers={numDrawers}
+              setNumDrawers={setNumDrawers}
+            />
+          </CardContent>
+        </Card>
       </div>
 
       {result && layout.length > 0 && (
@@ -102,16 +93,20 @@ const GridfinityCalculator = () => {
             gridAutoRows: "1fr",
           }}
         >
-          <div className="bg-white p-4 rounded-lg shadow">
-            <GridfinityResults
-              result={result}
-              useHalfSize={useHalfSize}
-              preferHalfSize={preferHalfSize}
-            />
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <GridfinityVisualPreview layout={layout} drawerSize={drawerSize} />
-          </div>
+          <Card>
+            <CardContent>
+              <GridfinityResults
+                result={result}
+                useHalfSize={useHalfSize}
+                preferHalfSize={preferHalfSize}
+              />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <GridfinityVisualPreview layout={layout} drawerSize={drawerSize} />
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
