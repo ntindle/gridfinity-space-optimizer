@@ -15,7 +15,12 @@ const Features = () => {
           flexibility. Our calculator empowers you to create custom
           Gridfinity layouts that perfectly fit your needs.
         </p>
-        <Button variant="outline">Learn More</Button>
+        <Button 
+          variant="outline"
+          onClick={() => window.open("https://gridfinity.xyz/", "_blank")}
+        >
+          Learn More
+        </Button>
       </div>
       <div className="bg-gray-800 rounded-lg shadow-lg p-8 text-white">
         <h3 className="text-2xl font-semibold mb-6">Key Features</h3>
