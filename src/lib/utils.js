@@ -8,6 +8,8 @@ export function cn(...inputs) {
 export const printerSizes = {
   "Bambu Lab A1 Mini": { x: 180, y: 180, z: 180 },
   "Bambu Lab A1": { x: 220, y: 220, z: 250 },
+  "Bambu Lab P1S": { x: 256, y: 256, z: 256 },
+  "Bambu Lab P1P": { x: 256, y: 256, z: 256 },
   "Bambu Lab X1C": { x: 256, y: 256, z: 256 },
   "Prusa i3 MK3S+": { x: 250, y: 210, z: 210 },
   "Creality Ender 3": { x: 220, y: 220, z: 250 },
