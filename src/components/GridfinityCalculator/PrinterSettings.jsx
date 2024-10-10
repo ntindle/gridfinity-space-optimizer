@@ -18,13 +18,28 @@ import {
 import { Label } from "@/components/ui/label";
 import { printerSizes } from "../../lib/utils";
 
-const PrinterSettings = ({ selectedPrinter, setSelectedPrinter }) => {
+const PrinterSettings = ({ selectedPrinter, handlePrinterChange }) => {
   const [open, setOpen] = React.useState(false);
 
-  const printers = Object.keys(printerSizes).map((printer) => ({
-    value: printer,
-    label: printer,
-  }));
+  const printers = [
+    ...Object.keys(printerSizes).map((printer) => ({
+      value: printer,
+      label: printer,
+    })),
+    { value: "custom", label: "Custom" },
+  ];
+
+  const handleSelect = (value) => {
+    if (value === "custom") {
+      // Placeholder for future custom logic
+      console.log("Custom printer selected. Implement custom logic here.");
+      // For now, we'll just call handlePrinterChange with "custom"
+      handlePrinterChange("custom");
+    } else {
+      handlePrinterChange(value);
+    }
+    setOpen(false);
+  };
 
   return (
     <div className="space-y-6 p-4">
@@ -42,9 +57,7 @@ const PrinterSettings = ({ selectedPrinter, setSelectedPrinter }) => {
                 id="printerModel"
               >
                 {selectedPrinter
-                  ? printers.find(
-                      (printer) => printer.value === selectedPrinter
-                    )?.label
+                  ? printers.find((printer) => printer.value === selectedPrinter)?.label
                   : "Select a printer..."}
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
@@ -59,12 +72,7 @@ const PrinterSettings = ({ selectedPrinter, setSelectedPrinter }) => {
                       <CommandItem
                         key={printer.value}
                         value={printer.value}
-                        onSelect={(currentValue) => {
-                          setSelectedPrinter(
-                            currentValue === selectedPrinter ? "" : currentValue
-                          );
-                          setOpen(false);
-                        }}
+                        onSelect={handleSelect}
                       >
                         <Check
                           className={cn(
