@@ -6,13 +6,7 @@ export const printerSizes = {
   "Bambu Lab A1": { x: 256, y: 256 },
   "Prusa i3 MK3S+": { x: 250, y: 210 },
   "Ender 3": { x: 220, y: 220 },
-  "Creality CR-10": { x: 300, y: 300 },
-  "Anycubic i3 Mega": { x: 210, y: 210 },
-  "Flashforge Creator Pro": { x: 225, y: 145 },
-  "Ultimaker 2+": { x: 223, y: 223 },
-  "Lulzbot Taz 6": { x: 280, y: 280 },
-  "Raise3D Pro2": { x: 305, y: 305 },
-  "Makerbot Replicator+": { x: 295, y: 195 },
+  Custom: { x: 0, y: 0 },
 };
 
 export const splitSpacerIfNeeded = (spacer, maxWidth, maxHeight) => {
