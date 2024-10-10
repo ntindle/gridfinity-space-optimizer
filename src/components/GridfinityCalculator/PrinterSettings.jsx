@@ -1,6 +1,11 @@
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { printerSizes } from "@/lib/utils";
@@ -23,11 +28,9 @@ const PrinterSettings = ({ printerSize, setPrinterSize }) => {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Printer Settings</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="space-y-6 p-4">
+      <h3 className="text-lg font-semibold">Printer Settings</h3>
+      <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="printerModel">Printer Model</Label>
           <Select onValueChange={handlePrinterChange} value={selectedPrinter}>
@@ -66,8 +69,8 @@ const PrinterSettings = ({ printerSize, setPrinterSize }) => {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

@@ -1,5 +1,4 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const GridfinityResults = ({ result, useHalfSize, preferHalfSize }) => {
   const { baseplates, halfSizeBins, spacers, numDrawers } = result;
@@ -17,52 +16,45 @@ const GridfinityResults = ({ result, useHalfSize, preferHalfSize }) => {
   const totalSpacers = multiplyQuantities(spacers);
 
   return (
-    <Card className="shadow-xl">
-      <CardHeader>
-        <CardTitle>Results</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold">
-            Results for {numDrawers} drawer{numDrawers > 1 ? "s" : ""}
-          </h3>
-          {!useHalfSize && (
-            <div>
-              <h4 className="text-lg font-medium">Baseplates:</h4>
-              <ul className="list-disc list-inside pl-4">
-                {Object.entries(totalBaseplates).map(([size, count]) => (
-                  <li key={size} className="text-gray-700">
-                    {count} {size} baseplate(s)
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {(useHalfSize || preferHalfSize) && totalHalfSizeBins && (
-            <div>
-              <h4 className="text-lg font-medium">Half-size Bins:</h4>
-              <ul className="list-disc list-inside pl-4">
-                {Object.entries(totalHalfSizeBins).map(([size, count]) => (
-                  <li key={size} className="text-gray-700">
-                    {count} {size} half-size bin(s)
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+      <div className="space-y-4">
+        <h4 className="text-xl font-semibold">
+          Results for {numDrawers} drawer{numDrawers > 1 ? "s" : ""}
+        </h4>
+        {!useHalfSize && (
           <div>
-            <h4 className="text-lg font-medium">Spacers:</h4>
+            <h5 className="text-lg font-medium">Baseplates:</h5>
             <ul className="list-disc list-inside pl-4">
-              {Object.entries(totalSpacers).map(([size, count]) => (
+              {Object.entries(totalBaseplates).map(([size, count]) => (
                 <li key={size} className="text-gray-700">
-                  {count} spacer(s): {size}
+                  {count} {size} baseplate(s)
                 </li>
               ))}
             </ul>
           </div>
+        )}
+        {(useHalfSize || preferHalfSize) && totalHalfSizeBins && (
+          <div>
+            <h5 className="text-lg font-medium">Half-size Bins:</h5>
+            <ul className="list-disc list-inside pl-4">
+              {Object.entries(totalHalfSizeBins).map(([size, count]) => (
+                <li key={size} className="text-gray-700">
+                  {count} {size} half-size bin(s)
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div>
+          <h5 className="text-lg font-medium">Spacers:</h5>
+          <ul className="list-disc list-inside pl-4">
+            {Object.entries(totalSpacers).map(([size, count]) => (
+              <li key={size} className="text-gray-700">
+                {count} spacer(s): {size}
+              </li>
+            ))}
+          </ul>
         </div>
-      </CardContent>
-    </Card>
+      </div>
   );
 };
 

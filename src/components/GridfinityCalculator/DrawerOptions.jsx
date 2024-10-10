@@ -15,31 +15,27 @@ const DrawerOptions = ({ numDrawers, setNumDrawers }) => {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Drawer Options</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center space-x-4">
-          <Label htmlFor="numDrawers" className="flex-1">
-            Number of Duplicate Drawers
-          </Label>
-          <Input
-            id="numDrawers"
-            type="number"
-            min="1"
-            value={numDrawers}
-            onChange={handleInputChange}
-            onBlur={() => {
-              if (numDrawers === "" || isNaN(numDrawers)) {
-                setNumDrawers(1);
-              }
-            }}
-            className="w-24"
-          />
-        </div>
-      </CardContent>
-    </Card>
+    <div className="p-4 space-y-2">
+      <h3 className="text-lg font-semibold">Drawer Options</h3>
+      <div className="flex items-center space-x-4">
+        <Label htmlFor="numDrawers" className="flex-1">
+          Number of Duplicate Drawers
+        </Label>
+        <Input
+          id="numDrawers"
+          type="number"
+          min="1"
+          value={numDrawers}
+          onChange={handleInputChange}
+          onBlur={() => {
+            if (numDrawers === "" || isNaN(numDrawers)) {
+              setNumDrawers(1);
+            }
+          }}
+          className="w-24"
+        />
+      </div>
+    </div>
   );
 };
 

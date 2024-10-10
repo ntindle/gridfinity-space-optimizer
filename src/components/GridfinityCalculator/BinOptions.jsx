@@ -1,5 +1,4 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -10,11 +9,9 @@ const BinOptions = ({
   setPreferHalfSize,
 }) => {
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Bin Options</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-6 p-4">
+      <h3 className="text-lg font-semibold">Bin Options</h3>
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label htmlFor="use-half-size" className="flex-1">
             Use only half-size bins (21x21mm)
@@ -41,8 +38,8 @@ const BinOptions = ({
             }}
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

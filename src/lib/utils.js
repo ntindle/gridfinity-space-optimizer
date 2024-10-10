@@ -18,5 +18,5 @@ export const printerSizes = {
   "Ultimaker S5": { x: 330, y: 240, z: 300 },
   "Voron 2.4 (300mm)": { x: 300, y: 300, z: 300 },
   "Voron 2.4 (350mm)": { x: 350, y: 350, z: 350 },
-  "Custom": { x: 0, y: 0, z: 0 }, // Allow users to input custom dimensions
+  // "Custom": { x: 0, y: 0, z: 0 }, // Allow users to input custom dimensions
 }
