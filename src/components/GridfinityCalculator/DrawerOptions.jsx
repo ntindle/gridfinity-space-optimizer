@@ -15,27 +15,28 @@ const DrawerOptions = ({ numDrawers, setNumDrawers }) => {
   };
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Drawer Options</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid w-full items-center gap-4">
-          <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="numDrawers">Number of Duplicate Drawers</Label>
-            <Input
-              id="numDrawers"
-              type="number"
-              min="1"
-              value={numDrawers}
-              onChange={handleInputChange}
-              onBlur={() => {
-                if (numDrawers === "" || isNaN(numDrawers)) {
-                  setNumDrawers(1);
-                }
-              }}
-            />
-          </div>
+        <div className="flex items-center space-x-4">
+          <Label htmlFor="numDrawers" className="flex-1">
+            Number of Duplicate Drawers
+          </Label>
+          <Input
+            id="numDrawers"
+            type="number"
+            min="1"
+            value={numDrawers}
+            onChange={handleInputChange}
+            onBlur={() => {
+              if (numDrawers === "" || isNaN(numDrawers)) {
+                setNumDrawers(1);
+              }
+            }}
+            className="w-24"
+          />
         </div>
       </CardContent>
     </Card>

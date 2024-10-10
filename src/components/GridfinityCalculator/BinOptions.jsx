@@ -10,38 +10,36 @@ const BinOptions = ({
   setPreferHalfSize,
 }) => {
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Bin Options</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex flex-col space-y-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="use-half-size"
-              checked={useHalfSize}
-              onCheckedChange={(checked) => {
-                setUseHalfSize(checked);
-                if (checked) setPreferHalfSize(false);
-              }}
-            />
-            <Label htmlFor="use-half-size" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Use only half-size bins (21x21mm)
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="prefer-half-size"
-              checked={preferHalfSize}
-              onCheckedChange={(checked) => {
-                setPreferHalfSize(checked);
-                if (checked) setUseHalfSize(false);
-              }}
-            />
-            <Label htmlFor="prefer-half-size" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Prefer half-size bins for spacers
-            </Label>
-          </div>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="use-half-size" className="flex-1">
+            Use only half-size bins (21x21mm)
+          </Label>
+          <Switch
+            id="use-half-size"
+            checked={useHalfSize}
+            onCheckedChange={(checked) => {
+              setUseHalfSize(checked);
+              if (checked) setPreferHalfSize(false);
+            }}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="prefer-half-size" className="flex-1">
+            Prefer half-size bins for spacers
+          </Label>
+          <Switch
+            id="prefer-half-size"
+            checked={preferHalfSize}
+            onCheckedChange={(checked) => {
+              setPreferHalfSize(checked);
+              if (checked) setUseHalfSize(false);
+            }}
+          />
         </div>
       </CardContent>
     </Card>
