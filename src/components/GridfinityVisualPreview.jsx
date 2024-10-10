@@ -3,7 +3,7 @@ import { getColor, INCH_TO_MM } from "../utils/gridfinityUtils";
 
 const GridfinityVisualPreview = ({ layout, drawerSize }) => {
   return (
-    <div className="w-full md:w-1/2">
+    <div className="w-full">
       <h3 className="text-lg font-semibold">Visual Preview</h3>
       <div
         className="w-full relative border-2 border-black overflow-hidden"
