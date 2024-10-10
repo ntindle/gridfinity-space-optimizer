@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -11,9 +11,11 @@ const BinOptions = ({
 }) => {
   return (
     <Card>
-      <CardContent className="p-4">
-        <h3 className="text-lg font-semibold mb-4">Bin Options</h3>
-        <div className="space-y-4">
+      <CardHeader>
+        <CardTitle>Bin Options</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="flex flex-col space-y-4">
           <div className="flex items-center space-x-2">
             <Switch
               id="use-half-size"
@@ -23,7 +25,7 @@ const BinOptions = ({
                 if (checked) setPreferHalfSize(false);
               }}
             />
-            <Label htmlFor="use-half-size">
+            <Label htmlFor="use-half-size" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Use only half-size bins (21x21mm)
             </Label>
           </div>
@@ -36,7 +38,7 @@ const BinOptions = ({
                 if (checked) setUseHalfSize(false);
               }}
             />
-            <Label htmlFor="prefer-half-size">
+            <Label htmlFor="prefer-half-size" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Prefer half-size bins for spacers
             </Label>
           </div>
