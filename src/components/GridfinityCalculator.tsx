@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import DrawerDimensions from "./GridfinityCalculator/DrawerDimensions";
 import PrinterSettings from "./GridfinityCalculator/PrinterSettings";

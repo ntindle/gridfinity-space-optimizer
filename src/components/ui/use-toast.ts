@@ -11,7 +11,7 @@ function genId(): string {
   return count.toString();
 }
 
-const toastTimeouts = new Map<string, NodeJS.Timeout>()
+const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
 const addToRemoveQueue = (toastId: string): void => {
   if (toastTimeouts.has(toastId)) {

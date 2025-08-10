@@ -7,7 +7,9 @@
       "Bash(npm run lint)",
       "Bash(mkdir:*)",
       "Bash(npm test:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx vite build:*)",
+      "Bash(npx vite:*)"
     ],
     "deny": []
   }
