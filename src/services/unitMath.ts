@@ -23,10 +23,12 @@ export const unitMath = {
     
     // Handle the specific inch to mm conversion we use
     if (fromUnit === 'inch' && toUnit === 'mm') {
-      return math.number(math.multiply(math.bignumber(value), math.bignumber(25.4)));
+      const result = math.multiply(math.bignumber(value), math.bignumber(25.4));
+      return math.number(result as math.BigNumber);
     }
     if (fromUnit === 'mm' && toUnit === 'inch') {
-      return math.number(math.divide(math.bignumber(value), math.bignumber(25.4)));
+      const result = math.divide(math.bignumber(value), math.bignumber(25.4));
+      return math.number(result as math.BigNumber);
     }
     
     // For other unit conversions, use mathjs unit system
@@ -45,21 +47,23 @@ export const unitMath = {
    */
   approxEqual: (a: number, b: number, tolerance: number = 0.01): boolean => {
     const diff = math.abs(math.subtract(math.bignumber(a), math.bignumber(b)));
-    return math.smaller(diff, tolerance);
+    return math.smaller(diff, tolerance) as boolean;
   },
   
   /**
    * Precise multiplication
    */
   multiply: (a: number, b: number): number => {
-    return math.number(math.multiply(math.bignumber(a), math.bignumber(b)));
+    const result = math.multiply(math.bignumber(a), math.bignumber(b));
+    return math.number(result as math.BigNumber);
   },
   
   /**
    * Precise division
    */
   divide: (a: number, b: number): number => {
-    return math.number(math.divide(math.bignumber(a), math.bignumber(b)));
+    const result = math.divide(math.bignumber(a), math.bignumber(b));
+    return math.number(result as math.BigNumber);
   },
   
   /**
