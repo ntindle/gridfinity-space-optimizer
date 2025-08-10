@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Background -->
+  <rect width="128" height="128" fill="#f3f4f6" rx="8"/>
+  
+  <!-- Grid pattern -->
+  <g stroke="#374151" stroke-width="2" fill="none">
+    <!-- Vertical lines -->
+    <line x1="32" y1="16" x2="32" y2="112"/>
+    <line x1="64" y1="16" x2="64" y2="112"/>
+    <line x1="96" y1="16" x2="96" y2="112"/>
+    
+    <!-- Horizontal lines -->
+    <line x1="16" y1="32" x2="112" y2="32"/>
+    <line x1="16" y1="64" x2="112" y2="64"/>
+    <line x1="16" y1="96" x2="112" y2="96"/>
+    
+    <!-- Outer border -->
+    <rect x="16" y="16" width="96" height="96" rx="4"/>
+  </g>
+  
+  <!-- Highlight some cells to show depth/3D effect -->
+  <g fill="#3b82f6" opacity="0.2">
+    <rect x="17" y="17" width="14" height="14" rx="2"/>
+    <rect x="65" y="33" width="30" height="30" rx="2"/>
+    <rect x="33" y="65" width="30" height="30" rx="2"/>
+    <rect x="97" y="97" width="14" height="14" rx="2"/>
+  </g>
+  
+  <!-- Add subtle 3D effect with shadows -->
+  <g fill="#1f2937" opacity="0.1">
+    <rect x="18" y="18" width="12" height="1"/>
+    <rect x="18" y="18" width="1" height="12"/>
+    <rect x="66" y="34" width="28" height="1"/>
+    <rect x="66" y="34" width="1" height="28"/>
+    <rect x="34" y="66" width="28" height="1"/>
+    <rect x="34" y="66" width="1" height="28"/>
+    <rect x="98" y="98" width="12" height="1"/>
+    <rect x="98" y="98" width="1" height="12"/>
+  </g>
+</svg>

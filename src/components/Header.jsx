@@ -7,7 +7,7 @@ const Header = () => {
     <header className="bg-white dark:bg-gray-800 shadow-sm">
       <div className="container mx-auto px-4 py-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-          Gridfinity Calculator
+          Gridfinity Layout
         </h1>
         <nav>
           <Button
