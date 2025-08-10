@@ -8,7 +8,7 @@ import {
   parseDimension,
   validateDimension,
 } from './unitConversion';
-import type { PrinterSize, ValidationResult } from '@/types/gridfinity';
+import type { PrinterSize, Unit, ValidationResult } from '@/types/gridfinity';
 
 describe('unitConversion', () => {
   describe('constants', () => {
@@ -33,7 +33,7 @@ describe('unitConversion', () => {
     });
 
     it('should throw error for unknown unit', () => {
-      expect(() => convertToMm(100, 'cm' as any)).toThrow('Unknown unit: cm');
+      expect(() => convertToMm(100, 'cm' as Unit)).toThrow('Unknown unit: cm');
     });
   });
 
@@ -53,7 +53,7 @@ describe('unitConversion', () => {
     });
 
     it('should throw error for unknown unit', () => {
-      expect(() => convertFromMm(100, 'cm' as any)).toThrow('Unknown unit: cm');
+      expect(() => convertFromMm(100, 'cm' as Unit)).toThrow('Unknown unit: cm');
     });
   });
 

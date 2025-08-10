@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -10,11 +10,7 @@ const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
   const convertToMm = (value) => (value * 25.4).toFixed(2);
   const convertToInches = (value) => (value / 25.4).toFixed(4);
 
-  useEffect(() => {
-    updateLocalValues(drawerSize.width, drawerSize.height);
-  }, [useMm, drawerSize]);
-
-  const updateLocalValues = (width, height) => {
+  const updateLocalValues = useCallback((width, height) => {
     if (useMm) {
       setLocalWidth(convertToMm(width));
       setLocalHeight(convertToMm(height));
@@ -22,7 +18,11 @@ const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
       setLocalWidth(width.toFixed(4));
       setLocalHeight(height.toFixed(4));
     }
-  };
+  }, [useMm]);
+
+  useEffect(() => {
+    updateLocalValues(drawerSize.width, drawerSize.height);
+  }, [useMm, drawerSize, updateLocalValues]);
 
   const handleInputChange = (dimension) => (e) => {
     const value = e.target.value;

@@ -70,10 +70,10 @@ export interface CalculationParams {
 /**
  * Options for persisted state hook
  */
-export interface PersistOptions {
+export interface PersistOptions<T = unknown> {
   syncTabs?: boolean;
-  serialize?: (value: any) => string;
-  deserialize?: (value: string) => any;
+  serialize?: (value: T) => string;
+  deserialize?: (value: string) => T;
 }
 
 /**
