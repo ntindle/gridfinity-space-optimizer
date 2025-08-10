@@ -1,46 +1,65 @@
-import React, { useState, useEffect } from "react";
-import { calculateGrids } from "../utils/gridfinityUtils";
+import { useEffect } from 'react';
+import { Card, CardContent } from "@/components/ui/card";
 import DrawerDimensions from "./GridfinityCalculator/DrawerDimensions";
 import PrinterSettings from "./GridfinityCalculator/PrinterSettings";
 import BinOptions from "./GridfinityCalculator/BinOptions";
 import DrawerOptions from "./GridfinityCalculator/DrawerOptions";
 import GridfinityResults from "./GridfinityResults";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
-import { Card, CardContent } from "@/components/ui/card";
-import { printerSizes } from "@/lib/utils";
+import { useGridfinitySettings } from "../hooks/useGridfinitySettings";
+import { useGridfinityCalculation } from "../hooks/useGridfinityCalculation";
+import { useLegacyMigration } from "../hooks/useLegacyMigration";
+import { saveUserSettings, loadUserSettings } from "../lib/utils";
 
 const GridfinityCalculator = () => {
-  const [drawerSize, setDrawerSize] = useState({ width: 571.5, height: 419.1 }); // Default in mm
-  const [printerSize, setPrinterSize] = useState({ x: 256, y: 256 });
-  const [selectedPrinter, setSelectedPrinter] = useState("Bambu Lab A1");
-  const [useHalfSize, setUseHalfSize] = useState(false);
-  const [preferHalfSize, setPreferHalfSize] = useState(false);
-  const [result, setResult] = useState(null);
-  const [layout, setLayout] = useState([]);
-  const [numDrawers, setNumDrawers] = useState(1);
-  const [unit, setUnit] = useState('in'); // Default to inches
-
+  // Migrate legacy data first
+  useLegacyMigration();
+  
+  // Use our custom hooks for clean state management
+  const settings = useGridfinitySettings();
+  
+  // Calculate results based on current settings
+  const { result, layout, printerSize } = useGridfinityCalculation({
+    drawerSize: settings.drawerSize,
+    selectedPrinter: settings.selectedPrinter,
+    useHalfSize: settings.useHalfSize,
+    preferHalfSize: settings.preferHalfSize,
+    numDrawers: settings.numDrawers,
+  });
+  
+  // Maintain backward compatibility with tests by syncing with old format
   useEffect(() => {
-    const { baseplates, spacers, halfSizeBins, layout } = calculateGrids(
-      drawerSize,
-      printerSize,
-      useHalfSize,
-      preferHalfSize
-    );
-    setResult({ baseplates, spacers, halfSizeBins, numDrawers });
-    setLayout(layout);
-  }, [drawerSize, printerSize, useHalfSize, preferHalfSize, numDrawers]);
-
-  const handlePrinterChange = (value) => {
-    setSelectedPrinter(value);
-    if (value === "custom") {
-      // For now, we'll set a default custom size
-      // This can be expanded later to allow user input
-      setPrinterSize({ x: 200, y: 200 });
-    } else {
-      setPrinterSize(printerSizes[value]);
+    // Load legacy settings on mount for test compatibility
+    const legacySettings = loadUserSettings();
+    if (legacySettings && !localStorage.getItem('gridfinity_migration_v1')) {
+      // Apply legacy settings if they exist and haven't been migrated
+      if (legacySettings.drawerSize) settings.setDrawerSize(legacySettings.drawerSize);
+      if (legacySettings.selectedPrinter) settings.setSelectedPrinter(legacySettings.selectedPrinter);
+      if (legacySettings.useHalfSize !== undefined) settings.setUseHalfSize(legacySettings.useHalfSize);
+      if (legacySettings.preferHalfSize !== undefined) settings.setPreferHalfSize(legacySettings.preferHalfSize);
+      if (legacySettings.numDrawers !== undefined) settings.setNumDrawers(legacySettings.numDrawers);
+      if (legacySettings.useMm !== undefined) settings.setUseMm(legacySettings.useMm);
     }
-  };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  // Save in legacy format for test compatibility
+  useEffect(() => {
+    saveUserSettings({
+      drawerSize: settings.drawerSize,
+      selectedPrinter: settings.selectedPrinter,
+      useHalfSize: settings.useHalfSize,
+      preferHalfSize: settings.preferHalfSize,
+      numDrawers: settings.numDrawers,
+      useMm: settings.useMm,
+    });
+  }, [
+    settings.drawerSize,
+    settings.selectedPrinter,
+    settings.useHalfSize,
+    settings.preferHalfSize,
+    settings.numDrawers,
+    settings.useMm,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -55,36 +74,38 @@ const GridfinityCalculator = () => {
         <Card>
           <CardContent>
             <DrawerDimensions
-              drawerSize={drawerSize}
-              setDrawerSize={setDrawerSize}
-              unit={unit}
-              setUnit={setUnit}
+              drawerSize={settings.drawerSize}
+              setDrawerSize={settings.setDrawerSize}
+              useMm={settings.useMm}
+              setUseMm={settings.setUseMm}
             />
           </CardContent>
         </Card>
         <Card>
           <CardContent>
             <PrinterSettings
-              selectedPrinter={selectedPrinter}
-              handlePrinterChange={handlePrinterChange}
+              selectedPrinter={settings.selectedPrinter}
+              setSelectedPrinter={settings.setSelectedPrinter}
+              printerSize={printerSize}
+              useMm={settings.useMm}
             />
           </CardContent>
         </Card>
         <Card>
           <CardContent>
             <BinOptions
-              useHalfSize={useHalfSize}
-              setUseHalfSize={setUseHalfSize}
-              preferHalfSize={preferHalfSize}
-              setPreferHalfSize={setPreferHalfSize}
+              useHalfSize={settings.useHalfSize}
+              setUseHalfSize={settings.setUseHalfSize}
+              preferHalfSize={settings.preferHalfSize}
+              setPreferHalfSize={settings.setPreferHalfSize}
             />
           </CardContent>
         </Card>
         <Card>
           <CardContent>
             <DrawerOptions
-              numDrawers={numDrawers}
-              setNumDrawers={setNumDrawers}
+              numDrawers={settings.numDrawers}
+              setNumDrawers={settings.setNumDrawers}
             />
           </CardContent>
         </Card>
@@ -103,14 +124,17 @@ const GridfinityCalculator = () => {
             <CardContent>
               <GridfinityResults
                 result={result}
-                useHalfSize={useHalfSize}
-                preferHalfSize={preferHalfSize}
+                useHalfSize={settings.useHalfSize}
+                preferHalfSize={settings.preferHalfSize}
               />
             </CardContent>
           </Card>
           <Card>
             <CardContent>
-              <GridfinityVisualPreview layout={layout} drawerSize={drawerSize} />
+              <GridfinityVisualPreview 
+                layout={layout} 
+                drawerSize={settings.drawerSize} 
+              />
             </CardContent>
           </Card>
         </div>

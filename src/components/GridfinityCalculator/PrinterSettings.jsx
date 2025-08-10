@@ -18,7 +18,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { printerSizes } from "../../lib/utils";
 
-const PrinterSettings = ({ selectedPrinter, handlePrinterChange }) => {
+const PrinterSettings = ({ selectedPrinter, setSelectedPrinter, printerSize, useMm }) => {
   const [open, setOpen] = React.useState(false);
 
   const printers = [
@@ -30,15 +30,29 @@ const PrinterSettings = ({ selectedPrinter, handlePrinterChange }) => {
   ];
 
   const handleSelect = (value) => {
-    if (value === "custom") {
-      // Placeholder for future custom logic
-      console.log("Custom printer selected. Implement custom logic here.");
-      // For now, we'll just call handlePrinterChange with "custom"
-      handlePrinterChange("custom");
-    } else {
-      handlePrinterChange(value);
-    }
+    setSelectedPrinter(value);
     setOpen(false);
+  };
+
+  // Format dimensions based on unit preference
+  const formatDimension = (mm) => {
+    if (useMm) {
+      return `${mm}mm`;
+    } else {
+      const inches = (mm / 25.4).toFixed(1);
+      return `${inches}"`;
+    }
+  };
+
+  // Get formatted bed size string
+  const getBedSizeDisplay = () => {
+    if (!printerSize) return '';
+    
+    const x = formatDimension(printerSize.x);
+    const y = formatDimension(printerSize.y);
+    const z = formatDimension(printerSize.z || printerSize.x); // Some printers might not have z defined
+    
+    return `${x} × ${y} × ${z}`;
   };
 
   return (
@@ -54,11 +68,8 @@ const PrinterSettings = ({ selectedPrinter, handlePrinterChange }) => {
                 role="combobox"
                 aria-expanded={open}
                 className="w-full justify-between"
-                id="printerModel"
               >
-                {selectedPrinter
-                  ? printers.find((printer) => printer.value === selectedPrinter)?.label
-                  : "Select a printer..."}
+                {selectedPrinter || "Select printer..."}
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
@@ -68,29 +79,38 @@ const PrinterSettings = ({ selectedPrinter, handlePrinterChange }) => {
                 <CommandList>
                   <CommandEmpty>No printer found.</CommandEmpty>
                   <CommandGroup>
-                    {printers.map((printer) => (
-                      <CommandItem
-                        key={printer.value}
-                        value={printer.value}
-                        onSelect={handleSelect}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedPrinter === printer.value
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        {printer.label}
-                      </CommandItem>
-                    ))}
+                    {printers
+                      .sort((a, b) => a.label.localeCompare(b.label))
+                      .map((printer) => (
+                        <CommandItem
+                          key={printer.value}
+                          value={printer.value}
+                          onSelect={() => handleSelect(printer.value)}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedPrinter === printer.value
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          {printer.label}
+                        </CommandItem>
+                      ))}
                   </CommandGroup>
                 </CommandList>
               </Command>
             </PopoverContent>
           </Popover>
         </div>
+        
+        {/* Display printer bed size */}
+        {printerSize && (
+          <div className="text-sm text-muted-foreground">
+            Build Volume: {getBedSizeDisplay()}
+          </div>
+        )}
       </div>
     </div>
   );

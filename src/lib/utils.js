@@ -9,7 +9,7 @@ export const printerSizes = {
   "Anycubic Mega S": { x: 210, y: 210, z: 205 },
   "Anycubic Vyper": { x: 245, y: 245, z: 260 },
   "Bambu Lab A1 Mini": { x: 180, y: 180, z: 180 },
-  "Bambu Lab A1": { x: 220, y: 220, z: 250 },
+  "Bambu Lab A1": { x: 256, y: 256, z: 256 },
   "Bambu Lab P1S": { x: 256, y: 256, z: 256 },
   "Bambu Lab P1P": { x: 256, y: 256, z: 256 },
   "Bambu Lab X1C": { x: 256, y: 256, z: 256 },

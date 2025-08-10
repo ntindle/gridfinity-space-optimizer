@@ -1,0 +1,51 @@
+import { useEffect } from 'react';
+
+/**
+ * Migrate legacy localStorage data to new format
+ * This ensures backward compatibility with existing user data
+ */
+export const useLegacyMigration = () => {
+  useEffect(() => {
+    // Check if migration has already been done
+    const migrationDone = localStorage.getItem('gridfinity_migration_v1');
+    if (migrationDone) return;
+
+    // Check for legacy settings
+    const legacySettings = localStorage.getItem('gridfinitySettings');
+    if (legacySettings) {
+      try {
+        const settings = JSON.parse(legacySettings);
+        
+        // Migrate each setting to new key format
+        if (settings.drawerSize) {
+          localStorage.setItem('gridfinity_drawerSize', JSON.stringify(settings.drawerSize));
+        }
+        if (settings.selectedPrinter) {
+          localStorage.setItem('gridfinity_selectedPrinter', JSON.stringify(settings.selectedPrinter));
+        }
+        if (settings.useHalfSize !== undefined) {
+          localStorage.setItem('gridfinity_useHalfSize', JSON.stringify(settings.useHalfSize));
+        }
+        if (settings.preferHalfSize !== undefined) {
+          localStorage.setItem('gridfinity_preferHalfSize', JSON.stringify(settings.preferHalfSize));
+        }
+        if (settings.numDrawers !== undefined) {
+          localStorage.setItem('gridfinity_numDrawers', JSON.stringify(settings.numDrawers));
+        }
+        if (settings.useMm !== undefined) {
+          localStorage.setItem('gridfinity_useMm', JSON.stringify(settings.useMm));
+        }
+        
+        // Mark migration as done
+        localStorage.setItem('gridfinity_migration_v1', 'true');
+        
+        console.log('Successfully migrated legacy settings');
+      } catch (error) {
+        console.error('Error migrating legacy settings:', error);
+      }
+    } else {
+      // No legacy settings, just mark migration as done
+      localStorage.setItem('gridfinity_migration_v1', 'true');
+    }
+  }, []);
+};
