@@ -13,9 +13,7 @@
         "skipAudits": [
           "uses-http2",
           "valid-source-maps",
-          "csp-xss",
-          "canonical",
-          "is-crawlable"
+          "csp-xss"
         ],
         "onlyCategories": ["performance", "accessibility", "best-practices", "seo"]
       }
@@ -42,7 +40,9 @@
         "uses-optimized-images": "off",
         "uses-text-compression": "off",
         "uses-rel-preconnect": "off",
-        "unused-javascript": "off"
+        "unused-javascript": "off",
+        "canonical": "off",
+        "is-crawlable": "off"
       }
     },
     "upload": {
