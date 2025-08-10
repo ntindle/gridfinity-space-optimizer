@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateGrids, FULL_GRID_SIZE, HALF_GRID_SIZE, INCH_TO_MM } from './gridfinityUtils';
+import { calculateGrids, FULL_GRID_SIZE, INCH_TO_MM } from './gridfinityUtils';
 import type { DrawerSize, PrinterSize, LayoutItem } from '@/types/gridfinity';
 
 describe('gridfinityUtils - Layout Logic', () => {
@@ -100,12 +100,7 @@ describe('gridfinityUtils - Layout Logic', () => {
       
       const result = calculateGrids(drawerSize, printerSize, false, false);
       
-      const widthMm = 3.5 * INCH_TO_MM; // 88.9mm
-      const heightMm = 3.5 * INCH_TO_MM; // 88.9mm
-      
       // 88.9 / 42 = 2 grids with 4.9mm remainder
-      const expectedGrids = 2;
-      const expectedRemainder = 88.9 - (expectedGrids * FULL_GRID_SIZE); // 4.9mm
       
       // Should have 2x2 baseplate
       expect(result.baseplates['2x2']).toBe(1);

@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import type { Settings } from '@/types';
 
 /**
  * Legacy settings structure (for migration)
@@ -51,10 +50,8 @@ export const useLegacyMigration = (): void => {
         
         // Mark migration as done
         localStorage.setItem('gridfinity_migration_v1', 'true');
-        
-        console.log('Successfully migrated legacy settings');
-      } catch (error) {
-        console.error('Error migrating legacy settings:', error);
+      } catch {
+        // Silently handle migration errors - don't break the app
       }
     } else {
       // No legacy settings, just mark migration as done

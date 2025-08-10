@@ -1,0 +1,153 @@
+name: Performance Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build application
+        run: npm run build
+        
+      - name: Install serve
+        run: npm install -g serve
+        
+      - name: Start server
+        run: |
+          serve -s dist -p 3000 &
+          sleep 5
+          curl -f http://localhost:3000 || exit 1
+        
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          configPath: './.lighthouserc.json'
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+        env:
+          LHCI_BUILD_CONTEXT__GITHUB_REPO_SLUG: ${{ github.repository }}
+          LHCI_BUILD_CONTEXT__GITHUB_COMMIT_SHA: ${{ github.sha }}
+          
+      - name: Generate Performance Report
+        if: always()
+        run: |
+          echo "## 🚀 Performance Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Lighthouse scores:" >> $GITHUB_STEP_SUMMARY
+          echo "- Performance: Check artifacts for detailed scores" >> $GITHUB_STEP_SUMMARY
+          echo "- Accessibility: Check artifacts for detailed scores" >> $GITHUB_STEP_SUMMARY
+          echo "- Best Practices: Check artifacts for detailed scores" >> $GITHUB_STEP_SUMMARY
+          echo "- SEO: Check artifacts for detailed scores" >> $GITHUB_STEP_SUMMARY
+
+  bundle-analysis:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build and analyze
+        run: |
+          npm run build
+          
+          # Create bundle analysis
+          echo "## 📦 Bundle Analysis" >> bundle-report.md
+          echo "" >> bundle-report.md
+          echo "### JavaScript Bundles" >> bundle-report.md
+          echo '```' >> bundle-report.md
+          find dist -name "*.js" -exec du -h {} \; | sort -rh >> bundle-report.md
+          echo '```' >> bundle-report.md
+          echo "" >> bundle-report.md
+          echo "### CSS Bundles" >> bundle-report.md
+          echo '```' >> bundle-report.md
+          find dist -name "*.css" -exec du -h {} \; | sort -rh >> bundle-report.md
+          echo '```' >> bundle-report.md
+          echo "" >> bundle-report.md
+          echo "### Total Size" >> bundle-report.md
+          echo '```' >> bundle-report.md
+          du -sh dist >> bundle-report.md
+          echo '```' >> bundle-report.md
+          
+          cat bundle-report.md >> $GITHUB_STEP_SUMMARY
+          
+      - name: Check bundle size limits
+        run: |
+          # Set size limits (in KB)
+          MAX_JS_SIZE=1500
+          MAX_CSS_SIZE=100
+          
+          # Check JS bundle size
+          JS_SIZE=$(find dist/assets -name "*.js" -exec du -k {} \; | sort -rn | head -1 | cut -f1)
+          if [ "$JS_SIZE" -gt "$MAX_JS_SIZE" ]; then
+            echo "❌ JS bundle exceeds limit: ${JS_SIZE}KB > ${MAX_JS_SIZE}KB"
+            exit 1
+          else
+            echo "✅ JS bundle within limit: ${JS_SIZE}KB <= ${MAX_JS_SIZE}KB"
+          fi
+          
+          # Check CSS bundle size
+          CSS_SIZE=$(find dist/assets -name "*.css" -exec du -k {} \; | sort -rn | head -1 | cut -f1)
+          if [ "$CSS_SIZE" -gt "$MAX_CSS_SIZE" ]; then
+            echo "❌ CSS bundle exceeds limit: ${CSS_SIZE}KB > ${MAX_CSS_SIZE}KB"
+            exit 1
+          else
+            echo "✅ CSS bundle within limit: ${CSS_SIZE}KB <= ${MAX_CSS_SIZE}KB"
+          fi
+          
+      - name: Upload bundle report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-report
+          path: bundle-report.md
+          retention-days: 7
+
+  memory-leak-detection:
+    name: Memory Leak Detection
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run memory leak tests
+        run: |
+          # Run tests with memory tracking
+          node --expose-gc --max-old-space-size=4096 node_modules/.bin/vitest --run --reporter=verbose --config vite.config.test.js

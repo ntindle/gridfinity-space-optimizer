@@ -5,7 +5,7 @@ import type { DrawerSize, PrinterSize, GridfinityResult } from '@/types/gridfini
 
 // Mock the calculateGrids function
 vi.mock('../utils/gridfinityUtils', () => ({
-  calculateGrids: vi.fn((drawerSize: DrawerSize, printerSize: PrinterSize, useHalfSize: boolean, preferHalfSize: boolean): GridfinityResult => ({
+  calculateGrids: vi.fn((drawerSize: DrawerSize, printerSize: PrinterSize, useHalfSize: boolean): GridfinityResult => ({
     baseplates: {
       '3x3': 4,
       '2x2': 2,
@@ -29,14 +29,6 @@ vi.mock('../lib/utils', () => ({
   },
 }));
 
-interface CalculationParams {
-  drawerSize: DrawerSize | null;
-  selectedPrinter: string;
-  customPrinterSize: PrinterSize | null;
-  useHalfSize: boolean;
-  preferHalfSize: boolean;
-  numDrawers: number;
-}
 
 describe.skip('useGridfinityCalculation', () => {
   it('should calculate results for standard printer', () => {

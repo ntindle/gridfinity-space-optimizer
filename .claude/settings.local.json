@@ -9,7 +9,8 @@
       "Bash(npm test:*)",
       "Bash(npm run build:*)",
       "Bash(npx vite build:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   }

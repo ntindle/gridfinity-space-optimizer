@@ -1,7 +1,11 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CustomPrinterDialog from './CustomPrinterDialog';
+import { useCustomPrinter } from '../../hooks/useCustomPrinter';
 
 // Mock the useCustomPrinter hook
 vi.mock('../../hooks/useCustomPrinter', () => ({
@@ -14,6 +18,8 @@ vi.mock('../../hooks/useCustomPrinter', () => ({
     resetToDefault: vi.fn(),
   })),
 }));
+
+const mockUseCustomPrinter = vi.mocked(useCustomPrinter);
 
 describe('CustomPrinterDialog', () => {
   const mockOnOpenChange = vi.fn();
@@ -95,10 +101,9 @@ describe('CustomPrinterDialog', () => {
   });
 
   it('should handle input changes', async () => {
-    const { useCustomPrinter } = await import('../../hooks/useCustomPrinter');
     const mockHandleInputChange = vi.fn();
     
-    useCustomPrinter.mockReturnValue({
+    mockUseCustomPrinter.mockReturnValue({
       customDimensions: { x: 200, y: 200, z: 200 },
       inputValues: { x: '200', y: '200', z: '200' },
       errors: { x: null, y: null, z: null },
@@ -125,9 +130,7 @@ describe('CustomPrinterDialog', () => {
   });
 
   it('should display validation errors', async () => {
-    const { useCustomPrinter } = await import('../../hooks/useCustomPrinter');
-    
-    useCustomPrinter.mockReturnValue({
+    mockUseCustomPrinter.mockReturnValue({
       customDimensions: { x: 200, y: 200, z: 200 },
       inputValues: { x: '10', y: '200', z: '200' },
       errors: { 
@@ -156,11 +159,10 @@ describe('CustomPrinterDialog', () => {
   });
 
   it('should call onConfirm with valid dimensions', async () => {
-    const { useCustomPrinter } = await import('../../hooks/useCustomPrinter');
     const mockValidateAll = vi.fn(() => true);
     const customDimensions = { x: 250, y: 250, z: 250 };
     
-    useCustomPrinter.mockReturnValue({
+    mockUseCustomPrinter.mockReturnValue({
       customDimensions,
       inputValues: { x: '250', y: '250', z: '250' },
       errors: { x: null, y: null, z: null },
@@ -187,10 +189,9 @@ describe('CustomPrinterDialog', () => {
   });
 
   it('should not confirm with invalid dimensions', async () => {
-    const { useCustomPrinter } = await import('../../hooks/useCustomPrinter');
     const mockValidateAll = vi.fn(() => false);
     
-    useCustomPrinter.mockReturnValue({
+    mockUseCustomPrinter.mockReturnValue({
       customDimensions: { x: 10, y: 200, z: 200 },
       inputValues: { x: '10', y: '200', z: '200' },
       errors: { x: 'Too small', y: null, z: null },
@@ -217,10 +218,9 @@ describe('CustomPrinterDialog', () => {
   });
 
   it('should handle reset to default', async () => {
-    const { useCustomPrinter } = await import('../../hooks/useCustomPrinter');
     const mockResetToDefault = vi.fn();
     
-    useCustomPrinter.mockReturnValue({
+    mockUseCustomPrinter.mockReturnValue({
       customDimensions: { x: 200, y: 200, z: 200 },
       inputValues: { x: '200', y: '200', z: '200' },
       errors: { x: null, y: null, z: null },

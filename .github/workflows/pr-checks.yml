@@ -1,0 +1,171 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better diff analysis
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run all checks
+        id: checks
+        run: |
+          echo "## PR Quality Report 📊" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # TypeScript Check
+          echo "### TypeScript Check 🔍" >> $GITHUB_STEP_SUMMARY
+          if npx tsc --noEmit; then
+            echo "✅ No TypeScript errors" >> $GITHUB_STEP_SUMMARY
+            echo "typescript=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ TypeScript errors found" >> $GITHUB_STEP_SUMMARY
+            echo "typescript=failure" >> $GITHUB_OUTPUT
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Lint Check
+          echo "### ESLint Check 🧹" >> $GITHUB_STEP_SUMMARY
+          if npm run lint 2>&1 | tee lint-output.txt; then
+            echo "✅ No linting errors" >> $GITHUB_STEP_SUMMARY
+            echo "lint=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Linting errors found" >> $GITHUB_STEP_SUMMARY
+            cat lint-output.txt >> $GITHUB_STEP_SUMMARY
+            echo "lint=failure" >> $GITHUB_OUTPUT
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Test Check
+          echo "### Test Results 🧪" >> $GITHUB_STEP_SUMMARY
+          if npm test -- --run --reporter=verbose 2>&1 | tee test-output.txt; then
+            echo "✅ All tests passed" >> $GITHUB_STEP_SUMMARY
+            # Extract test summary
+            grep -E "Test Files|Tests" test-output.txt >> $GITHUB_STEP_SUMMARY || true
+            echo "tests=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Tests failed" >> $GITHUB_STEP_SUMMARY
+            grep -E "Test Files|Tests|FAIL" test-output.txt >> $GITHUB_STEP_SUMMARY || true
+            echo "tests=failure" >> $GITHUB_OUTPUT
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Build Check
+          echo "### Build Check 🏗️" >> $GITHUB_STEP_SUMMARY
+          if npm run build 2>&1 | tee build-output.txt; then
+            echo "✅ Build successful" >> $GITHUB_STEP_SUMMARY
+            # Show bundle size info
+            grep -E "dist/|kB|gzip" build-output.txt >> $GITHUB_STEP_SUMMARY || true
+            echo "build=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Build failed" >> $GITHUB_STEP_SUMMARY
+            echo "build=failure" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Comment PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Read the summary
+            let summary = '## PR Quality Report 📊\n\n';
+            
+            // Add check results with emojis
+            const checks = {
+              typescript: '${{ steps.checks.outputs.typescript }}' === 'success' ? '✅' : '❌',
+              lint: '${{ steps.checks.outputs.lint }}' === 'success' ? '✅' : '❌',
+              tests: '${{ steps.checks.outputs.tests }}' === 'success' ? '✅' : '❌',
+              build: '${{ steps.checks.outputs.build }}' === 'success' ? '✅' : '❌'
+            };
+            
+            summary += '| Check | Status |\n';
+            summary += '|-------|--------|\n';
+            summary += `| TypeScript | ${checks.typescript} |\n`;
+            summary += `| ESLint | ${checks.lint} |\n`;
+            summary += `| Tests | ${checks.tests} |\n`;
+            summary += `| Build | ${checks.build} |\n`;
+            summary += '\n';
+            
+            // Add details link
+            summary += `[View detailed results](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n`;
+            
+            // Find and update or create comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('PR Quality Report')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: summary
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: summary
+              });
+            }
+
+  coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests with coverage
+        run: npm test -- --run --coverage
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false

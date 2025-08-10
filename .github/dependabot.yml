@@ -1,0 +1,64 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "ntindle"
+    labels:
+      - "dependencies"
+      - "npm"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    ignore:
+      # Ignore major version updates for these packages
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Group all development dependencies together
+      dev-dependencies:
+        patterns:
+          - "*"
+        dependency-type: "development"
+      # Group all production dependencies together  
+      production-dependencies:
+        patterns:
+          - "*"
+        dependency-type: "production"
+      # Group ESLint and related packages
+      eslint:
+        patterns:
+          - "eslint*"
+          - "@typescript-eslint/*"
+      # Group testing packages
+      testing:
+        patterns:
+          - "vitest*"
+          - "@testing-library/*"
+      # Group Radix UI packages
+      radix-ui:
+        patterns:
+          - "@radix-ui/*"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"

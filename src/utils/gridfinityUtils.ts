@@ -3,8 +3,7 @@ import type {
   DrawerSize, 
   PrinterSize, 
   LayoutItem, 
-  GridfinityResult, 
-  CalculationParams 
+  GridfinityResult
 } from '@/types';
 
 export const FULL_GRID_SIZE = 42; // mm

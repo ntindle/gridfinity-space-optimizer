@@ -215,6 +215,7 @@ export const testFixtures: Record<string, TestFixture> = {
         // No half-size bins in this case
       },
       hasHalfSizeBins: false,
+      layoutCount: 5,
     },
   },
 
