@@ -9,7 +9,7 @@ Gridfinity Space Optimizer is a React-based web application for calculating opti
 ## Recent Major Changes (Updated: Current Session)
 
 ### ✅ MathJS Integration for Precision
-- **CRITICAL**: All calculations now use `unitMath` service (`src/services/unitMath.js`) for BigNumber precision
+- **CRITICAL**: All calculations now use `unitMath` service (`src/services/unitMath.ts`) for BigNumber precision
 - Never use native JavaScript math operations (`+`, `-`, `*`, `/`, `Math.*`) in calculation code
 - Always use `unitMath.add()`, `unitMath.subtract()`, `unitMath.multiply()`, `unitMath.divide()`, etc.
 - This fixes all floating-point precision issues (no more `41.099999999999966`, now exactly `41.1`)
@@ -24,7 +24,7 @@ Gridfinity Space Optimizer is a React-based web application for calculating opti
 - Phase 3 of refactor plan completed (feature enhancements)
 - All console.log statements removed from production code
 - Import paths standardized to use `@/` alias consistently
-- ESLint configuration fixed for JavaScript/React (not TypeScript)
+- ESLint configuration supports both TypeScript and JavaScript
 - Settings Context implemented with global state management
 - Custom printer dimensions UI fully functional
 
@@ -53,19 +53,21 @@ npm run preview
 ## Architecture
 
 ### Core Technologies
+- **TypeScript** - Type-safe JavaScript with full type coverage
 - **Vite** - Build tool and dev server
 - **React 18** - UI framework
 - **React Router** - Single-page routing
 - **Tailwind CSS** - Utility-first styling
 - **Shadcn/ui** - Component library built on Radix UI primitives
 - **React Query** - Server state management
+- **MathJS** - Arbitrary precision arithmetic
 
 ### Application Structure
 
 The app follows a standard React SPA pattern with component-based architecture:
 
-- **Entry Point**: `src/main.jsx` → `src/App.jsx` → `src/pages/Index.jsx`
-- **Main Calculator**: `src/components/GridfinityCalculator.jsx` orchestrates the entire calculation workflow
+- **Entry Point**: `src/main.tsx` → `src/App.tsx` → `src/pages/Index.tsx`
+- **Main Calculator**: `src/components/GridfinityCalculator.tsx` orchestrates the entire calculation workflow
 - **State Management**: 
   - Global state via `SettingsContext` and `SettingsProvider`
   - Local React state with localStorage persistence via `usePersistedState` hook
@@ -74,24 +76,24 @@ The app follows a standard React SPA pattern with component-based architecture:
 
 ### Key Components
 
-1. **GridfinityCalculator** (`src/components/GridfinityCalculator.jsx`)
+1. **GridfinityCalculator** (`src/components/GridfinityCalculator.tsx`)
    - Central component managing drawer dimensions, printer settings, and bin options
    - Coordinates child components and manages calculation state
    - Persists user preferences to localStorage
 
 2. **Calculator Subsections** (`src/components/GridfinityCalculator/`)
-   - `DrawerDimensions.jsx` - Input for drawer size (inches/mm conversion)
-   - `PrinterSettings.jsx` - 3D printer selection with predefined build volumes
-   - `BinOptions.jsx` - Toggle for half-size bin preferences
-   - `DrawerOptions.jsx` - Number of identical drawers
+   - `DrawerDimensions.tsx` - Input for drawer size (inches/mm conversion)
+   - `PrinterSettings.tsx` - 3D printer selection with predefined build volumes
+   - `BinOptions.tsx` - Toggle for half-size bin preferences
+   - `DrawerOptions.tsx` - Number of identical drawers
 
 3. **Results Display**
-   - `GridfinityResults.jsx` - Shows calculated bin quantities
-   - `GridfinityVisualPreview.jsx` - Visual layout representation
+   - `GridfinityResults.tsx` - Shows calculated bin quantities
+   - `GridfinityVisualPreview.tsx` - Visual layout representation
 
 ### Core Logic
 
-**Gridfinity Calculation Engine** (`src/utils/gridfinityUtils.js`)
+**Gridfinity Calculation Engine** (`src/utils/gridfinityUtils.ts`)
 - Constants: `FULL_GRID_SIZE = 42mm`, `HALF_GRID_SIZE = 21mm`
 - Main function: `calculateGrids()` - Computes optimal bin layout
 - **CRITICAL**: ALL math operations must use `unitMath` from `@/services/unitMath`
@@ -120,7 +122,7 @@ Uses Shadcn/ui components (`src/components/ui/`) - pre-built accessible componen
 1. **Settings Persistence**: User preferences are automatically saved to localStorage on every change
 2. **Responsive Design**: Grid layouts use `repeat(auto-fit, minmax(300px, 1fr))` for adaptive columns
 3. **Dimension Handling**: All internal calculations use millimeters; UI supports inch/mm toggle
-4. **Printer Profiles**: Predefined printer sizes in `src/lib/utils.js` as `printerSizes` object
+4. **Printer Profiles**: Predefined printer sizes in `src/lib/utils.ts` as `printerSizes` object
 5. **Layout Visualization**: Real-time preview updates using calculated pixel coordinates
 
 ## Development Notes
@@ -129,7 +131,7 @@ Uses Shadcn/ui components (`src/components/ui/`) - pre-built accessible componen
   - Run tests: `npm test`
   - Update snapshots: `npx vitest --run -u`
   - 168 tests currently passing
-- ESLint configured for React/JSX with max warnings set to 0
+- ESLint configured for TypeScript/TSX and JavaScript/JSX with max warnings set to 0
 - Development server runs on port 8080 (configured in vite.config.js)
 - Uses Vite's hot module replacement for rapid development
 
@@ -152,10 +154,19 @@ See `REFACTOR_PLAN.md` for details:
 - ✅ Phase 1: Clean Up & Stabilize - COMPLETED
 - ✅ Phase 2: State Management - COMPLETED
 - ✅ Phase 3: Feature Enhancements - COMPLETED
-- ❌ Phase 4-6: Not started yet
+- ⏸️ Phase 4: Architecture with TypeScript - IN PROGRESS
+- ❌ Phase 5-6: Not started yet
 
 See `docs/REFACTOR_PLAN_MATHJS.md` for MathJS integration:
 - ✅ All phases COMPLETED - precision issues fixed!
+
+See `TYPESCRIPT_MIGRATION.md` for TypeScript migration details:
+- ✅ Setup and configuration completed
+- ✅ Core utilities migrated
+- ✅ All hooks migrated to TypeScript
+- ✅ All components migrated to TypeScript  
+- ✅ All test files migrated to TypeScript
+- ✅ 100% TypeScript migration COMPLETED - no JS/JSX files remaining in src/
 
 ## Critical Warnings & Gotchas
 
@@ -186,10 +197,11 @@ import { something } from '../../../lib/utils';
 import { something } from '@/lib/utils';
 ```
 
-### ⚠️ Project is JavaScript, not TypeScript
-- ESLint is configured for .js/.jsx files
-- Don't try to add TypeScript configurations
-- Use PropTypes if type checking is needed
+### ✅ Project is now fully TypeScript
+- All source code migrated from JavaScript to TypeScript
+- ESLint configured for both .ts/.tsx and .js/.jsx files
+- Full type safety with TypeScript types and interfaces
+- Zero JavaScript files remaining in src/ directory
 
 ## Known Issues to Watch For
 
