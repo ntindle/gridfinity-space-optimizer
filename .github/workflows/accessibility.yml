@@ -1,0 +1,170 @@
+name: Accessibility Tests
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  axe-accessibility:
+    name: Axe Accessibility Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install --save-dev @axe-core/cli puppeteer
+          
+      - name: Build application
+        run: npm run build
+        
+      - name: Serve application
+        run: |
+          npx serve -s dist -p 3000 &
+          sleep 5
+          
+      - name: Run Axe accessibility tests
+        run: |
+          npx axe http://localhost:3000 \
+            --dir ./axe-reports \
+            --save \
+            --timeout 30000 \
+            --tags wcag2a,wcag2aa,wcag21a,wcag21aa \
+            --show-errors
+        continue-on-error: true
+        
+      - name: Generate accessibility report
+        if: always()
+        run: |
+          echo "## ♿ Accessibility Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "./axe-reports/index.json" ]; then
+            # Parse the JSON report and create summary
+            echo "### Axe-core Results" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Check if there are violations
+            violations=$(cat ./axe-reports/index.json | grep -o '"violations":\[\]' || true)
+            if [ -n "$violations" ]; then
+              echo "✅ No accessibility violations found!" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ Accessibility issues detected. Check the detailed report." >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "❌ Accessibility test failed to generate report" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Standards Tested" >> $GITHUB_STEP_SUMMARY
+          echo "- WCAG 2.0 Level A" >> $GITHUB_STEP_SUMMARY
+          echo "- WCAG 2.0 Level AA" >> $GITHUB_STEP_SUMMARY
+          echo "- WCAG 2.1 Level A" >> $GITHUB_STEP_SUMMARY
+          echo "- WCAG 2.1 Level AA" >> $GITHUB_STEP_SUMMARY
+          
+      - name: Upload accessibility reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accessibility-reports
+          path: axe-reports/
+          retention-days: 30
+
+  pa11y-accessibility:
+    name: Pa11y Accessibility Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install --save-dev pa11y pa11y-ci
+          
+      - name: Build application
+        run: npm run build
+        
+      - name: Create Pa11y config
+        run: |
+          cat > .pa11yci.json << 'EOF'
+          {
+            "defaults": {
+              "timeout": 30000,
+              "wait": 1000,
+              "standard": "WCAG2AA",
+              "runners": ["axe", "htmlcs"],
+              "chromeLaunchConfig": {
+                "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+              }
+            },
+            "urls": [
+              {
+                "url": "http://localhost:3000",
+                "actions": [
+                  "wait for element #root to be visible"
+                ]
+              }
+            ]
+          }
+          EOF
+          
+      - name: Serve application
+        run: |
+          npx serve -s dist -p 3000 &
+          sleep 5
+          
+      - name: Run Pa11y tests
+        run: npx pa11y-ci --config .pa11yci.json --json > pa11y-results.json
+        continue-on-error: true
+        
+      - name: Upload Pa11y results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pa11y-results
+          path: pa11y-results.json
+          retention-days: 30
+
+  color-contrast:
+    name: Color Contrast Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Check color contrast in CSS
+        run: |
+          echo "## 🎨 Color Contrast Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Checking for potential color contrast issues..." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for common low-contrast color combinations
+          if grep -r "color:.*#[89abcdef]{3,6}" src/ --include="*.css" --include="*.tsx" --include="*.ts"; then
+            echo "⚠️ Found potentially low-contrast color values" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No obvious low-contrast issues detected" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Note: Full contrast testing is performed by Axe and Pa11y" >> $GITHUB_STEP_SUMMARY

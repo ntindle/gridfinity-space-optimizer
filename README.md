@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/ci.yml)
 [![Code Quality](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/code-quality.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/code-quality.yml)
+[![CodeQL](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/codeql.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/codeql.yml)
+[![SAST](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/sast.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/sast.yml)
 [![Deploy](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/deploy.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/deploy.yml)
 [![codecov](https://codecov.io/gh/ntindle/gridfinity-space-optimizer/branch/main/graph/badge.svg)](https://codecov.io/gh/ntindle/gridfinity-space-optimizer)
 
@@ -117,7 +119,16 @@ This project uses GitHub Actions for continuous integration and deployment:
 
 - **Deployment**: Automatic deployment to GitHub Pages on main branch
 
-- **Security**: Weekly dependency audits and vulnerability scanning
+- **Security**: 
+  - CodeQL semantic analysis for JavaScript/TypeScript
+  - Multiple SAST tools (Semgrep, Snyk, Trivy)
+  - Secret detection (Gitleaks, TruffleHog)
+  - Weekly dependency audits
+  - Automated Dependabot updates
+  
+- **Accessibility**: Automated WCAG 2.0/2.1 compliance testing
+  
+- **Performance**: Lighthouse CI and bundle size monitoring
 
 ## Contributing
 
