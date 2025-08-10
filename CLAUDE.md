@@ -135,7 +135,12 @@ Uses Shadcn/ui components (`src/components/ui/`) - pre-built accessible componen
 
 ## Custom Hooks Available
 
-- `useGridfinitySettings` - Main settings state management
+- `useSettings` - Access settings from context (use this in components)
+- `useDrawerSettings` - Focused access to drawer-related settings
+- `usePrinterSettings` - Focused access to printer-related settings
+- `useBinOptions` - Focused access to bin option settings
+- `useDrawerCount` - Focused access to drawer count setting
+- `useGridfinitySettings` - Main settings state management (used internally by context)
 - `useGridfinityCalculation` - Performs calculations with memoization
 - `usePersistedState` - Generic hook for localStorage persistence
 - `useLegacyMigration` - Handles migration from old localStorage format
@@ -145,8 +150,9 @@ Uses Shadcn/ui components (`src/components/ui/`) - pre-built accessible componen
 
 See `REFACTOR_PLAN.md` for details:
 - ✅ Phase 1: Clean Up & Stabilize - COMPLETED
-- ⏸️ Phase 2: State Management - PARTIALLY COMPLETED
-- ❌ Phase 3-6: Not started yet
+- ✅ Phase 2: State Management - COMPLETED
+- ✅ Phase 3: Feature Enhancements - COMPLETED
+- ❌ Phase 4-6: Not started yet
 
 See `docs/REFACTOR_PLAN_MATHJS.md` for MathJS integration:
 - ✅ All phases COMPLETED - precision issues fixed!
