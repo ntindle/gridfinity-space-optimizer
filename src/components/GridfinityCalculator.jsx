@@ -6,10 +6,10 @@ import BinOptions from "./GridfinityCalculator/BinOptions";
 import DrawerOptions from "./GridfinityCalculator/DrawerOptions";
 import GridfinityResults from "./GridfinityResults";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
-import { useGridfinitySettings } from "../hooks/useGridfinitySettings";
-import { useGridfinityCalculation } from "../hooks/useGridfinityCalculation";
-import { useLegacyMigration } from "../hooks/useLegacyMigration";
-import { saveUserSettings, loadUserSettings } from "../lib/utils";
+import { useGridfinitySettings } from "@/hooks/useGridfinitySettings";
+import { useGridfinityCalculation } from "@/hooks/useGridfinityCalculation";
+import { useLegacyMigration } from "@/hooks/useLegacyMigration";
+import { saveUserSettings, loadUserSettings } from "@/lib/utils";
 
 const GridfinityCalculator = () => {
   // Migrate legacy data first

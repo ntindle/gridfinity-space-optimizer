@@ -1,5 +1,5 @@
 import React from "react";
-import { getColor, INCH_TO_MM } from "../utils/gridfinityUtils";
+import { getColor, INCH_TO_MM } from "@/utils/gridfinityUtils";
 
 const GridfinityVisualPreview = ({ layout, drawerSize }) => {
   return (

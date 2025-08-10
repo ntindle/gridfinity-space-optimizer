@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Check, ChevronsUpDown, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, printerSizes } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -16,8 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { printerSizes } from "../../lib/utils";
-import { formatBuildVolume } from "../../services/unitConversion";
+import { formatBuildVolume } from "@/services/unitConversion";
 import CustomPrinterDialog from "./CustomPrinterDialog";
 
 const PrinterSettings = ({ 

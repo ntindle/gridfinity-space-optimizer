@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
-import { useCustomPrinter } from "../../hooks/useCustomPrinter";
+import { useCustomPrinter } from "@/hooks/useCustomPrinter";
 
 const CustomPrinterDialog = ({ open, onOpenChange, onConfirm, useMm }) => {
   const {
@@ -39,7 +39,7 @@ const CustomPrinterDialog = ({ open, onOpenChange, onConfirm, useMm }) => {
         <DialogHeader>
           <DialogTitle>Custom Printer Dimensions</DialogTitle>
           <DialogDescription>
-            Enter your 3D printer's build volume in {unit}.
+            Enter your 3D printer&apos;s build volume in {unit}.
           </DialogDescription>
         </DialogHeader>
         
