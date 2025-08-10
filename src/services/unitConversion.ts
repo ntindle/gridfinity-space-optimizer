@@ -5,7 +5,7 @@
  */
 
 import { unitMath, INCH_TO_MM } from './unitMath';
-import type { Unit, ValidationResult, PrinterSize } from '@/types';
+import type { PrinterSize } from '@/types';
 
 export { INCH_TO_MM };
 

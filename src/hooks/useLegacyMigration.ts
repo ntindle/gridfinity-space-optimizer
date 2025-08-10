@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import type { Settings } from '@/types';
 
 /**
  * Legacy settings structure (for migration)
