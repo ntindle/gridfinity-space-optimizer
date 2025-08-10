@@ -1,18 +1,20 @@
+import { unitMath } from '@/services/unitMath';
+
 export const FULL_GRID_SIZE = 42; // mm
 export const HALF_GRID_SIZE = 21; // mm
 export const INCH_TO_MM = 25.4;
 
 export const splitSpacerIfNeeded = (spacer, maxWidth, maxHeight) => {
   const spacers = [];
-  const fullWidthParts = Math.floor(spacer.pixelWidth / maxWidth);
-  const fullHeightParts = Math.floor(spacer.pixelHeight / maxHeight);
-  const remainderWidth = spacer.pixelWidth % maxWidth;
-  const remainderHeight = spacer.pixelHeight % maxHeight;
+  const fullWidthParts = unitMath.floor(unitMath.divide(spacer.pixelWidth, maxWidth));
+  const fullHeightParts = unitMath.floor(unitMath.divide(spacer.pixelHeight, maxHeight));
+  const remainderWidth = unitMath.mod(spacer.pixelWidth, maxWidth);
+  const remainderHeight = unitMath.mod(spacer.pixelHeight, maxHeight);
 
   for (let i = 0; i < fullWidthParts; i++) {
     for (let j = 0; j < fullHeightParts; j++) {
       spacers.push(
-        createSpacer(spacer, i * maxWidth, j * maxHeight, maxWidth, maxHeight)
+        createSpacer(spacer, unitMath.multiply(i, maxWidth), unitMath.multiply(j, maxHeight), maxWidth, maxHeight)
       );
     }
   }
@@ -22,8 +24,8 @@ export const splitSpacerIfNeeded = (spacer, maxWidth, maxHeight) => {
       spacers.push(
         createSpacer(
           spacer,
-          fullWidthParts * maxWidth,
-          j * maxHeight,
+          unitMath.multiply(fullWidthParts, maxWidth),
+          unitMath.multiply(j, maxHeight),
           remainderWidth,
           maxHeight
         )
@@ -36,8 +38,8 @@ export const splitSpacerIfNeeded = (spacer, maxWidth, maxHeight) => {
       spacers.push(
         createSpacer(
           spacer,
-          i * maxWidth,
-          fullHeightParts * maxHeight,
+          unitMath.multiply(i, maxWidth),
+          unitMath.multiply(fullHeightParts, maxHeight),
           maxWidth,
           remainderHeight
         )
@@ -49,8 +51,8 @@ export const splitSpacerIfNeeded = (spacer, maxWidth, maxHeight) => {
     spacers.push(
       createSpacer(
         spacer,
-        fullWidthParts * maxWidth,
-        fullHeightParts * maxHeight,
+        unitMath.multiply(fullWidthParts, maxWidth),
+        unitMath.multiply(fullHeightParts, maxHeight),
         remainderWidth,
         remainderHeight
       )
@@ -62,18 +64,18 @@ export const splitSpacerIfNeeded = (spacer, maxWidth, maxHeight) => {
 
 const createSpacer = (originalSpacer, offsetX, offsetY, width, height) => ({
   ...originalSpacer,
-  pixelX: originalSpacer.pixelX + offsetX,
-  pixelY: originalSpacer.pixelY + offsetY,
+  pixelX: unitMath.add(originalSpacer.pixelX, offsetX),
+  pixelY: unitMath.add(originalSpacer.pixelY, offsetY),
   pixelWidth: width,
   pixelHeight: height,
-  width: Math.round((width / FULL_GRID_SIZE) * 100) / 100,
-  height: Math.round((height / FULL_GRID_SIZE) * 100) / 100,
+  width: unitMath.round(unitMath.divide(width, FULL_GRID_SIZE), 2),
+  height: unitMath.round(unitMath.divide(height, FULL_GRID_SIZE), 2),
 });
 export const fillSpacerWithHalfSizeBins = (spacer) => {
-  const halfBinsX = Math.floor(spacer.pixelWidth / HALF_GRID_SIZE);
-  const halfBinsY = Math.floor(spacer.pixelHeight / HALF_GRID_SIZE);
-  const remainderWidth = spacer.pixelWidth % HALF_GRID_SIZE;
-  const remainderHeight = spacer.pixelHeight % HALF_GRID_SIZE;
+  const halfBinsX = unitMath.floor(unitMath.divide(spacer.pixelWidth, HALF_GRID_SIZE));
+  const halfBinsY = unitMath.floor(unitMath.divide(spacer.pixelHeight, HALF_GRID_SIZE));
+  const remainderWidth = unitMath.mod(spacer.pixelWidth, HALF_GRID_SIZE);
+  const remainderHeight = unitMath.mod(spacer.pixelHeight, HALF_GRID_SIZE);
 
   const halfSizeBins = [];
   for (let x = 0; x < halfBinsX; x++) {
@@ -87,7 +89,7 @@ export const fillSpacerWithHalfSizeBins = (spacer) => {
     remainingSpacers.push(
       createSpacer(
         spacer,
-        halfBinsX * HALF_GRID_SIZE,
+        unitMath.multiply(halfBinsX, HALF_GRID_SIZE),
         0,
         remainderWidth,
         spacer.pixelHeight
@@ -99,8 +101,8 @@ export const fillSpacerWithHalfSizeBins = (spacer) => {
       createSpacer(
         spacer,
         0,
-        halfBinsY * HALF_GRID_SIZE,
-        halfBinsX * HALF_GRID_SIZE,
+        unitMath.multiply(halfBinsY, HALF_GRID_SIZE),
+        unitMath.multiply(halfBinsX, HALF_GRID_SIZE),
         remainderHeight
       )
     );
@@ -110,13 +112,13 @@ export const fillSpacerWithHalfSizeBins = (spacer) => {
 };
 
 const createHalfSizeBin = (spacer, x, y) => ({
-  x: spacer.x + (x * HALF_GRID_SIZE) / FULL_GRID_SIZE,
-  y: spacer.y + (y * HALF_GRID_SIZE) / FULL_GRID_SIZE,
+  x: unitMath.add(spacer.x, unitMath.divide(unitMath.multiply(x, HALF_GRID_SIZE), FULL_GRID_SIZE)),
+  y: unitMath.add(spacer.y, unitMath.divide(unitMath.multiply(y, HALF_GRID_SIZE), FULL_GRID_SIZE)),
   width: 0.5,
   height: 0.5,
   type: "half-size",
-  pixelX: spacer.pixelX + x * HALF_GRID_SIZE,
-  pixelY: spacer.pixelY + y * HALF_GRID_SIZE,
+  pixelX: unitMath.add(spacer.pixelX, unitMath.multiply(x, HALF_GRID_SIZE)),
+  pixelY: unitMath.add(spacer.pixelY, unitMath.multiply(y, HALF_GRID_SIZE)),
   pixelWidth: HALF_GRID_SIZE,
   pixelHeight: HALF_GRID_SIZE,
 });
@@ -228,35 +230,35 @@ export const calculateGrids = (
     };
   }
 
-  const drawerWidth = drawerSize.width * INCH_TO_MM;
-  const drawerHeight = drawerSize.height * INCH_TO_MM;
+  const drawerWidth = unitMath.convert(drawerSize.width, 'inch', 'mm');
+  const drawerHeight = unitMath.convert(drawerSize.height, 'inch', 'mm');
 
   const gridSize = useHalfSize ? HALF_GRID_SIZE : FULL_GRID_SIZE;
-  const gridCountX = Math.floor(drawerWidth / gridSize);
-  const gridCountY = Math.floor(drawerHeight / gridSize);
+  const gridCountX = unitMath.floor(unitMath.divide(drawerWidth, gridSize));
+  const gridCountY = unitMath.floor(unitMath.divide(drawerHeight, gridSize));
 
-  const maxPrintSizeX = Math.floor(printerSize.x / gridSize) * gridSize;
-  const maxPrintSizeY = Math.floor(printerSize.y / gridSize) * gridSize;
+  const maxPrintSizeX = unitMath.multiply(unitMath.floor(unitMath.divide(printerSize.x, gridSize)), gridSize);
+  const maxPrintSizeY = unitMath.multiply(unitMath.floor(unitMath.divide(printerSize.y, gridSize)), gridSize);
 
   let baseplates = [];
   let newLayout = [];
-  let remainingWidth = drawerWidth - gridCountX * gridSize;
-  let remainingHeight = drawerHeight - gridCountY * gridSize;
+  let remainingWidth = unitMath.subtract(drawerWidth, unitMath.multiply(gridCountX, gridSize));
+  let remainingHeight = unitMath.subtract(drawerHeight, unitMath.multiply(gridCountY, gridSize));
 
-  for (let y = 0; y < gridCountY; y += maxPrintSizeY / gridSize) {
-    for (let x = 0; x < gridCountX; x += maxPrintSizeX / gridSize) {
-      const width = Math.min(maxPrintSizeX / gridSize, gridCountX - x);
-      const height = Math.min(maxPrintSizeY / gridSize, gridCountY - y);
+  for (let y = 0; y < gridCountY; y += unitMath.divide(maxPrintSizeY, gridSize)) {
+    for (let x = 0; x < gridCountX; x += unitMath.divide(maxPrintSizeX, gridSize)) {
+      const width = Math.min(unitMath.divide(maxPrintSizeX, gridSize), gridCountX - x);
+      const height = Math.min(unitMath.divide(maxPrintSizeY, gridSize), gridCountY - y);
       const item = {
         x,
         y,
         width,
         height,
         type: useHalfSize ? "half-size" : "baseplate",
-        pixelX: x * gridSize,
-        pixelY: y * gridSize,
-        pixelWidth: width * gridSize,
-        pixelHeight: height * gridSize,
+        pixelX: unitMath.multiply(x, gridSize),
+        pixelY: unitMath.multiply(y, gridSize),
+        pixelWidth: unitMath.multiply(width, gridSize),
+        pixelHeight: unitMath.multiply(height, gridSize),
       };
       if (useHalfSize) {
         newLayout.push(item);
@@ -270,19 +272,19 @@ export const calculateGrids = (
   let spacers = [];
 
   // Add horizontal spacer if needed (only if there's actual remaining width)
-  if (remainingWidth > 0.01) {  // Use small threshold to avoid floating point issues
+  if (!unitMath.approxEqual(remainingWidth, 0, 0.01)) {  // Use mathjs for precise comparison
     spacers = spacers.concat(
       splitSpacerIfNeeded(
         {
           x: gridCountX,
           y: 0,
-          width: remainingWidth / gridSize,
+          width: unitMath.divide(remainingWidth, gridSize),
           height: gridCountY,
           type: "spacer",
-          pixelX: gridCountX * gridSize,
+          pixelX: unitMath.multiply(gridCountX, gridSize),
           pixelY: 0,
           pixelWidth: remainingWidth,
-          pixelHeight: gridCountY * gridSize,
+          pixelHeight: unitMath.multiply(gridCountY, gridSize),
         },
         maxPrintSizeX,
         maxPrintSizeY
@@ -291,18 +293,18 @@ export const calculateGrids = (
   }
 
   // Add vertical spacer if needed (only if there's actual remaining height)
-  if (remainingHeight > 0.01) {  // Use small threshold to avoid floating point issues
+  if (!unitMath.approxEqual(remainingHeight, 0, 0.01)) {  // Use mathjs for precise comparison
     spacers = spacers.concat(
       splitSpacerIfNeeded(
         {
           x: 0,
           y: gridCountY,
           width: gridCountX,
-          height: remainingHeight / gridSize,
+          height: unitMath.divide(remainingHeight, gridSize),
           type: "spacer",
           pixelX: 0,
-          pixelY: gridCountY * gridSize,
-          pixelWidth: gridCountX * gridSize,
+          pixelY: unitMath.multiply(gridCountY, gridSize),
+          pixelWidth: unitMath.multiply(gridCountX, gridSize),
           pixelHeight: remainingHeight,
         },
         maxPrintSizeX,
@@ -312,17 +314,17 @@ export const calculateGrids = (
   }
 
   // Add corner spacer if needed (only if both dimensions have remainders)
-  if (remainingWidth > 0.01 && remainingHeight > 0.01) {  // Use small threshold
+  if (!unitMath.approxEqual(remainingWidth, 0, 0.01) && !unitMath.approxEqual(remainingHeight, 0, 0.01)) {  // Use mathjs
     spacers = spacers.concat(
       splitSpacerIfNeeded(
         {
           x: gridCountX,
           y: gridCountY,
-          width: remainingWidth / gridSize,
-          height: remainingHeight / gridSize,
+          width: unitMath.divide(remainingWidth, gridSize),
+          height: unitMath.divide(remainingHeight, gridSize),
           type: "spacer",
-          pixelX: gridCountX * gridSize,
-          pixelY: gridCountY * gridSize,
+          pixelX: unitMath.multiply(gridCountX, gridSize),
+          pixelY: unitMath.multiply(gridCountY, gridSize),
           pixelWidth: remainingWidth,
           pixelHeight: remainingHeight,
         },

@@ -1,9 +1,12 @@
 /**
  * Unit Conversion Service
  * Handles all unit conversions throughout the application
+ * Now uses mathjs for precise calculations to avoid floating-point errors
  */
 
-export const INCH_TO_MM = 25.4;
+import { unitMath, INCH_TO_MM } from './unitMath';
+
+export { INCH_TO_MM };
 
 /**
  * Convert a value to millimeters
@@ -13,7 +16,7 @@ export const INCH_TO_MM = 25.4;
  */
 export const convertToMm = (value, fromUnit = 'in') => {
   if (fromUnit === 'mm') return value;
-  if (fromUnit === 'in') return value * INCH_TO_MM;
+  if (fromUnit === 'in') return unitMath.convert(value, 'inch', 'mm');
   throw new Error(`Unknown unit: ${fromUnit}`);
 };
 
@@ -25,7 +28,7 @@ export const convertToMm = (value, fromUnit = 'in') => {
  */
 export const convertFromMm = (value, toUnit = 'in') => {
   if (toUnit === 'mm') return value;
-  if (toUnit === 'in') return value / INCH_TO_MM;
+  if (toUnit === 'in') return unitMath.convert(value, 'mm', 'inch');
   throw new Error(`Unknown unit: ${toUnit}`);
 };
 
