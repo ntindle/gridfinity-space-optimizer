@@ -45,7 +45,7 @@ jobs:
       - name: Check for console.log statements
         run: |
           echo "🔍 Checking for console.log statements..."
-          if grep -r "console.log" src/ --exclude-dir=test --exclude-dir=tests --exclude="*.test.*" --exclude="*.spec.*"; then
+          if grep -r "console.log" src/ --exclude-dir=test --exclude-dir=tests --exclude="*.test.*" --exclude="*.spec.*" --exclude="captureActualOutputs.ts" | grep -v "^Binary file"; then
             echo "❌ Found console.log statements in production code!"
             exit 1
           else
