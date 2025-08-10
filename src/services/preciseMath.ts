@@ -1,4 +1,4 @@
-import { create, all, MathJsStatic } from 'mathjs';
+import { create, all, MathJsInstance } from 'mathjs';
 import type { 
   PreciseNumber, 
   PreciseMath, 
@@ -10,7 +10,7 @@ import type {
 } from '@/types/math';
 
 // Create a mathjs instance with BigNumber for precise calculations
-const math: MathJsStatic = create(all);
+const math: MathJsInstance = create(all);
 
 // Configure for precise decimal calculations
 math.config({

@@ -27,12 +27,24 @@ jobs:
       - name: Build application
         run: npm run build
         
+      - name: Install serve
+        run: npm install -g serve
+        
+      - name: Start server
+        run: |
+          serve -s dist -p 3000 &
+          sleep 5
+          curl -f http://localhost:3000 || exit 1
+        
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v11
         with:
           configPath: './.lighthouserc.json'
           uploadArtifacts: true
           temporaryPublicStorage: true
+        env:
+          LHCI_BUILD_CONTEXT__GITHUB_REPO_SLUG: ${{ github.repository }}
+          LHCI_BUILD_CONTEXT__GITHUB_COMMIT_SHA: ${{ github.sha }}
           
       - name: Generate Performance Report
         if: always()
