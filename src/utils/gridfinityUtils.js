@@ -218,6 +218,16 @@ export const calculateGrids = (
   useHalfSize,
   preferHalfSize
 ) => {
+  // Handle invalid drawer dimensions
+  if (!drawerSize || drawerSize.width <= 0 || drawerSize.height <= 0) {
+    return {
+      baseplates: {},
+      spacers: {},
+      halfSizeBins: {},
+      layout: [],
+    };
+  }
+
   const drawerWidth = drawerSize.width * INCH_TO_MM;
   const drawerHeight = drawerSize.height * INCH_TO_MM;
 
@@ -259,8 +269,8 @@ export const calculateGrids = (
 
   let spacers = [];
 
-  // Add horizontal spacer if needed
-  if (remainingWidth > 0) {
+  // Add horizontal spacer if needed (only if there's actual remaining width)
+  if (remainingWidth > 0.01) {  // Use small threshold to avoid floating point issues
     spacers = spacers.concat(
       splitSpacerIfNeeded(
         {
@@ -280,8 +290,8 @@ export const calculateGrids = (
     );
   }
 
-  // Add vertical spacer if needed
-  if (remainingHeight > 0) {
+  // Add vertical spacer if needed (only if there's actual remaining height)
+  if (remainingHeight > 0.01) {  // Use small threshold to avoid floating point issues
     spacers = spacers.concat(
       splitSpacerIfNeeded(
         {
@@ -301,8 +311,8 @@ export const calculateGrids = (
     );
   }
 
-  // Add corner spacer if needed
-  if (remainingWidth > 0 && remainingHeight > 0) {
+  // Add corner spacer if needed (only if both dimensions have remainders)
+  if (remainingWidth > 0.01 && remainingHeight > 0.01) {  // Use small threshold
     spacers = spacers.concat(
       splitSpacerIfNeeded(
         {

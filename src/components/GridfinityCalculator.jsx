@@ -22,6 +22,7 @@ const GridfinityCalculator = () => {
   const { result, layout, printerSize } = useGridfinityCalculation({
     drawerSize: settings.drawerSize,
     selectedPrinter: settings.selectedPrinter,
+    customPrinterSize: settings.customPrinterSize,
     useHalfSize: settings.useHalfSize,
     preferHalfSize: settings.preferHalfSize,
     numDrawers: settings.numDrawers,
@@ -87,6 +88,7 @@ const GridfinityCalculator = () => {
               selectedPrinter={settings.selectedPrinter}
               setSelectedPrinter={settings.setSelectedPrinter}
               printerSize={printerSize}
+              setPrinterSize={settings.setCustomPrinterSize}
               useMm={settings.useMm}
             />
           </CardContent>

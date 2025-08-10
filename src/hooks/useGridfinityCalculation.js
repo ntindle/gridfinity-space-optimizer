@@ -9,6 +9,7 @@ import { printerSizes } from '../lib/utils';
 export const useGridfinityCalculation = ({
   drawerSize,
   selectedPrinter,
+  customPrinterSize,
   useHalfSize,
   preferHalfSize,
   numDrawers,
@@ -16,14 +17,13 @@ export const useGridfinityCalculation = ({
   const [result, setResult] = useState(null);
   const [layout, setLayout] = useState([]);
 
-  // Get printer size from selected printer
+  // Get printer size from selected printer or custom dimensions
   const printerSize = useMemo(() => {
-    if (selectedPrinter === 'custom') {
-      // Default custom size - will be made configurable in Phase 3
-      return { x: 200, y: 200, z: 200 };
+    if (selectedPrinter === 'Custom Printer' && customPrinterSize) {
+      return customPrinterSize;
     }
     return printerSizes[selectedPrinter] || { x: 256, y: 256, z: 256 };
-  }, [selectedPrinter]);
+  }, [selectedPrinter, customPrinterSize]);
 
   // Memoize the calculation to avoid unnecessary recalculations
   const calculationResult = useMemo(() => {

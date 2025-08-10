@@ -40,6 +40,12 @@ export const useGridfinitySettings = () => {
     false
   );
 
+  // Custom printer dimensions
+  const [customPrinterSize, setCustomPrinterSize] = usePersistedState(
+    'gridfinity_customPrinterSize',
+    { x: 200, y: 200, z: 200 }
+  );
+
   // Handle mutual exclusivity of bin options
   const handleUseHalfSizeChange = (value) => {
     setUseHalfSize(value);
@@ -83,6 +89,10 @@ export const useGridfinitySettings = () => {
     // Unit preference
     useMm,
     setUseMm,
+    
+    // Custom printer
+    customPrinterSize,
+    setCustomPrinterSize,
     
     // Utility functions
     resetSettings,
