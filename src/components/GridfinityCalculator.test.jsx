@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import GridfinityCalculator from './GridfinityCalculator'
+import { SettingsProvider } from '../contexts/SettingsContext'
 import { saveUserSettings, loadUserSettings } from '../lib/utils'
 
 // Mock the utils
@@ -15,6 +16,15 @@ vi.mock('../lib/utils', () => ({
   loadUserSettings: vi.fn(),
 }))
 
+// Helper function to render with providers
+const renderWithProviders = (component) => {
+  return render(
+    <SettingsProvider>
+      {component}
+    </SettingsProvider>
+  )
+}
+
 describe('GridfinityCalculator', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -22,7 +32,7 @@ describe('GridfinityCalculator', () => {
   })
 
   it('should render all main sections', () => {
-    render(<GridfinityCalculator />)
+    renderWithProviders(<GridfinityCalculator />)
     
     expect(screen.getByText('Drawer Dimensions')).toBeInTheDocument()
     expect(screen.getByText('Printer Settings')).toBeInTheDocument()
@@ -41,13 +51,13 @@ describe('GridfinityCalculator', () => {
     }
     
     loadUserSettings.mockReturnValue(savedSettings)
-    render(<GridfinityCalculator />)
+    renderWithProviders(<GridfinityCalculator />)
     
     expect(loadUserSettings).toHaveBeenCalled()
   })
 
   it('should save settings when values change', async () => {
-    render(<GridfinityCalculator />)
+    renderWithProviders(<GridfinityCalculator />)
     
     // Wait for initial render and save
     await waitFor(() => {
@@ -67,7 +77,7 @@ describe('GridfinityCalculator', () => {
   })
 
   it('should display results when calculation completes', async () => {
-    render(<GridfinityCalculator />)
+    renderWithProviders(<GridfinityCalculator />)
     
     await waitFor(() => {
       // Look for "Results for X drawer(s)" text pattern
@@ -77,7 +87,7 @@ describe('GridfinityCalculator', () => {
   })
 
   it('should toggle between inches and millimeters', async () => {
-    render(<GridfinityCalculator />)
+    renderWithProviders(<GridfinityCalculator />)
     
     // Get the unit toggle switch by its ID
     const unitToggle = document.getElementById('unit-toggle')
@@ -96,7 +106,7 @@ describe('GridfinityCalculator', () => {
   })
 
   it('should update printer selection', async () => {
-    render(<GridfinityCalculator />)
+    renderWithProviders(<GridfinityCalculator />)
     
     // Open printer dropdown
     const printerButton = screen.getByRole('combobox')
@@ -116,7 +126,7 @@ describe('GridfinityCalculator', () => {
   })
 
   it('should handle half-size bin options', async () => {
-    render(<GridfinityCalculator />)
+    renderWithProviders(<GridfinityCalculator />)
     
     const halfSizeCheckbox = screen.getByLabelText('Use only half-size bins (21x21mm)')
     
@@ -132,7 +142,7 @@ describe('GridfinityCalculator', () => {
   })
 
   it('should update number of drawers', async () => {
-    render(<GridfinityCalculator />)
+    renderWithProviders(<GridfinityCalculator />)
     
     // Find the input with the numDrawers id
     const drawerInput = document.getElementById('numDrawers')
@@ -149,7 +159,7 @@ describe('GridfinityCalculator', () => {
   })
 
   it('should handle invalid drawer dimensions gracefully', async () => {
-    render(<GridfinityCalculator />)
+    renderWithProviders(<GridfinityCalculator />)
     
     const widthInput = screen.getByLabelText(/width/i)
     await userEvent.clear(widthInput)
@@ -160,7 +170,7 @@ describe('GridfinityCalculator', () => {
   })
 
   it('should recalculate when dimensions change', async () => {
-    render(<GridfinityCalculator />)
+    renderWithProviders(<GridfinityCalculator />)
     
     const initialSaveCount = saveUserSettings.mock.calls.length
     

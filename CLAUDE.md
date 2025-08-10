@@ -6,6 +6,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Gridfinity Space Optimizer is a React-based web application for calculating optimal Gridfinity storage system layouts. It helps users determine the best configuration of Gridfinity bins to fit their drawer dimensions and 3D printer build volumes.
 
+## Recent Major Changes (Updated: Current Session)
+
+### ✅ MathJS Integration for Precision
+- **CRITICAL**: All calculations now use `unitMath` service (`src/services/unitMath.js`) for BigNumber precision
+- Never use native JavaScript math operations (`+`, `-`, `*`, `/`, `Math.*`) in calculation code
+- Always use `unitMath.add()`, `unitMath.subtract()`, `unitMath.multiply()`, `unitMath.divide()`, etc.
+- This fixes all floating-point precision issues (no more `41.099999999999966`, now exactly `41.1`)
+
+### ✅ Fixed Half-Size Bin Spacer Bug
+- Spacers are now correctly generated when "Use only half-size bins" is enabled
+- The fix ensures remaining space after half-size bins is filled with spacers
+
+### ✅ Completed Refactoring
+- Phase 1 of refactor plan completed (clean up & stabilize)
+- Phase 2 of refactor plan completed (state management)
+- Phase 3 of refactor plan completed (feature enhancements)
+- All console.log statements removed from production code
+- Import paths standardized to use `@/` alias consistently
+- ESLint configuration fixed for JavaScript/React (not TypeScript)
+- Settings Context implemented with global state management
+- Custom printer dimensions UI fully functional
+
 ## Development Commands
 
 ```bash
@@ -44,7 +66,10 @@ The app follows a standard React SPA pattern with component-based architecture:
 
 - **Entry Point**: `src/main.jsx` → `src/App.jsx` → `src/pages/Index.jsx`
 - **Main Calculator**: `src/components/GridfinityCalculator.jsx` orchestrates the entire calculation workflow
-- **State Management**: Local React state with localStorage persistence via `saveUserSettings`/`loadUserSettings` utilities
+- **State Management**: 
+  - Global state via `SettingsContext` and `SettingsProvider`
+  - Local React state with localStorage persistence via `usePersistedState` hook
+  - Legacy compatibility maintained with `saveUserSettings`/`loadUserSettings` utilities
 - **Routing**: Single route application with potential for expansion
 
 ### Key Components
@@ -69,9 +94,14 @@ The app follows a standard React SPA pattern with component-based architecture:
 **Gridfinity Calculation Engine** (`src/utils/gridfinityUtils.js`)
 - Constants: `FULL_GRID_SIZE = 42mm`, `HALF_GRID_SIZE = 21mm`
 - Main function: `calculateGrids()` - Computes optimal bin layout
+- **CRITICAL**: ALL math operations must use `unitMath` from `@/services/unitMath`
+  - Example: Instead of `width + height`, use `unitMath.add(width, height)`
+  - Example: Instead of `width * GRID_SIZE`, use `unitMath.multiply(width, GRID_SIZE)`
+  - Example: Instead of `Math.min(a, b)`, use `unitMath.min(a, b)`
+  - Example: Instead of `value.toFixed(2)`, use `unitMath.round(value, 2)`
 - Key algorithms:
   - Bin placement respecting printer build volume constraints
-  - Spacer generation for non-standard dimensions
+  - Spacer generation for non-standard dimensions (now works with half-size bins too!)
   - Half-size bin optimization when enabled
   - Layout splitting for items exceeding print bed size
 
@@ -95,7 +125,68 @@ Uses Shadcn/ui components (`src/components/ui/`) - pre-built accessible componen
 
 ## Development Notes
 
-- No test framework currently configured
+- **Testing**: Vitest test framework with React Testing Library
+  - Run tests: `npm test`
+  - Update snapshots: `npx vitest --run -u`
+  - 168 tests currently passing
 - ESLint configured for React/JSX with max warnings set to 0
 - Development server runs on port 8080 (configured in vite.config.js)
 - Uses Vite's hot module replacement for rapid development
+
+## Custom Hooks Available
+
+- `useGridfinitySettings` - Main settings state management
+- `useGridfinityCalculation` - Performs calculations with memoization
+- `usePersistedState` - Generic hook for localStorage persistence
+- `useLegacyMigration` - Handles migration from old localStorage format
+- `useCustomPrinter` - Manages custom printer dimensions
+
+## Current Refactor Status
+
+See `REFACTOR_PLAN.md` for details:
+- ✅ Phase 1: Clean Up & Stabilize - COMPLETED
+- ⏸️ Phase 2: State Management - PARTIALLY COMPLETED
+- ❌ Phase 3-6: Not started yet
+
+See `docs/REFACTOR_PLAN_MATHJS.md` for MathJS integration:
+- ✅ All phases COMPLETED - precision issues fixed!
+
+## Critical Warnings & Gotchas
+
+### ⚠️ NEVER use native JavaScript math in calculations
+```javascript
+// ❌ WRONG - will cause precision issues
+const total = width + height;
+const area = width * height;
+const half = value / 2;
+
+// ✅ CORRECT - use unitMath for precision
+const total = unitMath.add(width, height);
+const area = unitMath.multiply(width, height);
+const half = unitMath.divide(value, 2);
+```
+
+### ⚠️ Always test with half-size bins enabled
+- There was a long-standing bug where spacers weren't generated with half-size bins
+- This is now fixed, but always verify spacers are generated correctly
+- Test case: 22.5" x 16.5" drawer with half-size bins should show spacers
+
+### ⚠️ Import paths must use @/ alias
+```javascript
+// ❌ WRONG - inconsistent relative imports
+import { something } from '../../../lib/utils';
+
+// ✅ CORRECT - use @ alias
+import { something } from '@/lib/utils';
+```
+
+### ⚠️ Project is JavaScript, not TypeScript
+- ESLint is configured for .js/.jsx files
+- Don't try to add TypeScript configurations
+- Use PropTypes if type checking is needed
+
+## Known Issues to Watch For
+
+1. **Memory issues during tests**: Tests sometimes run out of memory due to large calculations
+2. **Snapshot tests**: Will fail when precision calculations change - update with `npx vitest --run -u`
+3. **localStorage migration**: Legacy settings are migrated on first load - don't break this!

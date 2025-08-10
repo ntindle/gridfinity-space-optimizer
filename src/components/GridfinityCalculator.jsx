@@ -6,7 +6,7 @@ import BinOptions from "./GridfinityCalculator/BinOptions";
 import DrawerOptions from "./GridfinityCalculator/DrawerOptions";
 import GridfinityResults from "./GridfinityResults";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
-import { useGridfinitySettings } from "@/hooks/useGridfinitySettings";
+import { useSettings } from "@/contexts/SettingsContext";
 import { useGridfinityCalculation } from "@/hooks/useGridfinityCalculation";
 import { useLegacyMigration } from "@/hooks/useLegacyMigration";
 import { saveUserSettings, loadUserSettings } from "@/lib/utils";
@@ -15,8 +15,8 @@ const GridfinityCalculator = () => {
   // Migrate legacy data first
   useLegacyMigration();
   
-  // Use our custom hooks for clean state management
-  const settings = useGridfinitySettings();
+  // Use settings from context for clean state management
+  const settings = useSettings();
   
   // Calculate results based on current settings
   const { result, layout, printerSize } = useGridfinityCalculation({
