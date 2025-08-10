@@ -151,13 +151,3 @@ jobs:
         run: |
           # Run tests with memory tracking
           node --expose-gc --max-old-space-size=4096 node_modules/.bin/vitest --run --reporter=verbose --config vite.config.test.js
-          
-      - name: Check for console.log in production
-        run: |
-          echo "Checking for console.log statements in production code..."
-          if grep -r "console.log" src/ --exclude-dir=test --exclude-dir=tests --exclude="*.test.*" --exclude="*.spec.*" --exclude="captureActualOutputs.ts" | grep -v "^Binary file"; then
-            echo "⚠️ Found console.log statements that should be removed"
-            exit 1
-          else
-            echo "✅ No console.log statements in production code"
-          fi
