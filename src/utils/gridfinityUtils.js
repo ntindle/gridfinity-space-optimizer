@@ -247,8 +247,8 @@ export const calculateGrids = (
 
   for (let y = 0; y < gridCountY; y += unitMath.divide(maxPrintSizeY, gridSize)) {
     for (let x = 0; x < gridCountX; x += unitMath.divide(maxPrintSizeX, gridSize)) {
-      const width = Math.min(unitMath.divide(maxPrintSizeX, gridSize), gridCountX - x);
-      const height = Math.min(unitMath.divide(maxPrintSizeY, gridSize), gridCountY - y);
+      const width = Math.min(unitMath.divide(maxPrintSizeX, gridSize), unitMath.subtract(gridCountX, x));
+      const height = Math.min(unitMath.divide(maxPrintSizeY, gridSize), unitMath.subtract(gridCountY, y));
       const item = {
         x,
         y,
@@ -353,7 +353,8 @@ export const calculateGrids = (
 
     // Only replace spacers with half-size bins
     newLayout = newLayout.concat(combinedHalfSizeBins, updatedSpacers);
-  } else if (!useHalfSize) {
+  } else {
+    // Add spacers for both regular baseplates AND half-size bins
     newLayout = newLayout.concat(spacers);
   }
 

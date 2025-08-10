@@ -206,4 +206,34 @@ describe('gridfinityUtils', () => {
       expect(color1).not.toBe(color3)
     })
   })
+
+  describe('Half-size bins with spacers', () => {
+    it('should generate spacers when using half-size bins', () => {
+      const drawerSize = { width: 22.5, height: 16.5 }
+      const printerSize = { x: 256, y: 256 }
+      
+      // Test with half-size bins enabled
+      const result = calculateGrids(drawerSize, printerSize, true, false)
+      
+      // Should have half-size bins
+      expect(Object.keys(result.halfSizeBins).length).toBeGreaterThan(0)
+      
+      // Should also have spacers for the remaining space
+      expect(Object.keys(result.spacers).length).toBeGreaterThan(0)
+      
+      // Check that spacers are in the layout
+      const spacersInLayout = result.layout.filter(item => item.type === 'spacer')
+      expect(spacersInLayout.length).toBeGreaterThan(0)
+      
+      // Verify the spacers cover the edges (remainder space)
+      // With 22.5" x 16.5" drawer and 21mm half-size bins:
+      // 571.5mm / 21mm = 27.21... -> 27 bins with remainder
+      // 419.1mm / 21mm = 19.95... -> 19 bins with remainder
+      const hasHorizontalSpacer = spacersInLayout.some(s => s.pixelX > 500)
+      const hasVerticalSpacer = spacersInLayout.some(s => s.pixelY > 350)
+      
+      expect(hasHorizontalSpacer).toBe(true)
+      expect(hasVerticalSpacer).toBe(true)
+    })
+  })
 })

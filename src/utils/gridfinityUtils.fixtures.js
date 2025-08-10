@@ -150,11 +150,18 @@ export const testFixtures = {
     },
     expected: {
       baseplates: {}, // No full-size baseplates when using only half-size
-      spacers: {}, // No spacers when using only half-size
+      spacers: {
+        // Now includes spacers for remainder space after half-size bins
+        // 6" = 152.4mm, 152.4mm / 21mm = 7.25... -> 7 bins + remainder
+        // 4" = 101.6mm, 101.6mm / 21mm = 4.83... -> 4 bins + remainder  
+        '5.40mm x 84.00mm': 1,  // Horizontal remainder
+        '147.00mm x 17.60mm': 1, // Vertical remainder
+        '5.40mm x 17.60mm': 1,  // Corner remainder
+      },
       halfSizeBins: {
         '7x4': 1, // Single combined half-size bin grid
       },
-      layoutCount: 1,
+      layoutCount: 4, // 1 half-size bin + 3 spacers
       hasHalfSizeBins: true,
     },
   },
