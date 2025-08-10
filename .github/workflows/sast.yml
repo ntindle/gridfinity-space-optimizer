@@ -36,6 +36,18 @@ jobs:
             --severity=INFO \
             .
         continue-on-error: true
+
+      - name: Run Semgrep Searif
+        run: |
+          semgrep --config=auto \
+            --sarif \
+            --output=semgrep.sarif \
+            --error \
+            --severity=ERROR \
+            --severity=WARNING \
+            --severity=INFO \
+            .
+        continue-on-error: true
         
       - name: Upload Semgrep results
         if: always()
@@ -44,6 +56,11 @@ jobs:
           name: semgrep-results
           path: semgrep-results.json
           retention-days: 14
+      - name: Upload SARIF file for GitHub Advanced Security Dashboard
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+        if: always()
 
   snyk:
     name: Snyk Security Scan
