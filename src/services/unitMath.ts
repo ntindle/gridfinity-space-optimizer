@@ -1,4 +1,4 @@
-import { create, all, MathJsInstance } from "mathjs";
+import { create, all, MathJsInstance, BigNumber } from "mathjs";
 import type { Unit } from '@/types';
 
 // Create a mathjs instance with BigNumber for precise calculations
@@ -24,11 +24,11 @@ export const unitMath = {
     // Handle the specific inch to mm conversion we use
     if (fromUnit === 'inch' && toUnit === 'mm') {
       const result = math.multiply(math.bignumber(value), math.bignumber(25.4));
-      return math.number(result as math.BigNumber);
+      return math.number(result as BigNumber);
     }
     if (fromUnit === 'mm' && toUnit === 'inch') {
       const result = math.divide(math.bignumber(value), math.bignumber(25.4));
-      return math.number(result as math.BigNumber);
+      return math.number(result as BigNumber);
     }
     
     // For other unit conversions, use mathjs unit system
@@ -55,7 +55,7 @@ export const unitMath = {
    */
   multiply: (a: number, b: number): number => {
     const result = math.multiply(math.bignumber(a), math.bignumber(b));
-    return math.number(result as math.BigNumber);
+    return math.number(result as BigNumber);
   },
   
   /**
@@ -63,7 +63,7 @@ export const unitMath = {
    */
   divide: (a: number, b: number): number => {
     const result = math.divide(math.bignumber(a), math.bignumber(b));
-    return math.number(result as math.BigNumber);
+    return math.number(result as BigNumber);
   },
   
   /**

@@ -1,4 +1,4 @@
-import { create, all, MathJsInstance } from 'mathjs';
+import { create, all, MathJsInstance, BigNumber } from 'mathjs';
 import type { 
   PreciseNumber, 
   PreciseMath, 
@@ -64,7 +64,7 @@ export const preciseMath: PreciseMath = {
    */
   multiply(a: PreciseNumber, b: PreciseNumber): PreciseNumber {
     const result = math.multiply(math.bignumber(a), math.bignumber(b));
-    return math.number(result as math.BigNumber) as PreciseNumber;
+    return math.number(result as BigNumber) as PreciseNumber;
   },
 
   /**
@@ -75,7 +75,7 @@ export const preciseMath: PreciseMath = {
       throw new Error('Division by zero');
     }
     const result = math.divide(math.bignumber(a), math.bignumber(b));
-    return math.number(result as math.BigNumber) as PreciseNumber;
+    return math.number(result as BigNumber) as PreciseNumber;
   },
 
   /**
