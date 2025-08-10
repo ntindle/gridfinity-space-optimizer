@@ -150,7 +150,7 @@ jobs:
       - name: Run memory leak tests
         run: |
           # Run tests with memory tracking
-          node --expose-gc --max-old-space-size=4096 node_modules/.bin/vitest --run --reporter=verbose
+          node --expose-gc --max-old-space-size=4096 node_modules/.bin/vitest --run --reporter=verbose --config vite.config.test.js
           
       - name: Check for console.log in production
         run: |
