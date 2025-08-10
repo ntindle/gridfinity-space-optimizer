@@ -94,6 +94,7 @@
     "jsdom": "^26.1.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
+    "terser": "^5.43.1",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2",
     "vite": "^5.1.4",
