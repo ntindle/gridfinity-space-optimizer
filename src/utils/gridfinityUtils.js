@@ -125,7 +125,7 @@ const createHalfSizeBin = (spacer, x, y) => ({
 
 export const combineHalfSizeBins = (halfSizeBins, maxWidth, maxHeight) => {
   const sortedBins = halfSizeBins.sort(
-    (a, b) => a.pixelX - b.pixelX || a.pixelY - b.pixelY
+    (a, b) => unitMath.subtract(a.pixelX, b.pixelX) || unitMath.subtract(a.pixelY, b.pixelY)
   );
   const combinedBins = [];
 
@@ -135,11 +135,11 @@ export const combineHalfSizeBins = (halfSizeBins, maxWidth, maxHeight) => {
       currentBin = { ...bin, width: 0.5, height: 0.5 };
     } else if (
       currentBin.pixelX === bin.pixelX &&
-      currentBin.pixelY + currentBin.pixelHeight === bin.pixelY &&
-      currentBin.pixelHeight + HALF_GRID_SIZE <= maxHeight
+      unitMath.add(currentBin.pixelY, currentBin.pixelHeight) === bin.pixelY &&
+      unitMath.add(currentBin.pixelHeight, HALF_GRID_SIZE) <= maxHeight
     ) {
-      currentBin.pixelHeight += bin.pixelHeight;
-      currentBin.height += 0.5;
+      currentBin.pixelHeight = unitMath.add(currentBin.pixelHeight, bin.pixelHeight);
+      currentBin.height = unitMath.add(currentBin.height, 0.5);
     } else {
       combinedBins.push(currentBin);
       currentBin = { ...bin, width: 0.5, height: 0.5 };
@@ -154,7 +154,7 @@ export const combineHalfSizeBins = (halfSizeBins, maxWidth, maxHeight) => {
 
 const combineBinsHorizontally = (bins, maxWidth) => {
   const sortedBins = bins.sort(
-    (a, b) => a.pixelY - b.pixelY || a.pixelX - b.pixelX
+    (a, b) => unitMath.subtract(a.pixelY, b.pixelY) || unitMath.subtract(a.pixelX, b.pixelX)
   );
   const finalBins = [];
 
@@ -188,12 +188,12 @@ const combineRow = (row, maxWidth) => {
     if (!currentBin) {
       currentBin = { ...bin };
     } else if (
-      currentBin.pixelX + currentBin.pixelWidth === bin.pixelX &&
+      unitMath.add(currentBin.pixelX, currentBin.pixelWidth) === bin.pixelX &&
       currentBin.height === bin.height &&
-      currentBin.pixelWidth + bin.pixelWidth <= maxWidth
+      unitMath.add(currentBin.pixelWidth, bin.pixelWidth) <= maxWidth
     ) {
-      currentBin.pixelWidth += bin.pixelWidth;
-      currentBin.width += bin.width;
+      currentBin.pixelWidth = unitMath.add(currentBin.pixelWidth, bin.pixelWidth);
+      currentBin.width = unitMath.add(currentBin.width, bin.width);
     } else {
       combinedRow.push(currentBin);
       currentBin = { ...bin };
@@ -210,7 +210,7 @@ const combineRow = (row, maxWidth) => {
 export const getColor = (type, index) => {
   if (type === "spacer") return "rgba(255, 0, 0, 0.3)";
   if (type === "half-size") return "rgba(0, 255, 0, 0.3)";
-  const hue = (index * 137.5) % 360;
+  const hue = unitMath.mod(unitMath.multiply(index, 137.5), 360);
   return `hsl(${hue}, 70%, 80%)`;
 };
 
@@ -247,8 +247,8 @@ export const calculateGrids = (
 
   for (let y = 0; y < gridCountY; y += unitMath.divide(maxPrintSizeY, gridSize)) {
     for (let x = 0; x < gridCountX; x += unitMath.divide(maxPrintSizeX, gridSize)) {
-      const width = Math.min(unitMath.divide(maxPrintSizeX, gridSize), unitMath.subtract(gridCountX, x));
-      const height = Math.min(unitMath.divide(maxPrintSizeY, gridSize), unitMath.subtract(gridCountY, y));
+      const width = unitMath.min(unitMath.divide(maxPrintSizeX, gridSize), unitMath.subtract(gridCountX, x));
+      const height = unitMath.min(unitMath.divide(maxPrintSizeY, gridSize), unitMath.subtract(gridCountY, y));
       const item = {
         x,
         y,
@@ -359,17 +359,17 @@ export const calculateGrids = (
   }
 
   const counts = baseplates.reduce((acc, plate) => {
-    acc[plate] = (acc[plate] || 0) + 1;
+    acc[plate] = unitMath.add(acc[plate] || 0, 1);
     return acc;
   }, {});
 
   const spacerCounts = newLayout
     .filter((item) => item.type === "spacer")
     .reduce((acc, spacer) => {
-      const key = `${(spacer.width * gridSize).toFixed(2)}mm x ${(
-        spacer.height * gridSize
-      ).toFixed(2)}mm`;
-      acc[key] = (acc[key] || 0) + 1;
+      const key = `${unitMath.round(unitMath.multiply(spacer.width, gridSize), 2)}mm x ${unitMath.round(
+        unitMath.multiply(spacer.height, gridSize), 2
+      )}mm`;
+      acc[key] = unitMath.add(acc[key] || 0, 1);
       return acc;
     }, {});
 
@@ -377,7 +377,7 @@ export const calculateGrids = (
     .filter((item) => item.type === "half-size")
     .reduce((acc, bin) => {
       const key = `${bin.width}x${bin.height}`;
-      acc[key] = (acc[key] || 0) + 1;
+      acc[key] = unitMath.add(acc[key] || 0, 1);
       return acc;
     }, {});
 

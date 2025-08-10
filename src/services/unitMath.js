@@ -115,6 +115,26 @@ export const unitMath = {
    */
   mod: (a, b) => {
     return math.number(math.mod(math.bignumber(a), math.bignumber(b)));
+  },
+  
+  /**
+   * Get minimum of two values
+   * @param {number} a - First value
+   * @param {number} b - Second value
+   * @returns {number} The minimum value
+   */
+  min: (a, b) => {
+    return math.number(math.min(math.bignumber(a), math.bignumber(b)));
+  },
+  
+  /**
+   * Get maximum of two values
+   * @param {number} a - First value
+   * @param {number} b - Second value
+   * @returns {number} The maximum value
+   */
+  max: (a, b) => {
+    return math.number(math.max(math.bignumber(a), math.bignumber(b)));
   }
 };
 

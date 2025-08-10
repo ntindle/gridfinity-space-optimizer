@@ -111,11 +111,11 @@ exports[`gridfinityUtils - Snapshot Tests > Common drawer sizes > should match s
     },
   ],
   "spacers": {
-    "210.00mm x 34.02mm": 1,
-    "252.00mm x 34.02mm": 1,
-    "37.80mm x 252.00mm": 1,
-    "37.80mm x 34.02mm": 1,
-    "37.80mm x 84.00mm": 1,
+    "210mm x 34.02mm": 1,
+    "252mm x 34.02mm": 1,
+    "37.8mm x 252mm": 1,
+    "37.8mm x 34.02mm": 1,
+    "37.8mm x 84mm": 1,
   },
 }
 `;
@@ -231,11 +231,11 @@ exports[`gridfinityUtils - Snapshot Tests > Common drawer sizes > should match s
     },
   ],
   "spacers": {
-    "126.00mm x 34.02mm": 1,
-    "21.84mm x 252.00mm": 1,
+    "126mm x 34.02mm": 1,
+    "21.84mm x 252mm": 1,
     "21.84mm x 34.02mm": 1,
-    "21.84mm x 84.00mm": 1,
-    "252.00mm x 34.02mm": 1,
+    "21.84mm x 84mm": 1,
+    "252mm x 34.02mm": 1,
   },
 }
 `;
@@ -351,11 +351,11 @@ exports[`gridfinityUtils - Snapshot Tests > Common drawer sizes > should match s
     },
   ],
   "spacers": {
-    "252.00mm x 34.02mm": 1,
-    "42.00mm x 34.02mm": 1,
-    "5.88mm x 252.00mm": 1,
+    "252mm x 34.02mm": 1,
+    "42mm x 34.02mm": 1,
+    "5.88mm x 252mm": 1,
     "5.88mm x 34.02mm": 1,
-    "5.88mm x 84.00mm": 1,
+    "5.88mm x 84mm": 1,
   },
 }
 `;
@@ -471,11 +471,11 @@ exports[`gridfinityUtils - Snapshot Tests > Common drawer sizes > should match s
     },
   ],
   "spacers": {
-    "168.00mm x 10.92mm": 1,
-    "252.00mm x 10.92mm": 1,
+    "168mm x 10.92mm": 1,
+    "252mm x 10.92mm": 1,
     "37.38mm x 10.92mm": 1,
-    "37.38mm x 252.00mm": 1,
-    "37.38mm x 42.00mm": 1,
+    "37.38mm x 252mm": 1,
+    "37.38mm x 42mm": 1,
   },
 }
 `;
@@ -556,10 +556,10 @@ exports[`gridfinityUtils - Snapshot Tests > Common drawer sizes > should match s
     },
   ],
   "spacers": {
-    "19.74mm x 2.10mm": 1,
-    "19.74mm x 252.00mm": 1,
-    "252.00mm x 2.10mm": 1,
-    "84.00mm x 2.10mm": 1,
+    "19.74mm x 2.1mm": 1,
+    "19.74mm x 252mm": 1,
+    "252mm x 2.1mm": 1,
+    "84mm x 2.1mm": 1,
   },
 }
 `;
@@ -706,10 +706,10 @@ exports[`gridfinityUtils - Snapshot Tests > Common drawer sizes > should match s
     },
   ],
   "spacers": {
-    "12.60mm x 252.00mm": 2,
-    "12.60mm x 4.20mm": 1,
-    "252.00mm x 4.20mm": 2,
-    "42.00mm x 4.20mm": 1,
+    "12.6mm x 252mm": 2,
+    "12.6mm x 4.2mm": 1,
+    "252mm x 4.2mm": 2,
+    "42mm x 4.2mm": 1,
   },
 }
 `;
@@ -790,10 +790,10 @@ exports[`gridfinityUtils - Snapshot Tests > Common printer sizes > should match 
     },
   ],
   "spacers": {
-    "10.92mm x 2.10mm": 1,
-    "10.92mm x 252.00mm": 1,
-    "252.00mm x 2.10mm": 1,
-    "42.00mm x 2.10mm": 1,
+    "10.92mm x 2.1mm": 1,
+    "10.92mm x 252mm": 1,
+    "252mm x 2.1mm": 1,
+    "42mm x 2.1mm": 1,
   },
 }
 `;
@@ -909,11 +909,11 @@ exports[`gridfinityUtils - Snapshot Tests > Common printer sizes > should match 
     },
   ],
   "spacers": {
-    "10.92mm x 2.10mm": 1,
-    "10.92mm x 210.00mm": 1,
-    "10.92mm x 42.00mm": 1,
-    "210.00mm x 2.10mm": 1,
-    "84.00mm x 2.10mm": 1,
+    "10.92mm x 2.1mm": 1,
+    "10.92mm x 210mm": 1,
+    "10.92mm x 42mm": 1,
+    "210mm x 2.1mm": 1,
+    "84mm x 2.1mm": 1,
   },
 }
 `;
@@ -1029,11 +1029,11 @@ exports[`gridfinityUtils - Snapshot Tests > Common printer sizes > should match 
     },
   ],
   "spacers": {
-    "10.92mm x 2.10mm": 1,
-    "10.92mm x 210.00mm": 1,
-    "10.92mm x 42.00mm": 1,
-    "210.00mm x 2.10mm": 1,
-    "84.00mm x 2.10mm": 1,
+    "10.92mm x 2.1mm": 1,
+    "10.92mm x 210mm": 1,
+    "10.92mm x 42mm": 1,
+    "210mm x 2.1mm": 1,
+    "84mm x 2.1mm": 1,
   },
 }
 `;
@@ -1149,11 +1149,11 @@ exports[`gridfinityUtils - Snapshot Tests > Common printer sizes > should match 
     },
   ],
   "spacers": {
-    "10.92mm x 168.00mm": 1,
-    "10.92mm x 2.10mm": 1,
-    "10.92mm x 84.00mm": 1,
-    "126.00mm x 2.10mm": 1,
-    "168.00mm x 2.10mm": 1,
+    "10.92mm x 168mm": 1,
+    "10.92mm x 2.1mm": 1,
+    "10.92mm x 84mm": 1,
+    "126mm x 2.1mm": 1,
+    "168mm x 2.1mm": 1,
   },
 }
 `;
@@ -1211,9 +1211,9 @@ exports[`gridfinityUtils - Snapshot Tests > Common printer sizes > should match 
     },
   ],
   "spacers": {
-    "10.92mm x 2.10mm": 1,
-    "10.92mm x 252.00mm": 1,
-    "294.00mm x 2.10mm": 1,
+    "10.92mm x 2.1mm": 1,
+    "10.92mm x 252mm": 1,
+    "294mm x 2.1mm": 1,
   },
 }
 `;
@@ -1295,9 +1295,9 @@ exports[`gridfinityUtils - Snapshot Tests > Standard configurations snapshots > 
   ],
   "spacers": {
     "2.94mm x 10.92mm": 1,
-    "2.94mm x 294.00mm": 1,
-    "336.00mm x 10.92mm": 1,
-    "42.00mm x 10.92mm": 1,
+    "2.94mm x 294mm": 1,
+    "336mm x 10.92mm": 1,
+    "42mm x 10.92mm": 1,
   },
 }
 `;
@@ -1413,11 +1413,11 @@ exports[`gridfinityUtils - Snapshot Tests > Standard configurations snapshots > 
     },
   ],
   "spacers": {
-    "210.00mm x 21.84mm": 1,
-    "252.00mm x 21.84mm": 1,
-    "37.80mm x 126.00mm": 1,
-    "37.80mm x 21.84mm": 1,
-    "37.80mm x 252.00mm": 1,
+    "210mm x 21.84mm": 1,
+    "252mm x 21.84mm": 1,
+    "37.8mm x 126mm": 1,
+    "37.8mm x 21.84mm": 1,
+    "37.8mm x 252mm": 1,
   },
 }
 `;
@@ -1608,10 +1608,10 @@ exports[`gridfinityUtils - Snapshot Tests > Standard configurations snapshots > 
     },
   ],
   "spacers": {
-    "126.00mm x 10.92mm": 3,
+    "126mm x 10.92mm": 3,
     "2.94mm x 10.92mm": 1,
-    "2.94mm x 126.00mm": 2,
-    "2.94mm x 42.00mm": 1,
+    "2.94mm x 126mm": 2,
+    "2.94mm x 42mm": 1,
   },
 }
 `;
@@ -1760,11 +1760,11 @@ exports[`gridfinityUtils - Snapshot Tests > Standard configurations snapshots > 
     },
   ],
   "spacers": {
-    "25.62mm x 126.00mm": 1,
-    "25.62mm x 252.00mm": 1,
+    "25.62mm x 126mm": 1,
+    "25.62mm x 252mm": 1,
     "25.62mm x 41.16mm": 1,
-    "252.00mm x 41.16mm": 2,
-    "42.00mm x 41.16mm": 1,
+    "252mm x 41.16mm": 2,
+    "42mm x 41.16mm": 1,
   },
 }
 `;
@@ -1846,9 +1846,9 @@ exports[`gridfinityUtils - Snapshot Tests > Standard configurations snapshots > 
   ],
   "spacers": {
     "1.05mm x 7.14mm": 1,
-    "1.05mm x 94.50mm": 1,
-    "31.50mm x 7.14mm": 1,
-    "94.50mm x 7.14mm": 1,
+    "1.05mm x 94.5mm": 1,
+    "31.5mm x 7.14mm": 1,
+    "94.5mm x 7.14mm": 1,
   },
 }
 `;
@@ -1965,11 +1965,11 @@ exports[`gridfinityUtils - Snapshot Tests > Standard configurations snapshots > 
     },
   ],
   "spacers": {
-    "0.00mm x 14.28mm": 1,
-    "168.00mm x 14.28mm": 1,
-    "2.10mm x 168.00mm": 1,
-    "2.10mm x 35.28mm": 1,
-    "84.00mm x 14.28mm": 1,
+    "0mm x 14.28mm": 1,
+    "168mm x 14.28mm": 1,
+    "2.1mm x 168mm": 1,
+    "2.1mm x 35.28mm": 1,
+    "84mm x 14.28mm": 1,
   },
 }
 `;
