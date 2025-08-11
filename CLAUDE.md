@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Gridfinity Space Optimizer is a React-based web application for calculating optimal Gridfinity storage system layouts. It helps users determine the best configuration of Gridfinity bins to fit their drawer dimensions and 3D printer build volumes.
 
-## Recent Major Changes (Updated: Current Session)
+## Recent Major Changes (Updated: August 2025)
 
 ### ✅ MathJS Integration for Precision
 - **CRITICAL**: All calculations now use `unitMath` service (`src/services/unitMath.ts`) for BigNumber precision
@@ -29,7 +29,7 @@ Gridfinity Space Optimizer is a React-based web application for calculating opti
   - ✅ All test files migrated to TypeScript
   - ✅ Type definitions created for all core data structures
   - ✅ ESLint configured for TypeScript support
-  - ✅ All 168 tests passing
+  - ✅ All 187 tests passing
 - All console.log statements removed from production code
 - Import paths standardized to use `@/` alias consistently
 - ESLint configuration supports both TypeScript and JavaScript
@@ -67,7 +67,7 @@ npm run preview
 - **React Router** - Single-page routing
 - **Tailwind CSS** - Utility-first styling
 - **Shadcn/ui** - Component library built on Radix UI primitives
-- **React Query** - Server state management
+- **React Query** - Server state management (installed but not actively used)
 - **MathJS** - Arbitrary precision arithmetic
 
 ### Application Structure
@@ -94,6 +94,7 @@ The app follows a standard React SPA pattern with component-based architecture:
    - `PrinterSettings.tsx` - 3D printer selection with predefined build volumes
    - `BinOptions.tsx` - Toggle for half-size bin preferences
    - `DrawerOptions.tsx` - Number of identical drawers
+   - `CustomPrinterDialog.tsx` - Dialog for entering custom printer dimensions
 
 3. **Results Display**
    - `GridfinityResults.tsx` - Shows calculated bin quantities
@@ -138,7 +139,7 @@ Uses Shadcn/ui components (`src/components/ui/`) - pre-built accessible componen
 - **Testing**: Vitest test framework with React Testing Library
   - Run tests: `npm test`
   - Update snapshots: `npx vitest --run -u`
-  - 168 tests currently passing
+  - 187 tests currently passing
 - ESLint configured for TypeScript/TSX and JavaScript/JSX with max warnings set to 0
 - Development server runs on port 8080 (configured in vite.config.js)
 - Uses Vite's hot module replacement for rapid development
@@ -155,6 +156,7 @@ Uses Shadcn/ui components (`src/components/ui/`) - pre-built accessible componen
 - `usePersistedState` - Generic hook for localStorage persistence
 - `useLegacyMigration` - Handles migration from old localStorage format
 - `useCustomPrinter` - Manages custom printer dimensions
+- `use-toast` - Toast notification system
 
 ## Current Refactor Status
 
@@ -162,7 +164,7 @@ See `REFACTOR_PLAN.md` for details:
 - ✅ Phase 1: Clean Up & Stabilize - COMPLETED
 - ✅ Phase 2: State Management - COMPLETED
 - ✅ Phase 3: Feature Enhancements - COMPLETED
-- ⏸️ Phase 4: Architecture with TypeScript - IN PROGRESS
+- ✅ Phase 4: Architecture with TypeScript - COMPLETED
 - ❌ Phase 5-6: Not started yet
 
 See `docs/REFACTOR_PLAN_MATHJS.md` for MathJS integration:
@@ -216,4 +218,9 @@ import { something } from '@/lib/utils';
 1. **Memory issues during tests**: Tests sometimes run out of memory due to large calculations
 2. **Snapshot tests**: Will fail when precision calculations change - update with `npx vitest --run -u`
 3. **localStorage migration**: Legacy settings are migrated on first load - don't break this!
-- always add tests for new features or changes to the algorithms
+- Always add tests for new features or changes to the algorithms
+
+## GitHub Templates
+
+- **Pull Request Template**: `.github/pull_request_template.md` - Standardized PR checklist
+- **Bug Report Template**: `.github/ISSUE_TEMPLATE/bug_report.md` - Structured bug reporting format
