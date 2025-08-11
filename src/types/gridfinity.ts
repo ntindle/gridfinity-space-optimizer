@@ -17,6 +17,12 @@ export interface PrinterSize {
   x: number;  // in mm
   y: number;  // in mm
   z: number;  // in mm
+  exclusionZone?: {
+    front?: number;  // mm from front edge
+    back?: number;   // mm from back edge
+    left?: number;   // mm from left edge
+    right?: number;  // mm from right edge
+  };
 }
 
 /**

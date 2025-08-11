@@ -18,6 +18,8 @@ export interface GridfinitySettings {
   setUseHalfSize: (value: boolean) => void;
   preferHalfSize: boolean;
   setPreferHalfSize: (value: boolean) => void;
+  preferUniformBaseplates: boolean;
+  setPreferUniformBaseplates: (value: boolean) => void;
   
   // Drawer count
   numDrawers: number;
@@ -63,6 +65,11 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     false
   );
 
+  const [preferUniformBaseplates, setPreferUniformBaseplates] = usePersistedState<boolean>(
+    'gridfinity_preferUniformBaseplates',
+    false
+  );
+
   // Number of drawers
   const [numDrawers, setNumDrawers] = usePersistedState<number>(
     'gridfinity_numDrawers',
@@ -98,6 +105,7 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     setSelectedPrinter('Bambu Lab A1');
     setUseHalfSize(false);
     setPreferHalfSize(false);
+    setPreferUniformBaseplates(false);
     setNumDrawers(1);
     setUseMm(false);
     setCustomPrinterSize({ x: 200, y: 200, z: 200 });
@@ -117,6 +125,8 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     setUseHalfSize: handleUseHalfSizeChange,
     preferHalfSize,
     setPreferHalfSize: handlePreferHalfSizeChange,
+    preferUniformBaseplates,
+    setPreferUniformBaseplates,
     
     // Drawer count
     numDrawers,

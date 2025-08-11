@@ -12,6 +12,7 @@ export interface CalculationInput {
   customPrinterSize?: PrinterSize;
   useHalfSize: boolean;
   preferHalfSize: boolean;
+  preferUniformBaseplates: boolean;
   numDrawers: number;
 }
 
@@ -42,6 +43,7 @@ export const useGridfinityCalculation = ({
   customPrinterSize,
   useHalfSize,
   preferHalfSize,
+  preferUniformBaseplates,
   numDrawers,
 }: CalculationInput): CalculationOutput => {
   const [result, setResult] = useState<CalculationResultWithDrawers | null>(null);
@@ -63,9 +65,10 @@ export const useGridfinityCalculation = ({
       drawerSize,
       printerSize,
       useHalfSize,
-      preferHalfSize
+      preferHalfSize,
+      preferUniformBaseplates
     );
-  }, [drawerSize, printerSize, useHalfSize, preferHalfSize]);
+  }, [drawerSize, printerSize, useHalfSize, preferHalfSize, preferUniformBaseplates]);
 
   // Update state when calculation changes
   useEffect(() => {

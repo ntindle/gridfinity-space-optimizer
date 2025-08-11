@@ -25,6 +25,7 @@ const GridfinityCalculator: React.FC = () => {
     customPrinterSize: settings.customPrinterSize,
     useHalfSize: settings.useHalfSize,
     preferHalfSize: settings.preferHalfSize,
+    preferUniformBaseplates: settings.preferUniformBaseplates,
     numDrawers: settings.numDrawers,
   });
   
@@ -102,6 +103,8 @@ const GridfinityCalculator: React.FC = () => {
               setUseHalfSize={settings.setUseHalfSize}
               preferHalfSize={settings.preferHalfSize}
               setPreferHalfSize={settings.setPreferHalfSize}
+              preferUniformBaseplates={settings.preferUniformBaseplates}
+              setPreferUniformBaseplates={settings.setPreferUniformBaseplates}
             />
           </CardContent>
         </Card>

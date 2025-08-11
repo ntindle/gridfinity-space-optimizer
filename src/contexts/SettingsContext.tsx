@@ -62,8 +62,8 @@ export const usePrinterSettings = () => {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useBinOptions = () => {
-  const { useHalfSize, setUseHalfSize, preferHalfSize, setPreferHalfSize } = useSettings();
-  return { useHalfSize, setUseHalfSize, preferHalfSize, setPreferHalfSize };
+  const { useHalfSize, setUseHalfSize, preferHalfSize, setPreferHalfSize, preferUniformBaseplates, setPreferUniformBaseplates } = useSettings();
+  return { useHalfSize, setUseHalfSize, preferHalfSize, setPreferHalfSize, preferUniformBaseplates, setPreferUniformBaseplates };
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
