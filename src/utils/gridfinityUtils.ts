@@ -11,12 +11,40 @@ export const HALF_GRID_SIZE = 21; // mm
 export const INCH_TO_MM = 25.4;
 
 // Scoring algorithm constants
+/**
+ * Penalty applied for each additional piece required in the layout.
+ * Higher values discourage solutions with more pieces.
+ */
 const PIECE_COUNT_PENALTY = 10;
+/**
+ * Penalty applied for each unique piece type (variety) in the layout.
+ * Higher values discourage solutions with more different types of pieces.
+ */
 const VARIETY_PENALTY = 20;
+/**
+ * Penalty applied for each small piece in the layout.
+ * Higher values discourage solutions with more small pieces.
+ */
 const SMALL_PIECE_PENALTY = 5;
+/**
+ * Minimum ratio of piece size to grid size considered desirable.
+ * Pieces smaller than this ratio may be penalized.
+ */
 const MIN_DESIRABLE_SIZE_RATIO = 0.4;
+/**
+ * Preferred round sizes for pieces (in grid units).
+ * Solutions using these sizes may receive a bonus.
+ */
 const PREFERRED_ROUND_SIZES = [3, 4, 5];
+/**
+ * Bonus applied when a preferred round size is used.
+ * Higher values encourage use of preferred sizes.
+ */
 const ROUND_SIZE_BONUS = 2;
+/**
+ * Penalty applied for each unique baseplate type in the layout.
+ * Higher values discourage solutions with more different baseplate types.
+ */
 const BASEPLATE_VARIETY_PENALTY = 15;
 
 /**
