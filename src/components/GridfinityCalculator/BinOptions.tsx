@@ -7,6 +7,8 @@ const BinOptions = ({
   setUseHalfSize,
   preferHalfSize,
   setPreferHalfSize,
+  preferUniformBaseplates,
+  setPreferUniformBaseplates,
 }) => {
   return (
     <div className="space-y-6 p-4">
@@ -36,6 +38,16 @@ const BinOptions = ({
               setPreferHalfSize(checked);
               if (checked) setUseHalfSize(false);
             }}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="prefer-uniform-baseplates" className="flex-1">
+            Prefer uniform baseplate sizes
+          </Label>
+          <Switch
+            id="prefer-uniform-baseplates"
+            checked={preferUniformBaseplates}
+            onCheckedChange={setPreferUniformBaseplates}
           />
         </div>
       </div>
