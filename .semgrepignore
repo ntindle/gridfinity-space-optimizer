@@ -1,0 +1,37 @@
+# Semgrep ignore file
+# https://semgrep.dev/docs/ignoring-files-folders-code/
+
+# Build artifacts
+dist/
+build/
+*.min.js
+*.bundle.js
+
+# Dependencies
+node_modules/
+vendor/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Generated files
+*.generated.*
+*-vendor-*.js
+
+# Package lock files (usually scanned separately)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb

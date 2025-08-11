@@ -76,6 +76,9 @@ describe('GridfinityCalculator', () => {
     await userEvent.clear(widthInput);
     await userEvent.type(widthInput, '20');
     
+    // Trigger blur to save the value
+    await userEvent.tab();
+    
     await waitFor(() => {
       expect(vi.mocked(saveUserSettings).mock.calls.length).toBeGreaterThan(initialCallCount);
     });
@@ -186,6 +189,9 @@ describe('GridfinityCalculator', () => {
     const heightInput = screen.getByLabelText(/height/i);
     await userEvent.clear(heightInput);
     await userEvent.type(heightInput, '25');
+    
+    // Trigger blur to save the value
+    await userEvent.tab();
     
     await waitFor(() => {
       expect(vi.mocked(saveUserSettings).mock.calls.length).toBeGreaterThan(initialSaveCount);

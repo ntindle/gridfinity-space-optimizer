@@ -3,13 +3,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const DrawerOptions = ({ numDrawers, setNumDrawers }) => {
+  const [localValue, setLocalValue] = React.useState(String(numDrawers || 1));
+  
+  React.useEffect(() => {
+    setLocalValue(String(numDrawers || 1));
+  }, [numDrawers]);
+  
   const handleInputChange = (e) => {
     const value = e.target.value;
-    if (value === "") {
-      setNumDrawers("");
-    } else {
-      const parsedValue = parseInt(value, 10);
-      setNumDrawers(isNaN(parsedValue) ? 1 : Math.max(1, parsedValue));
+    // Allow user to type freely
+    setLocalValue(value);
+    
+    // Update actual value if valid
+    const parsedValue = parseInt(value, 10);
+    if (!isNaN(parsedValue) && parsedValue > 0) {
+      setNumDrawers(parsedValue);
     }
   };
 
@@ -22,16 +30,20 @@ const DrawerOptions = ({ numDrawers, setNumDrawers }) => {
         </Label>
         <Input
           id="numDrawers"
-          type="number"
-          min="1"
-          value={numDrawers}
+          type="text"
+          inputMode="numeric"
+          value={localValue}
           onChange={handleInputChange}
           onBlur={() => {
-            if (numDrawers === "" || isNaN(numDrawers)) {
+            // Reset to 1 if invalid
+            const parsed = parseInt(localValue, 10);
+            if (isNaN(parsed) || parsed < 1) {
               setNumDrawers(1);
+              setLocalValue("1");
             }
           }}
           className="w-24"
+          placeholder="1"
         />
       </div>
     </div>

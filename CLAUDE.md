@@ -216,3 +216,4 @@ import { something } from '@/lib/utils';
 1. **Memory issues during tests**: Tests sometimes run out of memory due to large calculations
 2. **Snapshot tests**: Will fail when precision calculations change - update with `npx vitest --run -u`
 3. **localStorage migration**: Legacy settings are migrated on first load - don't break this!
+- always add tests for new features or changes to the algorithms
