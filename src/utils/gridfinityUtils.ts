@@ -10,6 +10,15 @@ export const FULL_GRID_SIZE = 42; // mm
 export const HALF_GRID_SIZE = 21; // mm
 export const INCH_TO_MM = 25.4;
 
+// Scoring algorithm constants
+const PIECE_COUNT_PENALTY = 10;
+const VARIETY_PENALTY = 20;
+const SMALL_PIECE_PENALTY = 5;
+const MIN_DESIRABLE_SIZE_RATIO = 0.4;
+const PREFERRED_ROUND_SIZES = [3, 4, 5];
+const ROUND_SIZE_BONUS = 2;
+const BASEPLATE_VARIETY_PENALTY = 15;
+
 /**
  * Split a spacer into smaller pieces if it exceeds max dimensions
  */
@@ -306,24 +315,24 @@ const scoreDivision = (division: number[], maxSize: number): number => {
   let score = 0;
   
   // Penalize more pieces (prefer fewer, larger pieces)
-  score += division.length * 10;
+  score += division.length * PIECE_COUNT_PENALTY;
   
   // Penalize variety (prefer uniform sizes)
   const uniqueSizes = new Set(division).size;
-  score += uniqueSizes * 20;
+  score += uniqueSizes * VARIETY_PENALTY;
   
   // Penalize small pieces (prefer pieces at least 40% of max)
-  const minDesirable = unitMath.multiply(maxSize, 0.4);
+  const minDesirable = unitMath.multiply(maxSize, MIN_DESIRABLE_SIZE_RATIO);
   division.forEach(size => {
     if (size < minDesirable) {
-      score += unitMath.multiply(unitMath.subtract(minDesirable, size), 5);
+      score += unitMath.multiply(unitMath.subtract(minDesirable, size), SMALL_PIECE_PENALTY);
     }
   });
   
   // Slightly prefer "round" numbers (5 over 6, etc.)
   division.forEach(size => {
-    if (size === 5 || size === 4 || size === 3) {
-      score -= 2;
+    if (PREFERRED_ROUND_SIZES.includes(size)) {
+      score -= ROUND_SIZE_BONUS;
     }
   });
   
@@ -365,7 +374,7 @@ const calculateSmartBaseplates = (
           baseplateTypes.add(`${x}x${y}`);
         }
       }
-      const varietyPenalty = unitMath.multiply(baseplateTypes.size, 15);
+      const varietyPenalty = unitMath.multiply(baseplateTypes.size, BASEPLATE_VARIETY_PENALTY);
       
       const finalScore = totalScore + varietyPenalty;
       
@@ -424,6 +433,9 @@ export const calculateGrids = (
   const remainingWidth = unitMath.subtract(drawerWidth, unitMath.multiply(gridCountX, gridSize));
   const remainingHeight = unitMath.subtract(drawerHeight, unitMath.multiply(gridCountY, gridSize));
 
+  // Track whether we're using smart allocation
+  let useSmartAllocation = false;
+
   // Try uniform baseplates if preferred and not using half-size
   if (preferUniformBaseplates && !useHalfSize) {
     const maxGridX = unitMath.divide(maxPrintSizeX, gridSize);
@@ -459,14 +471,15 @@ export const calculateGrids = (
       }
       
       // Smart allocation handles all pieces in the main loop, no edge calculations needed
+      useSmartAllocation = true;
     } else {
       // Fall back to regular algorithm
-      preferUniformBaseplates = false;
+      useSmartAllocation = false;
     }
   }
   
-  // Use regular algorithm if not using uniform baseplates
-  if (!preferUniformBaseplates || useHalfSize) {
+  // Use regular algorithm if not using smart allocation
+  if (!useSmartAllocation && (!preferUniformBaseplates || useHalfSize)) {
     for (let y = 0; y < gridCountY; y += unitMath.divide(maxPrintSizeY, gridSize)) {
       for (let x = 0; x < gridCountX; x += unitMath.divide(maxPrintSizeX, gridSize)) {
         const width = unitMath.min(unitMath.divide(maxPrintSizeX, gridSize), unitMath.subtract(gridCountX, x));
