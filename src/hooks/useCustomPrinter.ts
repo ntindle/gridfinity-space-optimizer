@@ -106,18 +106,24 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
       right: null,
     });
 
+  // Helper function to format numbers without unnecessary decimals
+  const formatNumber = (value: number): string => {
+    const rounded = Math.round(value * 10) / 10;
+    return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
+  };
+
   // Update input values when unit changes or dimensions change
   useEffect(() => {
     setInputValues({
       x: useMm
         ? customDimensions.x.toString()
-        : convertFromMm(customDimensions.x, "in").toFixed(1),
+        : formatNumber(convertFromMm(customDimensions.x, "in")),
       y: useMm
         ? customDimensions.y.toString()
-        : convertFromMm(customDimensions.y, "in").toFixed(1),
+        : formatNumber(convertFromMm(customDimensions.y, "in")),
       z: useMm
         ? customDimensions.z.toString()
-        : convertFromMm(customDimensions.z, "in").toFixed(1),
+        : formatNumber(convertFromMm(customDimensions.z, "in")),
     });
 
     // Update exclusion zone inputs
@@ -126,22 +132,22 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
       front: zone.front
         ? useMm
           ? zone.front.toString()
-          : convertFromMm(zone.front, "in").toFixed(1)
+          : formatNumber(convertFromMm(zone.front, "in"))
         : "",
       back: zone.back
         ? useMm
           ? zone.back.toString()
-          : convertFromMm(zone.back, "in").toFixed(1)
+          : formatNumber(convertFromMm(zone.back, "in"))
         : "",
       left: zone.left
         ? useMm
           ? zone.left.toString()
-          : convertFromMm(zone.left, "in").toFixed(1)
+          : formatNumber(convertFromMm(zone.left, "in"))
         : "",
       right: zone.right
         ? useMm
           ? zone.right.toString()
-          : convertFromMm(zone.right, "in").toFixed(1)
+          : formatNumber(convertFromMm(zone.right, "in"))
         : "",
     });
   }, [
@@ -269,10 +275,11 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
   const resetToDefault = () => {
     const defaults: PrinterSize = { x: 200, y: 200, z: 200 };
     setCustomDimensions(defaults);
+    const inchValue = formatNumber(convertFromMm(200, "in"));
     setInputValues({
-      x: useMm ? "200" : "7.9",
-      y: useMm ? "200" : "7.9",
-      z: useMm ? "200" : "7.9",
+      x: useMm ? "200" : inchValue,
+      y: useMm ? "200" : inchValue,
+      z: useMm ? "200" : inchValue,
     });
     setExclusionZoneInputs({
       front: "",

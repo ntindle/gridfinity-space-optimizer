@@ -93,7 +93,14 @@ describe('useCustomPrinter', () => {
         result.current.handleInputChange('x', '700'); // Too large
       });
       
-      expect(result.current.errors.x).toContain('exceed');
+      // Check that input value was set
+      expect(result.current.inputValues.x).toBe('700');
+      
+      act(() => {
+        result.current.validateSingleDimension('x'); // Validate on blur
+      });
+      
+      expect(result.current.errors.x).toBe('Maximum 600mm');
     });
 
     it('should reset to defaults', () => {
@@ -308,8 +315,8 @@ describe('useCustomPrinter', () => {
       // Switch to inches
       rerender({ useMm: false });
       
-      // Should show as 1.0 inches
-      expect(result.current.exclusionZoneInputs.front).toBe('1.0');
+      // Should show as 1 inch (formatNumber removes unnecessary decimals)
+      expect(result.current.exclusionZoneInputs.front).toBe('1');
     });
   });
 

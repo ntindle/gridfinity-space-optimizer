@@ -13,7 +13,11 @@ vi.mock('../../hooks/useCustomPrinter', () => ({
     customDimensions: { x: 200, y: 200, z: 200 },
     inputValues: { x: '200', y: '200', z: '200' },
     errors: { x: null, y: null, z: null },
+    exclusionZoneInputs: { front: '', back: '', left: '', right: '' },
+    exclusionZoneErrors: { front: null, back: null, left: null, right: null },
     handleInputChange: vi.fn(),
+    handleExclusionZoneChange: vi.fn(),
+    validateSingleDimension: vi.fn(() => true),
     validateAll: vi.fn(() => true),
     resetToDefault: vi.fn(),
   })),
@@ -39,8 +43,8 @@ describe('CustomPrinterDialog', () => {
       />
     );
 
-    expect(screen.getByText('Custom Printer Dimensions')).toBeInTheDocument();
-    expect(screen.getByText(/Enter your 3D printer's build volume/)).toBeInTheDocument();
+    expect(screen.getByText('Custom Printer Settings')).toBeInTheDocument();
+    expect(screen.getByText(/Configure your custom 3D printer dimensions/)).toBeInTheDocument();
   });
 
   it('should not render when closed', () => {
@@ -66,9 +70,9 @@ describe('CustomPrinterDialog', () => {
       />
     );
 
-    expect(screen.getByLabelText('X (mm)')).toBeInTheDocument();
-    expect(screen.getByLabelText('Y (mm)')).toBeInTheDocument();
-    expect(screen.getByLabelText('Z (mm)')).toBeInTheDocument();
+    expect(screen.getByText(/X \(mm\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Y \(mm\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Z \(mm\)/)).toBeInTheDocument();
   });
 
   it('should display dimension inputs with correct units for inches', () => {
@@ -81,23 +85,14 @@ describe('CustomPrinterDialog', () => {
       />
     );
 
-    expect(screen.getByLabelText('X (")')).toBeInTheDocument();
-    expect(screen.getByLabelText('Y (")')).toBeInTheDocument();
-    expect(screen.getByLabelText('Z (")')).toBeInTheDocument();
+    expect(screen.getByText(/X \(in\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Y \(in\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Z \(in\)/)).toBeInTheDocument();
   });
 
-  it('should show preview with current dimensions', () => {
-    render(
-      <CustomPrinterDialog
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        onConfirm={mockOnConfirm}
-        useMm={true}
-      />
-    );
-
-    expect(screen.getByText('Preview:')).toBeInTheDocument();
-    expect(screen.getByText('200 × 200 × 200 mm')).toBeInTheDocument();
+  // Preview section was removed from the component
+  it.skip('should show preview with current dimensions', () => {
+    // This test is skipped as the preview was removed
   });
 
   it('should handle input changes', async () => {
@@ -107,7 +102,11 @@ describe('CustomPrinterDialog', () => {
       customDimensions: { x: 200, y: 200, z: 200 },
       inputValues: { x: '200', y: '200', z: '200' },
       errors: { x: null, y: null, z: null },
+      exclusionZoneInputs: { front: '', back: '', left: '', right: '' },
+      exclusionZoneErrors: { front: null, back: null, left: null, right: null },
       handleInputChange: mockHandleInputChange,
+      handleExclusionZoneChange: vi.fn(),
+      validateSingleDimension: vi.fn(() => true),
       validateAll: vi.fn(() => true),
       resetToDefault: vi.fn(),
     });
@@ -121,7 +120,7 @@ describe('CustomPrinterDialog', () => {
       />
     );
 
-    const xInput = screen.getByLabelText('X (mm)');
+    const xInput = screen.getByRole('textbox', { name: /X \(mm\)/i });
     // Use fireEvent.change for more predictable behavior in tests
     fireEvent.change(xInput, { target: { value: '250' } });
 
@@ -138,7 +137,11 @@ describe('CustomPrinterDialog', () => {
         y: null, 
         z: null 
       },
+      exclusionZoneInputs: { front: '', back: '', left: '', right: '' },
+      exclusionZoneErrors: { front: null, back: null, left: null, right: null },
       handleInputChange: vi.fn(),
+      handleExclusionZoneChange: vi.fn(),
+      validateSingleDimension: vi.fn(() => true),
       validateAll: vi.fn(() => false),
       resetToDefault: vi.fn(),
     });
@@ -154,7 +157,7 @@ describe('CustomPrinterDialog', () => {
 
     expect(screen.getByText('Dimension must be at least 50mm')).toBeInTheDocument();
     
-    const xInput = screen.getByLabelText('X (mm)');
+    const xInput = screen.getByRole('textbox', { name: /X \(mm\)/i });
     expect(xInput).toHaveClass('border-red-500');
   });
 
@@ -166,7 +169,11 @@ describe('CustomPrinterDialog', () => {
       customDimensions,
       inputValues: { x: '250', y: '250', z: '250' },
       errors: { x: null, y: null, z: null },
+      exclusionZoneInputs: { front: '', back: '', left: '', right: '' },
+      exclusionZoneErrors: { front: null, back: null, left: null, right: null },
       handleInputChange: vi.fn(),
+      handleExclusionZoneChange: vi.fn(),
+      validateSingleDimension: vi.fn(() => true),
       validateAll: mockValidateAll,
       resetToDefault: vi.fn(),
     });
@@ -180,8 +187,8 @@ describe('CustomPrinterDialog', () => {
       />
     );
 
-    const applyButton = screen.getByText('Apply');
-    await userEvent.click(applyButton);
+    const saveButton = screen.getByText('Save');
+    await userEvent.click(saveButton);
 
     expect(mockValidateAll).toHaveBeenCalled();
     expect(mockOnConfirm).toHaveBeenCalledWith(customDimensions);
@@ -195,7 +202,11 @@ describe('CustomPrinterDialog', () => {
       customDimensions: { x: 10, y: 200, z: 200 },
       inputValues: { x: '10', y: '200', z: '200' },
       errors: { x: 'Too small', y: null, z: null },
+      exclusionZoneInputs: { front: '', back: '', left: '', right: '' },
+      exclusionZoneErrors: { front: null, back: null, left: null, right: null },
       handleInputChange: vi.fn(),
+      handleExclusionZoneChange: vi.fn(),
+      validateSingleDimension: vi.fn(() => true),
       validateAll: mockValidateAll,
       resetToDefault: vi.fn(),
     });
@@ -209,8 +220,8 @@ describe('CustomPrinterDialog', () => {
       />
     );
 
-    const applyButton = screen.getByText('Apply');
-    await userEvent.click(applyButton);
+    const saveButton = screen.getByText('Save');
+    await userEvent.click(saveButton);
 
     expect(mockValidateAll).toHaveBeenCalled();
     expect(mockOnConfirm).not.toHaveBeenCalled();
@@ -224,7 +235,11 @@ describe('CustomPrinterDialog', () => {
       customDimensions: { x: 200, y: 200, z: 200 },
       inputValues: { x: '200', y: '200', z: '200' },
       errors: { x: null, y: null, z: null },
+      exclusionZoneInputs: { front: '', back: '', left: '', right: '' },
+      exclusionZoneErrors: { front: null, back: null, left: null, right: null },
       handleInputChange: vi.fn(),
+      handleExclusionZoneChange: vi.fn(),
+      validateSingleDimension: vi.fn(() => true),
       validateAll: vi.fn(() => true),
       resetToDefault: mockResetToDefault,
     });
@@ -244,32 +259,13 @@ describe('CustomPrinterDialog', () => {
     expect(mockResetToDefault).toHaveBeenCalled();
   });
 
-  it('should have correct step values for inputs', () => {
-    render(
-      <CustomPrinterDialog
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        onConfirm={mockOnConfirm}
-        useMm={true}
-      />
-    );
-
-    const xInput = screen.getByLabelText('X (mm)');
-    expect(xInput).toHaveAttribute('step', '1');
-    expect(xInput).toHaveAttribute('min', '0');
+  // Step attributes test removed - inputs are now text type
+  it.skip('should have correct step values for inputs', () => {
+    // Text inputs don't have step attributes
   });
 
-  it('should have correct step values for inch inputs', () => {
-    render(
-      <CustomPrinterDialog
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        onConfirm={mockOnConfirm}
-        useMm={false}
-      />
-    );
-
-    const xInput = screen.getByLabelText('X (")');
-    expect(xInput).toHaveAttribute('step', '0.1');
+  // Step attributes test removed - inputs are now text type
+  it.skip('should have correct step values for inch inputs', () => {
+    // Text inputs don't have step attributes
   });
 });
