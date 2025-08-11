@@ -300,8 +300,20 @@ export const getColor = (type: LayoutItem['type'], index: number): string => {
 };
 
 /**
- * Find all ways to divide a length into pieces no larger than maxSize
- * Returns array of piece sizes that sum to length
+ * Finds all optimal ways to divide a given length into pieces, where each piece is no larger than `maxSize`
+ * and no smaller than `minSize`. The function attempts to avoid small leftover pieces by redistributing sizes
+ * when possible.
+ *
+ * @param {number} length - The total length to be divided.
+ * @param {number} maxSize - The maximum allowed size for any single piece.
+ * @param {number} [minSize=2] - The minimum allowed size for any single piece (default is 2).
+ * @returns {number[][]} An array of arrays, where each inner array represents a possible way to divide the length
+ *   into pieces that sum to `length`, with each piece between `minSize` and `maxSize` (inclusive).
+ *
+ * The algorithm tries all possible base sizes from `maxSize` down to `minSize`, and for each, it:
+ *   - Adds divisions with only full-size pieces if possible.
+ *   - Adds divisions with a remainder piece if the remainder is at least `minSize`.
+ *   - Attempts to redistribute sizes to avoid small remainders (e.g., instead of 6+6+1, tries 5+5+3).
  */
 const findDivisions = (length: number, maxSize: number, minSize: number = 2): number[][] => {
   const divisions: number[][] = [];
