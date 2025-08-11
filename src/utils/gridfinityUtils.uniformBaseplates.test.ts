@@ -2,6 +2,27 @@ import { describe, it, expect } from 'vitest';
 import { calculateGrids } from './gridfinityUtils';
 
 describe('Uniform Baseplates Calculation', () => {
+  it('should avoid creating 1xN baseplates', () => {
+    // Test with dimensions that would create 1xN pieces
+    const drawerSize = { width: 22, height: 14 }; // 13x8 grids with some remainder
+    const printerSize = { x: 250, y: 210, z: 250 };
+    
+    const result = calculateGrids(
+      drawerSize,
+      printerSize,
+      false,  // useHalfSize
+      false,  // preferHalfSize
+      true    // preferUniformBaseplates
+    );
+    
+    // Check that no baseplate has a dimension of 1
+    Object.keys(result.baseplates).forEach(size => {
+      const [width, height] = size.split('x').map(Number);
+      expect(width).toBeGreaterThanOrEqual(2);
+      expect(height).toBeGreaterThanOrEqual(2);
+    });
+  });
+  
   it('should use uniform 5x4 baseplates for 41.5" x 13.5" drawer when preferUniformBaseplates is true', () => {
     const drawerSize = { width: 41.5, height: 13.5 };
     const printerSize = { x: 250, y: 210, z: 250 };
@@ -83,6 +104,31 @@ describe('Uniform Baseplates Calculation', () => {
     
     // Results should be the same when useHalfSize is true
     expect(resultWithUniform.halfSizeBins).toEqual(resultWithoutUniform.halfSizeBins);
+  });
+  
+  it('should prefer fewer variants over perfect coverage', () => {
+    // Test dimensions that could use many variants or fewer with less coverage
+    const drawerSize = { width: 26, height: 15 }; 
+    const printerSize = { x: 250, y: 210, z: 250 };
+    
+    const result = calculateGrids(
+      drawerSize,
+      printerSize,
+      false,  // useHalfSize
+      false,  // preferHalfSize
+      true    // preferUniformBaseplates
+    );
+    
+    // Should have at most 2-3 different baseplate sizes
+    const variantCount = Object.keys(result.baseplates).length;
+    expect(variantCount).toBeLessThanOrEqual(3);
+    
+    // No single dimension should be 1
+    Object.keys(result.baseplates).forEach(size => {
+      const [width, height] = size.split('x').map(Number);
+      expect(width).toBeGreaterThanOrEqual(2);
+      expect(height).toBeGreaterThanOrEqual(2);
+    });
   });
   
   it('should handle edge cases with uniform baseplates', () => {
