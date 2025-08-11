@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePersistedState } from "./usePersistedState";
-import { convertToMm, convertFromMm } from "@/services/unitConversion";
+import { convertToMm, convertFromMm, validateDimension } from "@/services/unitConversion";
 import type { PrinterSize } from "@/types";
 
 /**
@@ -330,19 +330,6 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
     return true;
   };
 
-  // Helper function for dimension validation
-  const validateDimension = (
-    value: number,
-    constraints: { min: number; max: number }
-  ) => {
-    if (value < constraints.min) {
-      return { valid: false, error: `Minimum ${constraints.min}mm` };
-    }
-    if (value > constraints.max) {
-      return { valid: false, error: `Maximum ${constraints.max}mm` };
-    }
-    return { valid: true };
-  };
 
   return {
     customDimensions,
