@@ -263,13 +263,64 @@ export const getColor = (type: LayoutItem['type'], index: number): string => {
 };
 
 /**
+ * Calculate uniform baseplate options for a given grid size
+ */
+const calculateUniformBaseplates = (
+  gridCountX: number,
+  gridCountY: number,
+  maxGridX: number,
+  maxGridY: number
+): { width: number; height: number; count: number; coverage: number } | null => {
+  const candidates: { width: number; height: number; count: number; coverage: number }[] = [];
+  
+  // Try all possible uniform sizes that fit within printer constraints
+  for (let width = 1; width <= maxGridX; width++) {
+    for (let height = 1; height <= maxGridY; height++) {
+      // Calculate how many baseplates we can fit
+      const countX = unitMath.floor(unitMath.divide(gridCountX, width));
+      const countY = unitMath.floor(unitMath.divide(gridCountY, height));
+      const totalCount = unitMath.multiply(countX, countY);
+      
+      // Calculate coverage percentage
+      const coveredX = unitMath.multiply(countX, width);
+      const coveredY = unitMath.multiply(countY, height);
+      const totalArea = unitMath.multiply(gridCountX, gridCountY);
+      const coveredArea = unitMath.multiply(coveredX, coveredY);
+      const coverage = unitMath.divide(coveredArea, totalArea);
+      
+      // Only consider options that cover at least 90% of the area
+      if (coverage >= 0.9 && totalCount > 0) {
+        candidates.push({
+          width,
+          height,
+          count: totalCount,
+          coverage: coverage
+        });
+      }
+    }
+  }
+  
+  // Sort by coverage (descending) then by count (ascending for fewer pieces)
+  candidates.sort((a, b) => {
+    const coverageDiff = unitMath.subtract(b.coverage, a.coverage);
+    if (unitMath.approxEqual(coverageDiff, 0, 0.001)) {
+      return unitMath.subtract(a.count, b.count);
+    }
+    return coverageDiff;
+  });
+  
+  return candidates.length > 0 ? candidates[0] : null;
+};
+
+/**
  * Main calculation function
  */
 export const calculateGrids = (
   drawerSize: DrawerSize,
   printerSize: PrinterSize,
   useHalfSize: boolean,
-  preferHalfSize: boolean
+  preferHalfSize: boolean,
+  preferUniformBaseplates: boolean = false
 ): GridfinityResult => {
   // Handle invalid drawer dimensions
   if (!drawerSize || drawerSize.width <= 0 || drawerSize.height <= 0) {
@@ -306,26 +357,135 @@ export const calculateGrids = (
   const remainingWidth = unitMath.subtract(drawerWidth, unitMath.multiply(gridCountX, gridSize));
   const remainingHeight = unitMath.subtract(drawerHeight, unitMath.multiply(gridCountY, gridSize));
 
-  for (let y = 0; y < gridCountY; y += unitMath.divide(maxPrintSizeY, gridSize)) {
-    for (let x = 0; x < gridCountX; x += unitMath.divide(maxPrintSizeX, gridSize)) {
-      const width = unitMath.min(unitMath.divide(maxPrintSizeX, gridSize), unitMath.subtract(gridCountX, x));
-      const height = unitMath.min(unitMath.divide(maxPrintSizeY, gridSize), unitMath.subtract(gridCountY, y));
-      const item: LayoutItem = {
-        x,
-        y,
-        width,
-        height,
-        type: useHalfSize ? "half-size" : "baseplate",
-        pixelX: unitMath.multiply(x, gridSize),
-        pixelY: unitMath.multiply(y, gridSize),
-        pixelWidth: unitMath.multiply(width, gridSize),
-        pixelHeight: unitMath.multiply(height, gridSize),
-      };
-      if (useHalfSize) {
+  // Try uniform baseplates if preferred and not using half-size
+  if (preferUniformBaseplates && !useHalfSize) {
+    const maxGridX = unitMath.divide(maxPrintSizeX, gridSize);
+    const maxGridY = unitMath.divide(maxPrintSizeY, gridSize);
+    const uniformOption = calculateUniformBaseplates(gridCountX, gridCountY, maxGridX, maxGridY);
+    
+    if (uniformOption && uniformOption.coverage >= 0.9) {
+      // Use uniform baseplates
+      const { width, height } = uniformOption;
+      for (let y = 0; y < gridCountY; y += height) {
+        for (let x = 0; x < gridCountX; x += width) {
+          // Make sure we don't exceed the drawer bounds
+          if (x + width <= gridCountX && y + height <= gridCountY) {
+            const item: LayoutItem = {
+              x,
+              y,
+              width,
+              height,
+              type: "baseplate",
+              pixelX: unitMath.multiply(x, gridSize),
+              pixelY: unitMath.multiply(y, gridSize),
+              pixelWidth: unitMath.multiply(width, gridSize),
+              pixelHeight: unitMath.multiply(height, gridSize),
+            };
+            baseplates.push(`${width}x${height}`);
+            newLayout.push(item);
+          }
+        }
+      }
+      
+      // Add any remaining uncovered areas as smaller baseplates
+      const coveredX = unitMath.multiply(
+        unitMath.floor(unitMath.divide(gridCountX, width)),
+        width
+      );
+      const coveredY = unitMath.multiply(
+        unitMath.floor(unitMath.divide(gridCountY, height)),
+        height
+      );
+      
+      // Right edge remainder
+      if (coveredX < gridCountX) {
+        for (let y = 0; y < coveredY; y += maxGridY) {
+          const remainingWidth = unitMath.subtract(gridCountX, coveredX);
+          const pieceHeight = unitMath.min(maxGridY, unitMath.subtract(coveredY, y));
+          const item: LayoutItem = {
+            x: coveredX,
+            y,
+            width: remainingWidth,
+            height: pieceHeight,
+            type: "baseplate",
+            pixelX: unitMath.multiply(coveredX, gridSize),
+            pixelY: unitMath.multiply(y, gridSize),
+            pixelWidth: unitMath.multiply(remainingWidth, gridSize),
+            pixelHeight: unitMath.multiply(pieceHeight, gridSize),
+          };
+          baseplates.push(`${remainingWidth}x${pieceHeight}`);
+          newLayout.push(item);
+        }
+      }
+      
+      // Bottom edge remainder
+      if (coveredY < gridCountY) {
+        for (let x = 0; x < coveredX; x += maxGridX) {
+          const remainingHeight = unitMath.subtract(gridCountY, coveredY);
+          const pieceWidth = unitMath.min(maxGridX, unitMath.subtract(coveredX, x));
+          const item: LayoutItem = {
+            x,
+            y: coveredY,
+            width: pieceWidth,
+            height: remainingHeight,
+            type: "baseplate",
+            pixelX: unitMath.multiply(x, gridSize),
+            pixelY: unitMath.multiply(coveredY, gridSize),
+            pixelWidth: unitMath.multiply(pieceWidth, gridSize),
+            pixelHeight: unitMath.multiply(remainingHeight, gridSize),
+          };
+          baseplates.push(`${pieceWidth}x${remainingHeight}`);
+          newLayout.push(item);
+        }
+      }
+      
+      // Corner remainder
+      if (coveredX < gridCountX && coveredY < gridCountY) {
+        const remainingWidthCorner = unitMath.subtract(gridCountX, coveredX);
+        const remainingHeightCorner = unitMath.subtract(gridCountY, coveredY);
+        const item: LayoutItem = {
+          x: coveredX,
+          y: coveredY,
+          width: remainingWidthCorner,
+          height: remainingHeightCorner,
+          type: "baseplate",
+          pixelX: unitMath.multiply(coveredX, gridSize),
+          pixelY: unitMath.multiply(coveredY, gridSize),
+          pixelWidth: unitMath.multiply(remainingWidthCorner, gridSize),
+          pixelHeight: unitMath.multiply(remainingHeightCorner, gridSize),
+        };
+        baseplates.push(`${remainingWidthCorner}x${remainingHeightCorner}`);
         newLayout.push(item);
-      } else {
-        baseplates.push(`${width}x${height}`);
-        newLayout.push(item);
+      }
+    } else {
+      // Fall back to regular algorithm
+      preferUniformBaseplates = false;
+    }
+  }
+  
+  // Use regular algorithm if not using uniform baseplates
+  if (!preferUniformBaseplates || useHalfSize) {
+    for (let y = 0; y < gridCountY; y += unitMath.divide(maxPrintSizeY, gridSize)) {
+      for (let x = 0; x < gridCountX; x += unitMath.divide(maxPrintSizeX, gridSize)) {
+        const width = unitMath.min(unitMath.divide(maxPrintSizeX, gridSize), unitMath.subtract(gridCountX, x));
+        const height = unitMath.min(unitMath.divide(maxPrintSizeY, gridSize), unitMath.subtract(gridCountY, y));
+        const item: LayoutItem = {
+          x,
+          y,
+          width,
+          height,
+          type: useHalfSize ? "half-size" : "baseplate",
+          pixelX: unitMath.multiply(x, gridSize),
+          pixelY: unitMath.multiply(y, gridSize),
+          pixelWidth: unitMath.multiply(width, gridSize),
+          pixelHeight: unitMath.multiply(height, gridSize),
+        };
+        if (useHalfSize) {
+          newLayout.push(item);
+        } else {
+          baseplates.push(`${width}x${height}`);
+          newLayout.push(item);
+        }
       }
     }
   }
