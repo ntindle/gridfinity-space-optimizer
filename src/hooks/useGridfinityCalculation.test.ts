@@ -39,6 +39,7 @@ describe.skip('useGridfinityCalculation', () => {
         customPrinterSize: null,
         useHalfSize: false,
         preferHalfSize: false,
+        preferUniformBaseplates: false,
         numDrawers: 1,
       })
     );
@@ -64,6 +65,7 @@ describe.skip('useGridfinityCalculation', () => {
         customPrinterSize: customSize,
         useHalfSize: false,
         preferHalfSize: false,
+        preferUniformBaseplates: false,
         numDrawers: 1,
       })
     );
@@ -79,6 +81,7 @@ describe.skip('useGridfinityCalculation', () => {
         customPrinterSize: null,
         useHalfSize: true,
         preferHalfSize: false,
+        preferUniformBaseplates: false,
         numDrawers: 1,
       })
     );
@@ -95,6 +98,7 @@ describe.skip('useGridfinityCalculation', () => {
         customPrinterSize: null,
         useHalfSize: false,
         preferHalfSize: false,
+        preferUniformBaseplates: false,
         numDrawers: 3,
       })
     );
@@ -111,6 +115,7 @@ describe.skip('useGridfinityCalculation', () => {
           customPrinterSize: null,
           useHalfSize: false,
           preferHalfSize: false,
+          preferUniformBaseplates: false,
           numDrawers: 1,
         }),
       {
@@ -138,6 +143,7 @@ describe.skip('useGridfinityCalculation', () => {
         customPrinterSize: null,
         useHalfSize: false,
         preferHalfSize: false,
+        preferUniformBaseplates: false,
         numDrawers: 1,
       })
     );
@@ -154,6 +160,7 @@ describe.skip('useGridfinityCalculation', () => {
         customPrinterSize: null,
         useHalfSize: false,
         preferHalfSize: false,
+        preferUniformBaseplates: false,
         numDrawers: 1,
       })
     );
@@ -170,6 +177,7 @@ describe.skip('useGridfinityCalculation', () => {
           customPrinterSize: null,
           useHalfSize,
           preferHalfSize: false,
+          preferUniformBaseplates: false,
           numDrawers: 1,
         }),
       {
