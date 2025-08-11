@@ -90,6 +90,9 @@ const CustomPrinterDialog: React.FC<CustomPrinterDialogProps> = ({ open, onOpenC
           {/* Exclusion Zones */}
           <div className="space-y-4">
             <h4 className="text-sm font-medium">Exclusion Zones (Optional)</h4>
+            <p className="text-xs text-muted-foreground">
+              Exclusion zones are areas on the print bed that should not be used for printing, such as regions blocked by clips or obstructions. Setting these values will reduce the printable area on the specified sides.
+            </p>
             <div className="grid grid-cols-2 gap-4">
               {(["front", "back", "left", "right"] as const).map((zone) => (
                 <div key={zone} className="space-y-2">
