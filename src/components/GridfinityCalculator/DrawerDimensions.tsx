@@ -1,55 +1,85 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+"use client"
+
+import { useState, useEffect } from "react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 
 const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
-  const [localWidth, setLocalWidth] = useState("");
-  const [localHeight, setLocalHeight] = useState("");
+  const [localWidth, setLocalWidth] = useState("")
+  const [localHeight, setLocalHeight] = useState("")
 
-  const convertToMm = (value) => (value * 25.4).toFixed(2);
-  const convertToInches = (value) => (value / 25.4).toFixed(4);
+  // Simple conversion functions
+  const convertToInches = (value) => value / 25.4
 
-  const updateLocalValues = useCallback((width, height) => {
-    if (useMm) {
-      setLocalWidth(convertToMm(width));
-      setLocalHeight(convertToMm(height));
-    } else {
-      setLocalWidth(width.toFixed(4));
-      setLocalHeight(height.toFixed(4));
-    }
-  }, [useMm]);
-
+  // Initialize local values when component mounts or unit changes
   useEffect(() => {
-    updateLocalValues(drawerSize.width, drawerSize.height);
-  }, [useMm, drawerSize, updateLocalValues]);
-
-  const handleInputChange = (dimension) => (e) => {
-    const value = e.target.value;
-    if (dimension === "width") {
-      setLocalWidth(value);
+    if (useMm) {
+      setLocalWidth(drawerSize.width ? String(Math.round(drawerSize.width * 25.4 * 100) / 100) : "")
+      setLocalHeight(drawerSize.height ? String(Math.round(drawerSize.height * 25.4 * 100) / 100) : "")
     } else {
-      setLocalHeight(value);
+      setLocalWidth(drawerSize.width ? String(drawerSize.width) : "")
+      setLocalHeight(drawerSize.height ? String(drawerSize.height) : "")
     }
+  }, [useMm, drawerSize.width, drawerSize.height]) // Include all dependencies
 
-    const numericValue = parseFloat(value);
-    if (!isNaN(numericValue)) {
-      const inchesValue = useMm ? parseFloat(convertToInches(numericValue)) : numericValue;
+  // Handle input changes - just update local state, don't interfere with typing
+  const handleInputChange = (dimension) => (e) => {
+    const value = e.target.value
+
+    if (dimension === "width") {
+      setLocalWidth(value)
+    } else {
+      setLocalHeight(value)
+    }
+  }
+
+  // Handle when user finishes typing (on blur)
+  const handleInputBlur = (dimension) => (e) => {
+    const value = e.target.value
+    const numericValue = Number.parseFloat(value)
+
+    if (!isNaN(numericValue) && numericValue >= 0) {
+      // Convert to inches for internal storage
+      const inchesValue = useMm ? convertToInches(numericValue) : numericValue
       setDrawerSize((prevSize) => ({
         ...prevSize,
         [dimension]: inchesValue,
-      }));
+      }))
+    } else if (value === "" || value === "0") {
+      setDrawerSize((prevSize) => ({
+        ...prevSize,
+        [dimension]: 0,
+      }))
+      // Reset display value to empty
+      if (dimension === "width") {
+        setLocalWidth("")
+      } else {
+        setLocalHeight("")
+      }
+    } else {
+      // Invalid input - revert to previous valid value
+      if (useMm) {
+        const displayValue = drawerSize[dimension] ? String(Math.round(drawerSize[dimension] * 25.4 * 100) / 100) : ""
+        if (dimension === "width") {
+          setLocalWidth(displayValue)
+        } else {
+          setLocalHeight(displayValue)
+        }
+      } else {
+        const displayValue = drawerSize[dimension] ? String(drawerSize[dimension]) : ""
+        if (dimension === "width") {
+          setLocalWidth(displayValue)
+        } else {
+          setLocalHeight(displayValue)
+        }
+      }
     }
-  };
+  }
 
   const handleUnitToggle = (checked) => {
-    setUseMm(checked);
-  };
-
-  const formatDisplayValue = (value) => {
-    const numValue = parseFloat(value);
-    return isNaN(numValue) ? "" : numValue.toString();
-  };
+    setUseMm(checked)
+  }
 
   return (
     <div className="w-full max-w-sm space-y-6 p-4">
@@ -57,11 +87,7 @@ const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
         <h3 className="text-lg font-semibold">Drawer Dimensions</h3>
         <div className="flex items-center space-x-2">
           <Label htmlFor="unit-toggle">Inches</Label>
-          <Switch
-            id="unit-toggle"
-            checked={useMm}
-            onCheckedChange={handleUnitToggle}
-          />
+          <Switch id="unit-toggle" checked={useMm} onCheckedChange={handleUnitToggle} />
           <Label htmlFor="unit-toggle">mm</Label>
         </div>
       </div>
@@ -70,12 +96,13 @@ const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
           <Label htmlFor="drawerWidth">Width ({useMm ? "mm" : "inches"})</Label>
           <Input
             id="drawerWidth"
-            type="number"
-            value={formatDisplayValue(localWidth)}
+            type="text"
+            inputMode="decimal"
+            value={localWidth}
             onChange={handleInputChange("width")}
+            onBlur={handleInputBlur("width")}
             className="w-full"
-            step="any"
-            min="0"
+            placeholder="0"
             onFocus={(e) => e.target.select()}
           />
         </div>
@@ -83,18 +110,19 @@ const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
           <Label htmlFor="drawerHeight">Height ({useMm ? "mm" : "inches"})</Label>
           <Input
             id="drawerHeight"
-            type="number"
-            value={formatDisplayValue(localHeight)}
+            type="text"
+            inputMode="decimal"
+            value={localHeight}
             onChange={handleInputChange("height")}
+            onBlur={handleInputBlur("height")}
             className="w-full"
-            step="any"
-            min="0"
+            placeholder="0"
             onFocus={(e) => e.target.select()}
           />
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default DrawerDimensions;
+export default DrawerDimensions

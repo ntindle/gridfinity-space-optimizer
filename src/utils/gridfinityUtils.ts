@@ -10,6 +10,43 @@ export const FULL_GRID_SIZE = 42; // mm
 export const HALF_GRID_SIZE = 21; // mm
 export const INCH_TO_MM = 25.4;
 
+// Scoring algorithm constants
+/**
+ * Penalty applied for each additional piece required in the layout.
+ * Higher values discourage solutions with more pieces.
+ */
+const PIECE_COUNT_PENALTY = 10;
+/**
+ * Penalty applied for each unique piece type (variety) in the layout.
+ * Higher values discourage solutions with more different types of pieces.
+ */
+const VARIETY_PENALTY = 20;
+/**
+ * Penalty applied for each small piece in the layout.
+ * Higher values discourage solutions with more small pieces.
+ */
+const SMALL_PIECE_PENALTY = 5;
+/**
+ * Minimum ratio of piece size to grid size considered desirable.
+ * Pieces smaller than this ratio may be penalized.
+ */
+const MIN_DESIRABLE_SIZE_RATIO = 0.4;
+/**
+ * Preferred round sizes for pieces (in grid units).
+ * Solutions using these sizes may receive a bonus.
+ */
+const PREFERRED_ROUND_SIZES = [3, 4, 5];
+/**
+ * Bonus applied when a preferred round size is used.
+ * Higher values encourage use of preferred sizes.
+ */
+const ROUND_SIZE_BONUS = 2;
+/**
+ * Penalty applied for each unique baseplate type in the layout.
+ * Higher values discourage solutions with more different baseplate types.
+ */
+const BASEPLATE_VARIETY_PENALTY = 15;
+
 /**
  * Split a spacer into smaller pieces if it exceeds max dimensions
  */
@@ -263,13 +300,174 @@ export const getColor = (type: LayoutItem['type'], index: number): string => {
 };
 
 /**
+ * Finds all optimal ways to divide a given length into pieces, where each piece is no larger than `maxSize`
+ * and no smaller than `minSize`. The function attempts to avoid small leftover pieces by redistributing sizes
+ * when possible.
+ *
+ * @param {number} length - The total length to be divided.
+ * @param {number} maxSize - The maximum allowed size for any single piece.
+ * @param {number} [minSize=2] - The minimum allowed size for any single piece (default is 2).
+ * @returns {number[][]} An array of arrays, where each inner array represents a possible way to divide the length
+ *   into pieces that sum to `length`, with each piece between `minSize` and `maxSize` (inclusive).
+ *
+ * The algorithm tries all possible base sizes from `maxSize` down to `minSize`, and for each, it:
+ *   - Adds divisions with only full-size pieces if possible.
+ *   - Adds divisions with a remainder piece if the remainder is at least `minSize`.
+ *   - Attempts to redistribute sizes to avoid small remainders (e.g., instead of 6+6+1, tries 5+5+3).
+ */
+const findDivisions = (length: number, maxSize: number, minSize: number = 2): number[][] => {
+  const divisions: number[][] = [];
+  
+  // Try each possible base size from maxSize down to minSize
+  for (let baseSize = maxSize; baseSize >= minSize; baseSize--) {
+    const fullPieces = unitMath.floor(unitMath.divide(length, baseSize));
+    const remainder = unitMath.mod(length, baseSize);
+    
+    if (fullPieces === 0) continue;
+    
+    if (remainder === 0) {
+      // Perfect division
+      divisions.push(Array(fullPieces).fill(baseSize));
+    } else if (remainder >= minSize) {
+      // Division with acceptable remainder
+      divisions.push([...Array(fullPieces).fill(baseSize), remainder]);
+    } else if (fullPieces > 1) {
+      // Try redistributing to avoid tiny remainder
+      // e.g., instead of 6+6+1, try 5+5+3 or 4+4+5
+      const adjusted = baseSize - 1;
+      if (adjusted >= minSize) {
+        const newRemainder = length - (fullPieces - 1) * adjusted;
+        if (newRemainder <= maxSize && newRemainder >= minSize) {
+          divisions.push([...Array(fullPieces - 1).fill(adjusted), newRemainder]);
+        }
+      }
+    }
+  }
+  
+  return divisions;
+};
+
+/**
+ * Scores a division of a length into pieces based on several desirability criteria.
+ *
+ * Scoring criteria (lower score is better):
+ * - Penalizes divisions with more pieces (fewer, larger pieces are preferred).
+ * - Penalizes divisions with a greater variety of piece sizes (uniform sizes are preferred).
+ * - Penalizes pieces that are smaller than a minimum desirable size (pieces should be at least a certain ratio of maxSize).
+ * - Applies a bonus (negative penalty) for pieces that are "round" or preferred sizes.
+ *
+ * The total score is the sum of these penalties and bonuses. Lower scores indicate more desirable divisions.
+ *
+ * @param division Array of piece sizes that sum to the total length.
+ * @param maxSize The maximum allowed size for any piece.
+ * @returns A numeric score; lower is better.
+ */
+const scoreDivision = (division: number[], maxSize: number): number => {
+  let score = 0;
+  
+  // Penalize more pieces (prefer fewer, larger pieces)
+  score += division.length * PIECE_COUNT_PENALTY;
+  
+  // Penalize variety (prefer uniform sizes)
+  const uniqueSizes = new Set(division).size;
+  score += uniqueSizes * VARIETY_PENALTY;
+  
+  // Penalize small pieces (prefer pieces at least 40% of max)
+  const minDesirable = unitMath.multiply(maxSize, MIN_DESIRABLE_SIZE_RATIO);
+  division.forEach(size => {
+    if (size < minDesirable) {
+      score += unitMath.multiply(unitMath.subtract(minDesirable, size), SMALL_PIECE_PENALTY);
+    }
+  });
+  
+  // Slightly prefer "round" numbers (5 over 6, etc.)
+  division.forEach(size => {
+    if (PREFERRED_ROUND_SIZES.includes(size)) {
+      score -= ROUND_SIZE_BONUS;
+    }
+  });
+  
+  return score;
+};
+
+/**
+ * Determines the optimal way to divide a grid into baseplates for uniform allocation,
+ * minimizing the number and variety of baseplate types while respecting size constraints.
+ *
+ * This function is central to the uniform baseplate allocation strategy: it exhaustively
+ * searches for all possible divisions of the grid along X and Y axes, where each division
+ * represents a possible way to split the grid into baseplates no larger than the specified
+ * maximum sizes. Each combination of divisions is scored based on criteria such as the
+ * number of pieces, uniformity, and variety of baseplate types. The layout with the lowest
+ * score is selected as the optimal allocation.
+ *
+ * @param {number} gridCountX - The total number of grid units along the X axis to cover.
+ * @param {number} gridCountY - The total number of grid units along the Y axis to cover.
+ * @param {number} maxGridX - The maximum allowed baseplate size along the X axis (in grid units).
+ * @param {number} maxGridY - The maximum allowed baseplate size along the Y axis (in grid units).
+ * @param {number} [minBaseplateSize=2] - The minimum allowed baseplate size (in grid units).
+ * @returns {{ layout: number[][]; score: number } | null}
+ *   An object containing the optimal layout (as two arrays of baseplate sizes for X and Y axes)
+ *   and its score, or null if no valid division is found.
+ *
+ * The returned layout can be used to generate a set of baseplates that efficiently and
+ * uniformly cover the specified grid area, minimizing waste and variety.
+ */
+const calculateSmartBaseplates = (
+  gridCountX: number,
+  gridCountY: number,
+  maxGridX: number,
+  maxGridY: number,
+  minBaseplateSize: number = 2
+): { layout: number[][]; score: number } | null => {
+  const xDivisions = findDivisions(gridCountX, maxGridX, minBaseplateSize);
+  const yDivisions = findDivisions(gridCountY, maxGridY, minBaseplateSize);
+  
+  if (xDivisions.length === 0 || yDivisions.length === 0) {
+    return null;
+  }
+  
+  let bestLayout: number[][] | null = null;
+  let bestScore = Infinity;
+  
+  // Try all combinations of X and Y divisions
+  for (const xDiv of xDivisions) {
+    for (const yDiv of yDivisions) {
+      // Calculate the score for this combination
+      const xScore = scoreDivision(xDiv, maxGridX);
+      const yScore = scoreDivision(yDiv, maxGridY);
+      const totalScore = xScore + yScore;
+      
+      // Additional penalty for total number of unique baseplate types
+      const baseplateTypes = new Set<string>();
+      for (const x of xDiv) {
+        for (const y of yDiv) {
+          baseplateTypes.add(`${x}x${y}`);
+        }
+      }
+      const varietyPenalty = unitMath.multiply(baseplateTypes.size, BASEPLATE_VARIETY_PENALTY);
+      
+      const finalScore = totalScore + varietyPenalty;
+      
+      if (finalScore < bestScore) {
+        bestScore = finalScore;
+        bestLayout = [xDiv, yDiv];
+      }
+    }
+  }
+  
+  return bestLayout ? { layout: bestLayout, score: bestScore } : null;
+};
+
+/**
  * Main calculation function
  */
 export const calculateGrids = (
   drawerSize: DrawerSize,
   printerSize: PrinterSize,
   useHalfSize: boolean,
-  preferHalfSize: boolean
+  preferHalfSize: boolean,
+  preferUniformBaseplates: boolean = false
 ): GridfinityResult => {
   // Handle invalid drawer dimensions
   if (!drawerSize || drawerSize.width <= 0 || drawerSize.height <= 0) {
@@ -288,34 +486,92 @@ export const calculateGrids = (
   const gridCountX = unitMath.floor(unitMath.divide(drawerWidth, gridSize));
   const gridCountY = unitMath.floor(unitMath.divide(drawerHeight, gridSize));
 
-  const maxPrintSizeX = unitMath.multiply(unitMath.floor(unitMath.divide(printerSize.x, gridSize)), gridSize);
-  const maxPrintSizeY = unitMath.multiply(unitMath.floor(unitMath.divide(printerSize.y, gridSize)), gridSize);
+  // Calculate effective printer size accounting for exclusion zones
+  let effectiveX = printerSize.x;
+  let effectiveY = printerSize.y;
+  
+  if (printerSize.exclusionZone) {
+    const { left = 0, right = 0, front = 0, back = 0 } = printerSize.exclusionZone;
+    effectiveX = unitMath.subtract(effectiveX, unitMath.add(left, right));
+    effectiveY = unitMath.subtract(effectiveY, unitMath.add(front, back));
+  }
+
+  const maxPrintSizeX = unitMath.multiply(unitMath.floor(unitMath.divide(effectiveX, gridSize)), gridSize);
+  const maxPrintSizeY = unitMath.multiply(unitMath.floor(unitMath.divide(effectiveY, gridSize)), gridSize);
 
   const baseplates: string[] = [];
   let newLayout: LayoutItem[] = [];
   const remainingWidth = unitMath.subtract(drawerWidth, unitMath.multiply(gridCountX, gridSize));
   const remainingHeight = unitMath.subtract(drawerHeight, unitMath.multiply(gridCountY, gridSize));
 
-  for (let y = 0; y < gridCountY; y += unitMath.divide(maxPrintSizeY, gridSize)) {
-    for (let x = 0; x < gridCountX; x += unitMath.divide(maxPrintSizeX, gridSize)) {
-      const width = unitMath.min(unitMath.divide(maxPrintSizeX, gridSize), unitMath.subtract(gridCountX, x));
-      const height = unitMath.min(unitMath.divide(maxPrintSizeY, gridSize), unitMath.subtract(gridCountY, y));
-      const item: LayoutItem = {
-        x,
-        y,
-        width,
-        height,
-        type: useHalfSize ? "half-size" : "baseplate",
-        pixelX: unitMath.multiply(x, gridSize),
-        pixelY: unitMath.multiply(y, gridSize),
-        pixelWidth: unitMath.multiply(width, gridSize),
-        pixelHeight: unitMath.multiply(height, gridSize),
-      };
-      if (useHalfSize) {
-        newLayout.push(item);
-      } else {
-        baseplates.push(`${width}x${height}`);
-        newLayout.push(item);
+  // Track whether we're using smart allocation
+  let useSmartAllocation = false;
+
+  // Try uniform baseplates if preferred and not using half-size
+  if (preferUniformBaseplates && !useHalfSize) {
+    const maxGridX = unitMath.divide(maxPrintSizeX, gridSize);
+    const maxGridY = unitMath.divide(maxPrintSizeY, gridSize);
+    const minBaseplateSize = 2; // Don't create baseplates smaller than 2x2
+    const smartOption = calculateSmartBaseplates(gridCountX, gridCountY, maxGridX, maxGridY, minBaseplateSize);
+    
+    if (smartOption) {
+      // Use smart baseplate allocation
+      const [xDivision, yDivision] = smartOption.layout;
+      
+      // Build the layout based on the smart divisions
+      let currentY = 0;
+      for (const height of yDivision) {
+        let currentX = 0;
+        for (const width of xDivision) {
+          const item: LayoutItem = {
+            x: currentX,
+            y: currentY,
+            width,
+            height,
+            type: "baseplate",
+            pixelX: unitMath.multiply(currentX, gridSize),
+            pixelY: unitMath.multiply(currentY, gridSize),
+            pixelWidth: unitMath.multiply(width, gridSize),
+            pixelHeight: unitMath.multiply(height, gridSize),
+          };
+          baseplates.push(`${width}x${height}`);
+          newLayout.push(item);
+          currentX = unitMath.add(currentX, width);
+        }
+        currentY = unitMath.add(currentY, height);
+      }
+      
+      // Smart allocation handles all pieces in the main loop, no edge calculations needed
+      useSmartAllocation = true;
+    } else {
+      // Fall back to regular algorithm
+      useSmartAllocation = false;
+    }
+  }
+  
+  // Use regular algorithm if not using smart allocation
+  if (!useSmartAllocation && (!preferUniformBaseplates || useHalfSize)) {
+    for (let y = 0; y < gridCountY; y += unitMath.divide(maxPrintSizeY, gridSize)) {
+      for (let x = 0; x < gridCountX; x += unitMath.divide(maxPrintSizeX, gridSize)) {
+        const width = unitMath.min(unitMath.divide(maxPrintSizeX, gridSize), unitMath.subtract(gridCountX, x));
+        const height = unitMath.min(unitMath.divide(maxPrintSizeY, gridSize), unitMath.subtract(gridCountY, y));
+        const item: LayoutItem = {
+          x,
+          y,
+          width,
+          height,
+          type: useHalfSize ? "half-size" : "baseplate",
+          pixelX: unitMath.multiply(x, gridSize),
+          pixelY: unitMath.multiply(y, gridSize),
+          pixelWidth: unitMath.multiply(width, gridSize),
+          pixelHeight: unitMath.multiply(height, gridSize),
+        };
+        if (useHalfSize) {
+          newLayout.push(item);
+        } else {
+          baseplates.push(`${width}x${height}`);
+          newLayout.push(item);
+        }
       }
     }
   }
