@@ -340,7 +340,27 @@ const scoreDivision = (division: number[], maxSize: number): number => {
 };
 
 /**
- * Calculate smart baseplate allocation using modulo approach
+ * Determines the optimal way to divide a grid into baseplates for uniform allocation,
+ * minimizing the number and variety of baseplate types while respecting size constraints.
+ *
+ * This function is central to the uniform baseplate allocation strategy: it exhaustively
+ * searches for all possible divisions of the grid along X and Y axes, where each division
+ * represents a possible way to split the grid into baseplates no larger than the specified
+ * maximum sizes. Each combination of divisions is scored based on criteria such as the
+ * number of pieces, uniformity, and variety of baseplate types. The layout with the lowest
+ * score is selected as the optimal allocation.
+ *
+ * @param {number} gridCountX - The total number of grid units along the X axis to cover.
+ * @param {number} gridCountY - The total number of grid units along the Y axis to cover.
+ * @param {number} maxGridX - The maximum allowed baseplate size along the X axis (in grid units).
+ * @param {number} maxGridY - The maximum allowed baseplate size along the Y axis (in grid units).
+ * @param {number} [minBaseplateSize=2] - The minimum allowed baseplate size (in grid units).
+ * @returns {{ layout: number[][]; score: number } | null}
+ *   An object containing the optimal layout (as two arrays of baseplate sizes for X and Y axes)
+ *   and its score, or null if no valid division is found.
+ *
+ * The returned layout can be used to generate a set of baseplates that efficiently and
+ * uniformly cover the specified grid area, minimizing waste and variety.
  */
 const calculateSmartBaseplates = (
   gridCountX: number,
