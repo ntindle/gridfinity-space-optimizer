@@ -336,8 +336,19 @@ const findDivisions = (length: number, maxSize: number, minSize: number = 2): nu
 };
 
 /**
- * Score a division based on desirability
- * Lower score is better
+ * Scores a division of a length into pieces based on several desirability criteria.
+ *
+ * Scoring criteria (lower score is better):
+ * - Penalizes divisions with more pieces (fewer, larger pieces are preferred).
+ * - Penalizes divisions with a greater variety of piece sizes (uniform sizes are preferred).
+ * - Penalizes pieces that are smaller than a minimum desirable size (pieces should be at least a certain ratio of maxSize).
+ * - Applies a bonus (negative penalty) for pieces that are "round" or preferred sizes.
+ *
+ * The total score is the sum of these penalties and bonuses. Lower scores indicate more desirable divisions.
+ *
+ * @param division Array of piece sizes that sum to the total length.
+ * @param maxSize The maximum allowed size for any piece.
+ * @returns A numeric score; lower is better.
  */
 const scoreDivision = (division: number[], maxSize: number): number => {
   let score = 0;
