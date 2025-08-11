@@ -263,87 +263,120 @@ export const getColor = (type: LayoutItem['type'], index: number): string => {
 };
 
 /**
- * Calculate uniform baseplate options for a given grid size
+ * Find all ways to divide a length into pieces no larger than maxSize
+ * Returns array of piece sizes that sum to length
  */
-const calculateUniformBaseplates = (
+const findDivisions = (length: number, maxSize: number, minSize: number = 2): number[][] => {
+  const divisions: number[][] = [];
+  
+  // Try each possible base size from maxSize down to minSize
+  for (let baseSize = maxSize; baseSize >= minSize; baseSize--) {
+    const fullPieces = unitMath.floor(unitMath.divide(length, baseSize));
+    const remainder = unitMath.mod(length, baseSize);
+    
+    if (fullPieces === 0) continue;
+    
+    if (remainder === 0) {
+      // Perfect division
+      divisions.push(Array(fullPieces).fill(baseSize));
+    } else if (remainder >= minSize) {
+      // Division with acceptable remainder
+      divisions.push([...Array(fullPieces).fill(baseSize), remainder]);
+    } else if (fullPieces > 1) {
+      // Try redistributing to avoid tiny remainder
+      // e.g., instead of 6+6+1, try 5+5+3 or 4+4+5
+      const adjusted = baseSize - 1;
+      if (adjusted >= minSize) {
+        const newRemainder = length - (fullPieces - 1) * adjusted;
+        if (newRemainder <= maxSize && newRemainder >= minSize) {
+          divisions.push([...Array(fullPieces - 1).fill(adjusted), newRemainder]);
+        }
+      }
+    }
+  }
+  
+  return divisions;
+};
+
+/**
+ * Score a division based on desirability
+ * Lower score is better
+ */
+const scoreDivision = (division: number[], maxSize: number): number => {
+  let score = 0;
+  
+  // Penalize more pieces (prefer fewer, larger pieces)
+  score += division.length * 10;
+  
+  // Penalize variety (prefer uniform sizes)
+  const uniqueSizes = new Set(division).size;
+  score += uniqueSizes * 20;
+  
+  // Penalize small pieces (prefer pieces at least 40% of max)
+  const minDesirable = unitMath.multiply(maxSize, 0.4);
+  division.forEach(size => {
+    if (size < minDesirable) {
+      score += unitMath.multiply(unitMath.subtract(minDesirable, size), 5);
+    }
+  });
+  
+  // Slightly prefer "round" numbers (5 over 6, etc.)
+  division.forEach(size => {
+    if (size === 5 || size === 4 || size === 3) {
+      score -= 2;
+    }
+  });
+  
+  return score;
+};
+
+/**
+ * Calculate smart baseplate allocation using modulo approach
+ */
+const calculateSmartBaseplates = (
   gridCountX: number,
   gridCountY: number,
   maxGridX: number,
   maxGridY: number,
   minBaseplateSize: number = 2
-): { width: number; height: number; count: number; coverage: number; variants: number } | null => {
-  const candidates: { width: number; height: number; count: number; coverage: number; variants: number }[] = [];
+): { layout: number[][]; score: number } | null => {
+  const xDivisions = findDivisions(gridCountX, maxGridX, minBaseplateSize);
+  const yDivisions = findDivisions(gridCountY, maxGridY, minBaseplateSize);
   
-  // Try all possible uniform sizes that fit within printer constraints
-  // Skip sizes smaller than minimum (avoid 1xN plates)
-  for (let width = minBaseplateSize; width <= maxGridX; width++) {
-    for (let height = minBaseplateSize; height <= maxGridY; height++) {
-      // Calculate how many baseplates we can fit
-      const countX = unitMath.floor(unitMath.divide(gridCountX, width));
-      const countY = unitMath.floor(unitMath.divide(gridCountY, height));
-      const totalCount = unitMath.multiply(countX, countY);
+  if (xDivisions.length === 0 || yDivisions.length === 0) {
+    return null;
+  }
+  
+  let bestLayout: number[][] | null = null;
+  let bestScore = Infinity;
+  
+  // Try all combinations of X and Y divisions
+  for (const xDiv of xDivisions) {
+    for (const yDiv of yDivisions) {
+      // Calculate the score for this combination
+      const xScore = scoreDivision(xDiv, maxGridX);
+      const yScore = scoreDivision(yDiv, maxGridY);
+      const totalScore = xScore + yScore;
       
-      // Calculate coverage percentage
-      const coveredX = unitMath.multiply(countX, width);
-      const coveredY = unitMath.multiply(countY, height);
-      const totalArea = unitMath.multiply(gridCountX, gridCountY);
-      const coveredArea = unitMath.multiply(coveredX, coveredY);
-      const coverage = unitMath.divide(coveredArea, totalArea);
-      
-      // Calculate how many variants this would create
-      const remainderX = unitMath.subtract(gridCountX, coveredX);
-      const remainderY = unitMath.subtract(gridCountY, coveredY);
-      let variants = 1; // The main uniform size
-      
-      // Count additional variants needed for remainders
-      if (remainderX > 0 && remainderY > 0) {
-        // Need corner piece
-        variants += 3; // edge X, edge Y, and corner
-      } else if (remainderX > 0 || remainderY > 0) {
-        // Need edge pieces
-        variants += 1;
+      // Additional penalty for total number of unique baseplate types
+      const baseplateTypes = new Set<string>();
+      for (const x of xDiv) {
+        for (const y of yDiv) {
+          baseplateTypes.add(`${x}x${y}`);
+        }
       }
+      const varietyPenalty = unitMath.multiply(baseplateTypes.size, 15);
       
-      // Skip if remainders would create pieces smaller than minimum
-      if ((remainderX > 0 && remainderX < minBaseplateSize) || 
-          (remainderY > 0 && remainderY < minBaseplateSize)) {
-        continue;
-      }
+      const finalScore = totalScore + varietyPenalty;
       
-      // Accept options with good coverage (85%+) or perfect fit
-      if (coverage >= 0.85 && totalCount > 0) {
-        candidates.push({
-          width,
-          height,
-          count: totalCount,
-          coverage: coverage,
-          variants: variants
-        });
+      if (finalScore < bestScore) {
+        bestScore = finalScore;
+        bestLayout = [xDiv, yDiv];
       }
     }
   }
   
-  // Sort by: 
-  // 1. Fewer variants (prefer uniform solutions)
-  // 2. Better coverage
-  // 3. Fewer total pieces
-  candidates.sort((a, b) => {
-    // Strongly prefer fewer variants
-    if (a.variants !== b.variants) {
-      return unitMath.subtract(a.variants, b.variants);
-    }
-    
-    // Then prefer better coverage
-    const coverageDiff = unitMath.subtract(b.coverage, a.coverage);
-    if (!unitMath.approxEqual(coverageDiff, 0, 0.01)) {
-      return coverageDiff;
-    }
-    
-    // Finally prefer fewer pieces
-    return unitMath.subtract(a.count, b.count);
-  });
-  
-  return candidates.length > 0 ? candidates[0] : null;
+  return bestLayout ? { layout: bestLayout, score: bestScore } : null;
 };
 
 /**
@@ -396,110 +429,36 @@ export const calculateGrids = (
     const maxGridX = unitMath.divide(maxPrintSizeX, gridSize);
     const maxGridY = unitMath.divide(maxPrintSizeY, gridSize);
     const minBaseplateSize = 2; // Don't create baseplates smaller than 2x2
-    const uniformOption = calculateUniformBaseplates(gridCountX, gridCountY, maxGridX, maxGridY, minBaseplateSize);
+    const smartOption = calculateSmartBaseplates(gridCountX, gridCountY, maxGridX, maxGridY, minBaseplateSize);
     
-    if (uniformOption && uniformOption.coverage >= 0.85) {
-      // Use uniform baseplates
-      const { width, height } = uniformOption;
-      for (let y = 0; y < gridCountY; y += height) {
-        for (let x = 0; x < gridCountX; x += width) {
-          // Make sure we don't exceed the drawer bounds
-          if (x + width <= gridCountX && y + height <= gridCountY) {
-            const item: LayoutItem = {
-              x,
-              y,
-              width,
-              height,
-              type: "baseplate",
-              pixelX: unitMath.multiply(x, gridSize),
-              pixelY: unitMath.multiply(y, gridSize),
-              pixelWidth: unitMath.multiply(width, gridSize),
-              pixelHeight: unitMath.multiply(height, gridSize),
-            };
-            baseplates.push(`${width}x${height}`);
-            newLayout.push(item);
-          }
-        }
-      }
+    if (smartOption) {
+      // Use smart baseplate allocation
+      const [xDivision, yDivision] = smartOption.layout;
       
-      // Add any remaining uncovered areas as smaller baseplates
-      const coveredX = unitMath.multiply(
-        unitMath.floor(unitMath.divide(gridCountX, width)),
-        width
-      );
-      const coveredY = unitMath.multiply(
-        unitMath.floor(unitMath.divide(gridCountY, height)),
-        height
-      );
-      
-      const minEdgeSize = 2; // Minimum size for edge pieces
-      const remainingWidthSize = unitMath.subtract(gridCountX, coveredX);
-      const remainingHeightSize = unitMath.subtract(gridCountY, coveredY);
-      
-      // Only add edge pieces if they're at least minEdgeSize
-      // Right edge remainder
-      if (coveredX < gridCountX && remainingWidthSize >= minEdgeSize) {
-        for (let y = 0; y < coveredY; y += maxGridY) {
-          const pieceHeight = unitMath.min(maxGridY, unitMath.subtract(coveredY, y));
-          // Skip if piece would be too small
-          if (pieceHeight < minEdgeSize) continue;
-          
+      // Build the layout based on the smart divisions
+      let currentY = 0;
+      for (const height of yDivision) {
+        let currentX = 0;
+        for (const width of xDivision) {
           const item: LayoutItem = {
-            x: coveredX,
-            y,
-            width: remainingWidthSize,
-            height: pieceHeight,
+            x: currentX,
+            y: currentY,
+            width,
+            height,
             type: "baseplate",
-            pixelX: unitMath.multiply(coveredX, gridSize),
-            pixelY: unitMath.multiply(y, gridSize),
-            pixelWidth: unitMath.multiply(remainingWidthSize, gridSize),
-            pixelHeight: unitMath.multiply(pieceHeight, gridSize),
+            pixelX: unitMath.multiply(currentX, gridSize),
+            pixelY: unitMath.multiply(currentY, gridSize),
+            pixelWidth: unitMath.multiply(width, gridSize),
+            pixelHeight: unitMath.multiply(height, gridSize),
           };
-          baseplates.push(`${remainingWidthSize}x${pieceHeight}`);
+          baseplates.push(`${width}x${height}`);
           newLayout.push(item);
+          currentX = unitMath.add(currentX, width);
         }
+        currentY = unitMath.add(currentY, height);
       }
       
-      // Bottom edge remainder
-      if (coveredY < gridCountY && remainingHeightSize >= minEdgeSize) {
-        for (let x = 0; x < coveredX; x += maxGridX) {
-          const pieceWidth = unitMath.min(maxGridX, unitMath.subtract(coveredX, x));
-          // Skip if piece would be too small
-          if (pieceWidth < minEdgeSize) continue;
-          
-          const item: LayoutItem = {
-            x,
-            y: coveredY,
-            width: pieceWidth,
-            height: remainingHeightSize,
-            type: "baseplate",
-            pixelX: unitMath.multiply(x, gridSize),
-            pixelY: unitMath.multiply(coveredY, gridSize),
-            pixelWidth: unitMath.multiply(pieceWidth, gridSize),
-            pixelHeight: unitMath.multiply(remainingHeightSize, gridSize),
-          };
-          baseplates.push(`${pieceWidth}x${remainingHeightSize}`);
-          newLayout.push(item);
-        }
-      }
-      
-      // Corner remainder
-      if (coveredX < gridCountX && coveredY < gridCountY && 
-          remainingWidthSize >= minEdgeSize && remainingHeightSize >= minEdgeSize) {
-        const item: LayoutItem = {
-          x: coveredX,
-          y: coveredY,
-          width: remainingWidthSize,
-          height: remainingHeightSize,
-          type: "baseplate",
-          pixelX: unitMath.multiply(coveredX, gridSize),
-          pixelY: unitMath.multiply(coveredY, gridSize),
-          pixelWidth: unitMath.multiply(remainingWidthSize, gridSize),
-          pixelHeight: unitMath.multiply(remainingHeightSize, gridSize),
-        };
-        baseplates.push(`${remainingWidthSize}x${remainingHeightSize}`);
-        newLayout.push(item);
-      }
+      // Smart allocation handles all pieces in the main loop, no edge calculations needed
     } else {
       // Fall back to regular algorithm
       preferUniformBaseplates = false;
