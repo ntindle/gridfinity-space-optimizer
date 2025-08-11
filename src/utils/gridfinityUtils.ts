@@ -288,8 +288,18 @@ export const calculateGrids = (
   const gridCountX = unitMath.floor(unitMath.divide(drawerWidth, gridSize));
   const gridCountY = unitMath.floor(unitMath.divide(drawerHeight, gridSize));
 
-  const maxPrintSizeX = unitMath.multiply(unitMath.floor(unitMath.divide(printerSize.x, gridSize)), gridSize);
-  const maxPrintSizeY = unitMath.multiply(unitMath.floor(unitMath.divide(printerSize.y, gridSize)), gridSize);
+  // Calculate effective printer size accounting for exclusion zones
+  let effectiveX = printerSize.x;
+  let effectiveY = printerSize.y;
+  
+  if (printerSize.exclusionZone) {
+    const { left = 0, right = 0, front = 0, back = 0 } = printerSize.exclusionZone;
+    effectiveX = unitMath.subtract(effectiveX, unitMath.add(left, right));
+    effectiveY = unitMath.subtract(effectiveY, unitMath.add(front, back));
+  }
+
+  const maxPrintSizeX = unitMath.multiply(unitMath.floor(unitMath.divide(effectiveX, gridSize)), gridSize);
+  const maxPrintSizeY = unitMath.multiply(unitMath.floor(unitMath.divide(effectiveY, gridSize)), gridSize);
 
   const baseplates: string[] = [];
   let newLayout: LayoutItem[] = [];
