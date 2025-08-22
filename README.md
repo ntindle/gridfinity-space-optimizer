@@ -1,5 +1,12 @@
 # Gridfinity Calculator
 
+[![CI](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/ci.yml)
+[![Code Quality](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/code-quality.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/code-quality.yml)
+[![CodeQL](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/codeql.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/codeql.yml)
+[![SAST](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/sast.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/sast.yml)
+[![Deploy](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/deploy.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/deploy.yml)
+[![codecov](https://codecov.io/gh/ntindle/gridfinity-space-optimizer/branch/main/graph/badge.svg)](https://codecov.io/gh/ntindle/gridfinity-space-optimizer)
+
 This project is a web-based calculator for designing custom Gridfinity layouts, built with React, Vite, and Tailwind CSS.
 
 ## Features
@@ -59,6 +66,28 @@ yarn dev
 
 The application will be available at `http://localhost:8080` by default.
 
+### Testing
+
+Run the test suite:
+
+```bash
+npm test
+```
+
+Run tests with coverage:
+
+```bash
+npm test -- --coverage
+```
+
+### Linting
+
+Check code quality:
+
+```bash
+npm run lint
+```
+
 ### Building for production
 
 To create a production build:
@@ -73,9 +102,43 @@ or
 yarn build
 ```
 
+## CI/CD
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+- **CI Pipeline**: Runs on every push and pull request
+  - Tests across Node.js versions 18.x, 20.x, and 22.x
+  - ESLint and TypeScript type checking
+  - Build verification
+  - Bundle size analysis
+
+- **PR Checks**: Automated quality gates for pull requests
+  - Test coverage reports
+  - Code quality metrics
+  - Automated PR comments with status
+
+- **Deployment**: Automatic deployment to GitHub Pages on main branch
+
+- **Security**: 
+  - CodeQL semantic analysis for JavaScript/TypeScript
+  - Multiple SAST tools (Semgrep, Snyk, Trivy)
+  - Secret detection (Gitleaks, TruffleHog)
+  - Weekly dependency audits
+  - Automated Dependabot updates
+  
+- **Accessibility**: Automated WCAG 2.0/2.1 compliance testing
+  
+- **Performance**: Lighthouse CI and bundle size monitoring
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+All pull requests must pass:
+- TypeScript type checking
+- ESLint with no errors
+- All tests passing
+- Successful build
 
 ## License
 

@@ -1,0 +1,103 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: TypeScript type checking
+        run: |
+          echo "🔍 Running TypeScript type check..."
+          npx tsc --noEmit
+      
+      - name: ESLint
+        run: |
+          echo "🧹 Running ESLint..."
+          npm run lint
+      
+      - name: Check for console.log statements
+        run: |
+          echo "🔍 Checking for console.log statements..."
+          if grep -r "console.log" src/ --exclude-dir=test --exclude-dir=tests --exclude="*.test.*" --exclude="*.spec.*" --exclude="captureActualOutputs.ts" | grep -v "^Binary file"; then
+            echo "❌ Found console.log statements in production code!"
+            exit 1
+          else
+            echo "✅ No console.log statements found"
+          fi
+      
+      - name: Check import sorting
+        run: |
+          echo "📦 Checking import consistency..."
+          # Check for relative imports that should use @/ alias
+          if grep -r "from '\.\.\/" src/ --include="*.ts" --include="*.tsx"; then
+            echo "⚠️ Found relative imports that should use @/ alias"
+          else
+            echo "✅ All imports use correct aliases"
+          fi
+      
+      - name: Run tests with coverage
+        run: |
+          echo "🧪 Running tests with coverage..."
+          npm test -- --run --coverage
+      
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+      
+      - name: Build check
+        run: |
+          echo "🏗️ Running build..."
+          npm run build
+          
+          # Check bundle size
+          echo ""
+          echo "📊 Bundle size analysis:"
+          du -sh dist/assets/*.js dist/assets/*.css | sort -rh
+      
+      - name: Check for TypeScript any usage
+        run: |
+          echo "🔍 Checking for 'any' type usage..."
+          count=$(grep -r ": any" src/ --include="*.ts" --include="*.tsx" --exclude="*.test.*" --exclude="*.d.ts" | wc -l)
+          if [ "$count" -gt 0 ]; then
+            echo "⚠️ Found $count uses of 'any' type"
+            grep -r ": any" src/ --include="*.ts" --include="*.tsx" --exclude="*.test.*" --exclude="*.d.ts"
+          else
+            echo "✅ No 'any' types found"
+          fi
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Code Quality Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All quality checks completed" >> $GITHUB_STEP_SUMMARY

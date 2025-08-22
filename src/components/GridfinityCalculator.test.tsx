@@ -1,3 +1,6 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -30,7 +33,7 @@ const renderWithProviders = (component: ReactElement) => {
 describe('GridfinityCalculator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (loadUserSettings as any).mockReturnValue(null);
+    vi.mocked(loadUserSettings).mockReturnValue(null);
   });
 
   it('should render all main sections', () => {
@@ -52,7 +55,7 @@ describe('GridfinityCalculator', () => {
       useMm: true,
     };
     
-    (loadUserSettings as any).mockReturnValue(savedSettings);
+    vi.mocked(loadUserSettings).mockReturnValue(savedSettings);
     renderWithProviders(<GridfinityCalculator />);
     
     expect(loadUserSettings).toHaveBeenCalled();
@@ -66,15 +69,18 @@ describe('GridfinityCalculator', () => {
       expect(saveUserSettings).toHaveBeenCalled();
     });
     
-    const initialCallCount = (saveUserSettings as any).mock.calls.length;
+    const initialCallCount = vi.mocked(saveUserSettings).mock.calls.length;
     
     // Change drawer width
     const widthInput = screen.getByLabelText(/width/i);
     await userEvent.clear(widthInput);
     await userEvent.type(widthInput, '20');
     
+    // Trigger blur to save the value
+    await userEvent.tab();
+    
     await waitFor(() => {
-      expect((saveUserSettings as any).mock.calls.length).toBeGreaterThan(initialCallCount);
+      expect(vi.mocked(saveUserSettings).mock.calls.length).toBeGreaterThan(initialCallCount);
     });
   });
 
@@ -121,8 +127,8 @@ describe('GridfinityCalculator', () => {
     await userEvent.click(testPrinter);
     
     await waitFor(() => {
-      const calls = (saveUserSettings as any).mock.calls;
-      const hasTestPrinter = calls.some((call: any) => 
+      const calls = vi.mocked(saveUserSettings).mock.calls;
+      const hasTestPrinter = calls.some((call) => 
         call[0]?.selectedPrinter === 'Test Printer'
       );
       expect(hasTestPrinter).toBe(true);
@@ -137,8 +143,8 @@ describe('GridfinityCalculator', () => {
     await userEvent.click(halfSizeCheckbox);
     
     await waitFor(() => {
-      const calls = (saveUserSettings as any).mock.calls;
-      const hasHalfSize = calls.some((call: any) => 
+      const calls = vi.mocked(saveUserSettings).mock.calls;
+      const hasHalfSize = calls.some((call) => 
         call[0]?.useHalfSize === true
       );
       expect(hasHalfSize).toBe(true);
@@ -156,8 +162,8 @@ describe('GridfinityCalculator', () => {
     }
     
     await waitFor(() => {
-      const calls = (saveUserSettings as any).mock.calls;
-      const hasFiveDrawers = calls.some((call: any) => 
+      const calls = vi.mocked(saveUserSettings).mock.calls;
+      const hasFiveDrawers = calls.some((call) => 
         call[0]?.numDrawers === 5
       );
       expect(hasFiveDrawers).toBe(true);
@@ -178,15 +184,18 @@ describe('GridfinityCalculator', () => {
   it('should recalculate when dimensions change', async () => {
     renderWithProviders(<GridfinityCalculator />);
     
-    const initialSaveCount = (saveUserSettings as any).mock.calls.length;
+    const initialSaveCount = vi.mocked(saveUserSettings).mock.calls.length;
     
     const heightInput = screen.getByLabelText(/height/i);
     await userEvent.clear(heightInput);
     await userEvent.type(heightInput, '25');
     
+    // Trigger blur to save the value
+    await userEvent.tab();
+    
     await waitFor(() => {
-      expect((saveUserSettings as any).mock.calls.length).toBeGreaterThan(initialSaveCount);
-      const lastCall = (saveUserSettings as any).mock.calls[(saveUserSettings as any).mock.calls.length - 1][0];
+      expect(vi.mocked(saveUserSettings).mock.calls.length).toBeGreaterThan(initialSaveCount);
+      const lastCall = vi.mocked(saveUserSettings).mock.calls[vi.mocked(saveUserSettings).mock.calls.length - 1][0];
       expect(lastCall.drawerSize.height).toBe(25);
     });
   });

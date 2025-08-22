@@ -1,4 +1,4 @@
-import { create, all, MathJsStatic } from 'mathjs';
+import { create, all, MathJsInstance, BigNumber } from 'mathjs';
 import type { 
   PreciseNumber, 
   PreciseMath, 
@@ -10,7 +10,7 @@ import type {
 } from '@/types/math';
 
 // Create a mathjs instance with BigNumber for precise calculations
-const math: MathJsStatic = create(all);
+const math: MathJsInstance = create(all);
 
 // Configure for precise decimal calculations
 math.config({
@@ -63,7 +63,8 @@ export const preciseMath: PreciseMath = {
    * Multiply two precise numbers
    */
   multiply(a: PreciseNumber, b: PreciseNumber): PreciseNumber {
-    return math.number(math.multiply(math.bignumber(a), math.bignumber(b))) as PreciseNumber;
+    const result = math.multiply(math.bignumber(a), math.bignumber(b));
+    return math.number(result as BigNumber) as PreciseNumber;
   },
 
   /**
@@ -73,7 +74,8 @@ export const preciseMath: PreciseMath = {
     if (b === 0) {
       throw new Error('Division by zero');
     }
-    return math.number(math.divide(math.bignumber(a), math.bignumber(b))) as PreciseNumber;
+    const result = math.divide(math.bignumber(a), math.bignumber(b));
+    return math.number(result as BigNumber) as PreciseNumber;
   },
 
   /**
@@ -108,7 +110,7 @@ export const preciseMath: PreciseMath = {
    * Check if two numbers are exactly equal
    */
   equal(a: PreciseNumber, b: PreciseNumber): boolean {
-    return math.equal(math.bignumber(a), math.bignumber(b));
+    return math.equal(math.bignumber(a), math.bignumber(b)) as boolean;
   },
 
   /**
@@ -116,35 +118,35 @@ export const preciseMath: PreciseMath = {
    */
   approxEqual(a: PreciseNumber, b: PreciseNumber, tolerance: PreciseNumber = 0.01 as PreciseNumber): boolean {
     const diff = math.abs(math.subtract(math.bignumber(a), math.bignumber(b)));
-    return math.smaller(diff, tolerance);
+    return math.smaller(diff, tolerance) as boolean;
   },
 
   /**
    * Less than comparison
    */
   lessThan(a: PreciseNumber, b: PreciseNumber): boolean {
-    return math.smaller(math.bignumber(a), math.bignumber(b));
+    return math.smaller(math.bignumber(a), math.bignumber(b)) as boolean;
   },
 
   /**
    * Less than or equal comparison
    */
   lessOrEqual(a: PreciseNumber, b: PreciseNumber): boolean {
-    return math.smallerEq(math.bignumber(a), math.bignumber(b));
+    return math.smallerEq(math.bignumber(a), math.bignumber(b)) as boolean;
   },
 
   /**
    * Greater than comparison
    */
   greaterThan(a: PreciseNumber, b: PreciseNumber): boolean {
-    return math.larger(math.bignumber(a), math.bignumber(b));
+    return math.larger(math.bignumber(a), math.bignumber(b)) as boolean;
   },
 
   /**
    * Greater than or equal comparison
    */
   greaterOrEqual(a: PreciseNumber, b: PreciseNumber): boolean {
-    return math.largerEq(math.bignumber(a), math.bignumber(b));
+    return math.largerEq(math.bignumber(a), math.bignumber(b)) as boolean;
   },
 
   /**

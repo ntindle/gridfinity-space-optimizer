@@ -17,6 +17,12 @@ export interface PrinterSize {
   x: number;  // in mm
   y: number;  // in mm
   z: number;  // in mm
+  exclusionZone?: {
+    front?: number;  // mm from front edge
+    back?: number;   // mm from back edge
+    left?: number;   // mm from left edge
+    right?: number;  // mm from right edge
+  };
 }
 
 /**
@@ -70,10 +76,10 @@ export interface CalculationParams {
 /**
  * Options for persisted state hook
  */
-export interface PersistOptions {
+export interface PersistOptions<T = unknown> {
   syncTabs?: boolean;
-  serialize?: (value: any) => string;
-  deserialize?: (value: string) => any;
+  serialize?: (value: T) => string;
+  deserialize?: (value: string) => T;
 }
 
 /**

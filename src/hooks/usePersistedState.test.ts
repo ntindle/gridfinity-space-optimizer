@@ -1,3 +1,6 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { usePersistedState } from './usePersistedState';
@@ -155,7 +158,7 @@ describe('usePersistedState', () => {
   });
 
   it('should use custom serialization/deserialization', () => {
-    const customSerialize = vi.fn((value: any) => `custom:${value}`);
+    const customSerialize = vi.fn((value: unknown) => `custom:${value}`);
     const customDeserialize = vi.fn((value: string) => value.replace('custom:', ''));
 
     const { result } = renderHook(() => 

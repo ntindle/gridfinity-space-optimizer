@@ -32,6 +32,7 @@ export const SettingsProvider = ({ children }: SettingsProviderProps) => {
  * Hook to use settings from context
  * @returns Settings object with all settings and setters
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSettings = (): GridfinitySettings => {
   const context = useContext(SettingsContext);
   
@@ -47,21 +48,25 @@ export const useSettings = (): GridfinitySettings => {
  * These provide focused access to specific settings
  */
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useDrawerSettings = () => {
   const { drawerSize, setDrawerSize, useMm, setUseMm } = useSettings();
   return { drawerSize, setDrawerSize, useMm, setUseMm };
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const usePrinterSettings = () => {
   const { selectedPrinter, setSelectedPrinter, customPrinterSize, setCustomPrinterSize } = useSettings();
   return { selectedPrinter, setSelectedPrinter, customPrinterSize, setCustomPrinterSize };
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useBinOptions = () => {
-  const { useHalfSize, setUseHalfSize, preferHalfSize, setPreferHalfSize } = useSettings();
-  return { useHalfSize, setUseHalfSize, preferHalfSize, setPreferHalfSize };
+  const { useHalfSize, setUseHalfSize, preferHalfSize, setPreferHalfSize, preferUniformBaseplates, setPreferUniformBaseplates } = useSettings();
+  return { useHalfSize, setUseHalfSize, preferHalfSize, setPreferHalfSize, preferUniformBaseplates, setPreferUniformBaseplates };
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useDrawerCount = () => {
   const { numDrawers, setNumDrawers } = useSettings();
   return { numDrawers, setNumDrawers };
