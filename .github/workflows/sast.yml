@@ -164,6 +164,8 @@ jobs:
           fetch-depth: 0
           
       - name: TruffleHog OSS
+        # Skip on main branch pushes where base and head are the same
+        if: github.event_name != 'push' || github.ref != 'refs/heads/main'
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
