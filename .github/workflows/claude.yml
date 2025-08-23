@@ -19,11 +19,15 @@ jobs:
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
-      id-token: write
-      actions: read # Required for Claude to read CI results on PRs
+      contents: write  # Allow Claude to create/edit files
+      pull-requests: write  # Allow Claude to create/update PRs
+      issues: write  # Allow Claude to create/update issues
+      id-token: write  # For OIDC authentication
+      actions: read  # Required for Claude to read CI results on PRs
+      checks: read  # Allow reading check runs
+      statuses: read  # Allow reading commit statuses
+      packages: read  # Allow reading packages if needed
+      discussions: write  # Allow Claude to participate in discussions
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -36,12 +40,15 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
-          # This is an optional setting that allows Claude to read CI results on PRs
+          # Enhanced permissions for Claude to interact with the repository
           additional_permissions: |
             actions: read
+            checks: read
+            statuses: read
+            packages: read
           
-          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4.1)
-          # model: "claude-opus-4-1-20250805"
+          # Use Claude Opus 4.1 for more complex tasks
+          model: "claude-opus-4-1-20250805"
           
           # Optional: Customize the trigger phrase (default: @claude)
           # trigger_phrase: "/claude"
@@ -49,16 +56,60 @@ jobs:
           # Optional: Trigger when specific user is assigned to an issue
           # assignee_trigger: "claude-bot"
           
-          # Optional: Allow Claude to run specific commands
-          # allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
+          # Allow Claude to run a comprehensive set of commands
+          allowed_tools: |
+            Bash(npm install)
+            Bash(npm ci)
+            Bash(npm run build:*)
+            Bash(npm run test:*)
+            Bash(npm run lint:*)
+            Bash(npm run typecheck:*)
+            Bash(npm run dev:*)
+            Bash(npm run preview:*)
+            Bash(npx *)
+            Bash(git status)
+            Bash(git diff:*)
+            Bash(git log:*)
+            Bash(git branch:*)
+            Bash(gh pr *)
+            Bash(gh issue *)
+            Bash(gh api *)
+            Bash(node *)
+            Bash(tsx *)
+            Bash(vitest:*)
+            Bash(eslint:*)
+            Bash(prettier:*)
+            Bash(tsc:*)
+            Bash(echo *)
+            Bash(cat *)
+            Bash(ls *)
+            Bash(pwd)
+            Bash(which *)
+            Bash(find * -type f -name)
+            Bash(grep -r)
+            Bash(rg *)
           
-          # Optional: Add custom instructions for Claude to customize its behavior for your project
-          # custom_instructions: |
-          #   Follow our coding standards
-          #   Ensure all new code has tests
-          #   Use TypeScript for new files
+          # Custom instructions for Claude to follow project standards
+          custom_instructions: |
+            Follow the CLAUDE.md file in the repository root for project guidelines
+            Use TypeScript for all new files
+            Follow existing code patterns and conventions
+            Use MathJS unitMath for all calculations (never use native JS math)
+            Ensure all new code has tests
+            Run linter and type checks before suggesting changes
+            Use the @/ import alias consistently
+            Prefer editing existing files over creating new ones
+            When reviewing PRs, check for:
+            - Proper use of unitMath instead of native math operations
+            - TypeScript type safety
+            - Test coverage for new features
+            - Consistent code style
+            - Performance implications
+            - Security considerations
           
-          # Optional: Custom environment variables for Claude
-          # claude_env: |
-          #   NODE_ENV: test
+          # Custom environment variables for Claude
+          claude_env: |
+            NODE_ENV: development
+            CI: true
+            VITE_PORT: 8080
 
