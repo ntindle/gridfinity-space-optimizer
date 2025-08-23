@@ -30,7 +30,7 @@ jobs:
       discussions: write  # Allow Claude to participate in discussions
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
