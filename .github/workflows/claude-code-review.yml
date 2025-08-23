@@ -20,10 +20,13 @@ jobs:
     
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
-      id-token: write
+      contents: write  # Allow Claude to suggest file changes
+      pull-requests: write  # Allow Claude to create review comments
+      issues: write  # Allow Claude to create issues for findings
+      id-token: write  # For OIDC authentication
+      actions: read  # Read CI results
+      checks: write  # Create check runs for review status
+      statuses: write  # Update commit status
     
     steps:
       - name: Checkout repository
@@ -37,22 +40,45 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
-          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4.1)
-          # model: "claude-opus-4-1-20250805"
+          # Use Claude Opus 4.1 for thorough code reviews
+          model: "claude-opus-4-1-20250805"
 
-          # Direct prompt for automated review (no @claude mention needed)
+          # Comprehensive review prompt with project-specific focus
           direct_prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            Please perform a thorough code review of this pull request.
             
-            Be constructive and helpful in your feedback.
+            CRITICAL PROJECT RULES:
+            1. All calculations MUST use unitMath service (src/services/unitMath.ts) - NEVER use native JS math
+            2. All new code must be TypeScript with proper types
+            3. Use @/ import alias consistently
+            4. Follow existing patterns in the codebase
+            
+            Review for:
+            - **Math Operations**: Flag ANY use of +, -, *, /, Math.* in calculation code
+            - **TypeScript**: Proper typing, no 'any' types, interfaces defined
+            - **Code Quality**: DRY principles, readability, maintainability
+            - **Potential Bugs**: Edge cases, null checks, error handling
+            - **Performance**: Unnecessary re-renders, memoization opportunities
+            - **Security**: Input validation, XSS prevention, no exposed secrets
+            - **Test Coverage**: New features should have tests
+            - **Accessibility**: ARIA labels, keyboard navigation for UI changes
+            - **Gridfinity Logic**: Correct bin calculations, spacer generation
+            
+            Format your review with:
+            ✅ What looks good
+            ⚠️ Suggestions for improvement
+            🚨 Critical issues that must be fixed
+            
+            Be specific with line numbers and provide code examples for fixes.
 
-          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
-          # use_sticky_comment: true
+          # Use sticky comments to update review on new commits
+          use_sticky_comment: true
+          
+          # Enhanced permissions for review actions
+          additional_permissions: |
+            actions: read
+            checks: write
+            statuses: write
           
           # Optional: Customize review based on file types
           # direct_prompt: |
@@ -68,11 +94,27 @@ jobs:
           #   'Welcome! Please review this PR from a first-time contributor. Be encouraging and provide detailed explanations for any suggestions.' ||
           #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
           
-          # Optional: Add specific tools for running tests or linting
-          allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
+          # Allow Claude to run verification commands during review
+          allowed_tools: |
+            Bash(npm run test:*)
+            Bash(npm run lint:*)
+            Bash(npm run typecheck:*)
+            Bash(npm run build:*)
+            Bash(npx vitest *)
+            Bash(npx eslint *)
+            Bash(npx tsc --noEmit)
+            Bash(git diff)
+            Bash(git log)
+            Bash(rg *)
+            Bash(grep -r)
+            Bash(find * -type f -name)
+            Bash(cat *)
+            Bash(head *)
+            Bash(tail *)
           
-          # Optional: Skip review for certain conditions
-          # if: |
-          #   !contains(github.event.pull_request.title, '[skip-review]') &&
-          #   !contains(github.event.pull_request.title, '[WIP]')
+          # Custom environment for review context
+          claude_env: |
+            REVIEW_MODE: strict
+            PROJECT: gridfinity-space-optimizer
+            TECH_STACK: React,TypeScript,Vite,TailwindCSS,MathJS
 
