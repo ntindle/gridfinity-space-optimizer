@@ -73,7 +73,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.6.4",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/mathjs": "^9.4.1",
@@ -98,6 +98,6 @@
     "tsx": "^4.20.3",
     "typescript": "^5.9.2",
     "vite": "^7.1.1",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.3"
   }
 }
