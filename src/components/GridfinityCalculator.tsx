@@ -4,6 +4,7 @@ import DrawerDimensions from "./GridfinityCalculator/DrawerDimensions";
 import PrinterSettings from "./GridfinityCalculator/PrinterSettings";
 import BinOptions from "./GridfinityCalculator/BinOptions";
 import DrawerOptions from "./GridfinityCalculator/DrawerOptions";
+import ExportPanel from "./GridfinityCalculator/ExportPanel";
 import GridfinityResults from "./GridfinityResults";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -127,6 +128,18 @@ const GridfinityCalculator: React.FC = () => {
               layout={layout}
               drawerSize={settings.drawerSize}
               useMm={settings.useMm}
+            />
+          )}
+          {settings.drawerSize && (
+            <ExportPanel
+              result={{
+                baseplates: result.baseplates,
+                spacers: result.spacers,
+                halfSizeBins: result.halfSizeBins,
+                layout: layout,
+              }}
+              printerSize={printerSize}
+              numDrawers={settings.numDrawers}
             />
           )}
         </>
