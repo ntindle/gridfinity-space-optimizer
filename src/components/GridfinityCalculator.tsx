@@ -11,7 +11,6 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useGridfinityCalculation } from "@/hooks/useGridfinityCalculation";
 import { useLegacyMigration } from "@/hooks/useLegacyMigration";
 import { saveUserSettings, loadUserSettings } from "@/lib/utils";
-import { calculateGrids } from "@/utils/gridfinityUtils";
 
 const GridfinityCalculator: React.FC = () => {
   // Migrate legacy data first
@@ -133,13 +132,12 @@ const GridfinityCalculator: React.FC = () => {
           )}
           {settings.drawerSize && (
             <ExportPanel
-              result={calculateGrids(
-                settings.drawerSize,
-                printerSize,
-                settings.useHalfSize,
-                settings.preferHalfSize,
-                settings.preferUniformBaseplates
-              )}
+              result={{
+                baseplates: result.baseplates,
+                spacers: result.spacers,
+                halfSizeBins: result.halfSizeBins,
+                layout: layout,
+              }}
               printerSize={printerSize}
               numDrawers={settings.numDrawers}
             />

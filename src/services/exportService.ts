@@ -72,6 +72,44 @@ const COMPONENT_HEIGHTS: Record<string, number> = {
 };
 
 /**
+ * Regex pattern for parsing spacer size strings like "25.62mm x 252mm"
+ */
+const SPACER_SIZE_PATTERN = /^([\d.]+)mm x ([\d.]+)mm$/;
+
+/**
+ * Calculate the optimal items per stack based on quantity and max stack
+ * @param totalQuantity Total items needed
+ * @param maxStack Maximum items that can be stacked
+ * @param leftoverItems Items remaining after full stacks
+ * @param recommendedStacks Total number of stacks needed
+ * @returns The number of items to put in each full stack
+ */
+const calculateItemsPerStack = (
+  totalQuantity: number,
+  maxStack: number,
+  leftoverItems: number,
+  recommendedStacks: number
+): number => {
+  const baseItemsPerStack = unitMath.min(maxStack, totalQuantity);
+  // If there are leftover items and multiple stacks, use max for full stacks
+  return leftoverItems > 0 && recommendedStacks > 1 ? maxStack : baseItemsPerStack;
+};
+
+/**
+ * Calculate stacking metrics for a given quantity and max stack size
+ */
+const calculateStackingMetrics = (
+  totalQuantity: number,
+  maxStack: number
+): { recommendedStacks: number; itemsPerStack: number; leftoverItems: number } => {
+  const recommendedStacks = Math.ceil(unitMath.divide(totalQuantity, maxStack));
+  const leftoverItems = unitMath.mod(totalQuantity, maxStack);
+  const itemsPerStack = calculateItemsPerStack(totalQuantity, maxStack, leftoverItems, recommendedStacks);
+  
+  return { recommendedStacks, itemsPerStack, leftoverItems };
+};
+
+/**
  * Generate model repository links for a given baseplate size
  */
 const generateModelLinks = (
@@ -162,11 +200,7 @@ export const generateExportData = (
     const totalQuantity = unitMath.multiply(count, numDrawers);
     
     const maxStack = calculateMaxStack(printerSize.z, 'baseplate');
-    
-    // Calculate recommended stacking
-    const recommendedStacks = Math.ceil(unitMath.divide(totalQuantity, maxStack));
-    const itemsPerStack = unitMath.min(maxStack, totalQuantity);
-    const leftoverItems = unitMath.mod(totalQuantity, maxStack);
+    const metrics = calculateStackingMetrics(totalQuantity, maxStack);
     
     prints.push({
       id: `baseplate-${size}`,
@@ -175,11 +209,7 @@ export const generateExportData = (
       height,
       quantity: totalQuantity,
       maxStack,
-      recommendedStacks,
-      itemsPerStack: leftoverItems > 0 && recommendedStacks > 1 
-        ? maxStack 
-        : itemsPerStack,
-      leftoverItems,
+      ...metrics,
       modelLinks: generateModelLinks('baseplate', width, height),
     });
   });
@@ -192,10 +222,7 @@ export const generateExportData = (
     const totalQuantity = unitMath.multiply(count, numDrawers);
     
     const maxStack = calculateMaxStack(printerSize.z, 'half-size');
-    
-    const recommendedStacks = Math.ceil(unitMath.divide(totalQuantity, maxStack));
-    const itemsPerStack = unitMath.min(maxStack, totalQuantity);
-    const leftoverItems = unitMath.mod(totalQuantity, maxStack);
+    const metrics = calculateStackingMetrics(totalQuantity, maxStack);
     
     prints.push({
       id: `half-size-${size}`,
@@ -204,19 +231,15 @@ export const generateExportData = (
       height,
       quantity: totalQuantity,
       maxStack,
-      recommendedStacks,
-      itemsPerStack: leftoverItems > 0 && recommendedStacks > 1 
-        ? maxStack 
-        : itemsPerStack,
-      leftoverItems,
+      ...metrics,
       modelLinks: generateModelLinks('half-size', width, height),
     });
   });
   
   // Process spacers
   Object.entries(result.spacers).forEach(([size, count]) => {
-    // Parse size like "25.62mm x 252mm"
-    const match = size.match(/^([\d.]+)mm x ([\d.]+)mm$/);
+    // Parse size using the documented pattern (e.g., "25.62mm x 252mm")
+    const match = size.match(SPACER_SIZE_PATTERN);
     if (!match) return;
     
     const widthMm = parseFloat(match[1]);
@@ -224,10 +247,7 @@ export const generateExportData = (
     const totalQuantity = unitMath.multiply(count, numDrawers);
     
     const maxStack = calculateMaxStack(printerSize.z, 'spacer');
-    
-    const recommendedStacks = Math.ceil(unitMath.divide(totalQuantity, maxStack));
-    const itemsPerStack = unitMath.min(maxStack, totalQuantity);
-    const leftoverItems = unitMath.mod(totalQuantity, maxStack);
+    const metrics = calculateStackingMetrics(totalQuantity, maxStack);
     
     prints.push({
       id: `spacer-${size}`,
@@ -236,11 +256,7 @@ export const generateExportData = (
       height: unitMath.round(unitMath.divide(heightMm, FULL_GRID_SIZE), 2),
       quantity: totalQuantity,
       maxStack,
-      recommendedStacks,
-      itemsPerStack: leftoverItems > 0 && recommendedStacks > 1 
-        ? maxStack 
-        : itemsPerStack,
-      leftoverItems,
+      ...metrics,
       modelLinks: generateModelLinks('spacer', widthMm, heightMm),
     });
   });
