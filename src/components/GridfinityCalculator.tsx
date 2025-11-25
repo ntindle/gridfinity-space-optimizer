@@ -4,12 +4,14 @@ import DrawerDimensions from "./GridfinityCalculator/DrawerDimensions";
 import PrinterSettings from "./GridfinityCalculator/PrinterSettings";
 import BinOptions from "./GridfinityCalculator/BinOptions";
 import DrawerOptions from "./GridfinityCalculator/DrawerOptions";
+import ExportPanel from "./GridfinityCalculator/ExportPanel";
 import GridfinityResults from "./GridfinityResults";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useGridfinityCalculation } from "@/hooks/useGridfinityCalculation";
 import { useLegacyMigration } from "@/hooks/useLegacyMigration";
 import { saveUserSettings, loadUserSettings } from "@/lib/utils";
+import { calculateGrids } from "@/utils/gridfinityUtils";
 
 const GridfinityCalculator: React.FC = () => {
   // Migrate legacy data first
@@ -127,6 +129,19 @@ const GridfinityCalculator: React.FC = () => {
               layout={layout}
               drawerSize={settings.drawerSize}
               useMm={settings.useMm}
+            />
+          )}
+          {settings.drawerSize && (
+            <ExportPanel
+              result={calculateGrids(
+                settings.drawerSize,
+                printerSize,
+                settings.useHalfSize,
+                settings.preferHalfSize,
+                settings.preferUniformBaseplates
+              )}
+              printerSize={printerSize}
+              numDrawers={settings.numDrawers}
             />
           )}
         </>
