@@ -14,6 +14,8 @@ const config = {
 };
 
 const errorCount = (code) => linter.verify(code, config).length;
+const noCommentCount = (code) =>
+  linter.verify(code, config).filter((m) => m.ruleId === 'no-comments').length;
 
 describe('no-comments rule', () => {
   it('allows real eslint directives', () => {
@@ -51,6 +53,28 @@ describe('no-comments rule', () => {
   it('allows vitest environment and triple-slash references', () => {
     expect(errorCount('/**\n * @vitest-environment jsdom\n */\nconst x = 1;')).toBe(0);
     expect(errorCount('/// <reference path="./foo.d.ts" />\nconst x = 1;')).toBe(0);
+  });
+
+  it('rejects malformed global and exported declarations', () => {
+    expect(noCommentCount('/* global foo: bogus */\nconst x = 1;')).toBe(1);
+    expect(noCommentCount('/* global foo, */\nconst x = 1;')).toBe(1);
+    expect(noCommentCount('/* global */\nconst x = 1;')).toBe(1);
+    expect(noCommentCount('/* global foo bar */\nconst x = 1;')).toBe(1);
+    expect(noCommentCount('/* exported foo, */\nconst x = 1;')).toBe(1);
+    expect(noCommentCount('/* exported foo bar */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/* global foo: readonly, bar: writable */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/* exported foo, bar */\nconst x = 1;')).toBe(0);
+  });
+
+  it('parses long global declaration lists in linear time', () => {
+    const longValid = `/* global ${Array.from({ length: 200 }, () => '$').join(', ')} */\nconst x = 1;`;
+    const validStart = Date.now();
+    expect(errorCount(longValid)).toBe(0);
+    expect(Date.now() - validStart).toBeLessThan(1000);
+    const longInvalid = `/* global ${Array.from({ length: 200 }, () => '$').join(', ')} garbage */\nconst x = 1;`;
+    const invalidStart = Date.now();
+    expect(noCommentCount(longInvalid)).toBe(1);
+    expect(Date.now() - invalidStart).toBeLessThan(1000);
   });
 
   it('rejects inline eslint config with trailing prose', () => {

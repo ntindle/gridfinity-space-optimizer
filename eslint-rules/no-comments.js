@@ -32,6 +32,29 @@ const normalizeComment = (comment) =>
     .filter((line) => line.length > 0)
     .join('\n');
 
+const GLOBAL_ATTRS = new Set(['true', 'false', 'readonly', 'writable', 'writeable']);
+const IDENTIFIER_PATTERN = /^[A-Za-z_$][\w$]*$/;
+const GLOBAL_ENTRY_PATTERN = /^([A-Za-z_$][\w$]*)\s*(?::\s*([A-Za-z]+))?\s*$/;
+
+const parseGlobalDeclaration = (rest) => {
+  const parts = rest.split(',');
+  return (
+    parts.length > 0 &&
+    parts.every((part) => {
+      const match = GLOBAL_ENTRY_PATTERN.exec(part.trim());
+      if (!match) {
+        return false;
+      }
+      return match[2] === undefined || GLOBAL_ATTRS.has(match[2]);
+    })
+  );
+};
+
+const parseExportedDeclaration = (rest) => {
+  const parts = rest.split(',');
+  return parts.length > 0 && parts.every((part) => IDENTIFIER_PATTERN.test(part.trim()));
+};
+
 const isDirective = (normalized) => {
   if (/^@ts-(expect-error|ignore)(\s+.*)?$/.test(normalized)) {
     return true;
@@ -48,14 +71,12 @@ const isDirective = (normalized) => {
   if (/^eslint\s+[\w/@-]+\s*:\s*(?:\[(?:[^[\]]|\[[^[\]]*\])*\]|0|1|2|off|warn|error)(?:\s*,\s*[\w/@-]+\s*:\s*(?:\[(?:[^[\]]|\[[^[\]]*\])*\]|0|1|2|off|warn|error))*\s*$/.test(normalized)) {
     return true;
   }
-  if (
-    /^global\s+[A-Za-z_$][\w$]*\s*(?::\s*(?:true|false|readonly|writable|writeable))?\s*(?:,\s*[A-Za-z_$][\w$]*\s*(?::\s*(?:true|false|readonly|writable|writeable))?\s*)*$/.test(
-      normalized,
-    )
-  ) {
+  const globalMatch = /^global\s+([\s\S]*)$/.exec(normalized);
+  if (globalMatch && parseGlobalDeclaration(globalMatch[1])) {
     return true;
   }
-  if (/^exported\s+[A-Za-z_$][\w$]*\s*(?:,\s*[A-Za-z_$][\w$]*\s*)*$/.test(normalized)) {
+  const exportedMatch = /^exported\s+([\s\S]*)$/.exec(normalized);
+  if (exportedMatch && parseExportedDeclaration(exportedMatch[1])) {
     return true;
   }
   if (/^@vitest-environment\s+[a-z][a-z0-9-]*\s*$/.test(normalized)) {
