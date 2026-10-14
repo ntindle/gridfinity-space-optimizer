@@ -4,14 +4,6 @@ import { Button } from '@/components/ui/button';
 import { useSettings } from '@/contexts/SettingsContext';
 import { buildShareUrl } from '@/utils/shareLayout';
 
-/**
- * One-click "Copy share link" button.
- *
- * Encodes the current drawer / printer / bin settings into a `?share=` URL
- * and copies it to the clipboard, so a layout can be sent to someone else
- * instead of re-typed. Falls back to the legacy execCommand path when the
- * async clipboard API is unavailable (older browsers, non-secure contexts).
- */
 const ShareLayoutButton: React.FC = () => {
   const settings = useSettings();
   const [status, setStatus] = useState<'idle' | 'copied' | 'error'>('idle');
@@ -27,8 +19,6 @@ const ShareLayoutButton: React.FC = () => {
   const flashStatus = (next: 'copied' | 'error') => {
     setStatus(next);
     if (resetTimer.current) clearTimeout(resetTimer.current);
-    // "Copied" is transient; the failure UI (with the selectable link)
-    // stays until the next click so the user has time to copy it.
     if (next === 'copied') {
       resetTimer.current = setTimeout(() => setStatus('idle'), 2500);
     }

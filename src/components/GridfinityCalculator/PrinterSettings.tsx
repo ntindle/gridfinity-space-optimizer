@@ -52,7 +52,6 @@ const PrinterSettings = ({
     setPrinterSize(customDimensions);
   };
 
-  // Get formatted bed size string using the service
   const getBedSizeDisplay = () => {
     return formatBuildVolume(printerSize, useMm);
   };
@@ -84,7 +83,6 @@ const PrinterSettings = ({
                     <CommandGroup>
                       {printers
                         .sort((a, b) => {
-                          // Keep "Custom Printer" at the bottom
                           if (a.value === "custom") return 1;
                           if (b.value === "custom") return -1;
                           return a.label.localeCompare(b.label);
@@ -112,7 +110,6 @@ const PrinterSettings = ({
               </PopoverContent>
             </Popover>
             
-            {/* Custom Settings Button */}
             {selectedPrinter === "Custom Printer" && (
               <Button
                 variant="outline"
@@ -126,14 +123,12 @@ const PrinterSettings = ({
           </div>
         </div>
         
-        {/* Display printer bed size */}
         {printerSize && (
           <div className="space-y-2">
             <div className="text-sm text-muted-foreground">
               Build Volume: {getBedSizeDisplay()}
             </div>
             
-            {/* Visual preview of build volume */}
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center justify-center">
                 <div 
@@ -162,7 +157,6 @@ const PrinterSettings = ({
         )}
       </div>
 
-      {/* Custom Printer Dialog */}
       <CustomPrinterDialog
         open={customDialogOpen}
         onOpenChange={setCustomDialogOpen}
