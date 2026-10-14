@@ -52,24 +52,33 @@ const renderPreview = (useMm = false) =>
   );
 
 describe("GridfinityVisualPreview piece selection", () => {
-  it("shows no details panel until a piece is selected", () => {
+  it("lists one row per distinct piece and shows no details until one is selected", () => {
     renderPreview();
+    expect(screen.getByText("Pieces in this drawer")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Baseplate 3 × 2 — 2 in this drawer/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Spacer 6 × 0\.5 — 1 in this drawer/i })
+    ).toBeInTheDocument();
     expect(screen.queryByText("Piece details")).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Select a piece to see its size/)
+      screen.getByText(/Select a piece below to see its size/)
     ).toBeInTheDocument();
   });
 
-  it("shows the clicked piece's details, with inches first when useMm is false", () => {
+  it("shows the selected piece's details, with inches first when useMm is false", () => {
     renderPreview(false);
     fireEvent.click(
-      screen.getByRole("button", { name: /Spacer 6x0\.5, select for details/i })
+      screen.getByRole("button", {
+        name: /Spacer 6 × 0\.5 — 1 in this drawer/i,
+      })
     );
 
     expect(screen.getByText("Piece details")).toBeInTheDocument();
     // "Spacer" appears twice: once as the cell's label, once as the Type value.
     expect(screen.getAllByText("Spacer")).toHaveLength(2);
-    expect(screen.getByText("6 × 0.5")).toBeInTheDocument();
+    // Grid size is covered by the row-button name above and the helper tests.
     // 252mm = 9.92″, 21mm = 0.83″
     expect(
       screen.getByText(/9\.92.*×.*0\.83.*\(252 mm × 21 mm\)/)
@@ -78,41 +87,45 @@ describe("GridfinityVisualPreview piece selection", () => {
     expect(screen.getByText("1 in this drawer")).toBeInTheDocument();
   });
 
-  it("shows millimetres first when useMm is true", () => {
+  it("shows millimetres first when useMm is true, and first position for a group", () => {
     renderPreview(true);
-    // Two identical 3×2 baseplates share one aria-label; either is fine.
-    const cells = screen.getAllByRole("button", {
-      name: /Baseplate 3x2, select for details/i,
-    });
-    fireEvent.click(cells[0]);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Baseplate 3 × 2 — 2 in this drawer/i,
+      })
+    );
 
-    // 126mm × 84mm (4.96″ × 3.31″); two identical 3×2 baseplates.
+    // 126mm × 84mm (4.96″ × 3.31″); two identical 3×2 baseplates,
+    // first at column 0, row 0.
     expect(
       screen.getByText(/126 mm × 84 mm \(4\.96.*× 3\.31.*\)/)
     ).toBeInTheDocument();
     expect(screen.getByText("2 in this drawer")).toBeInTheDocument();
+    expect(
+      screen.getByText("First at column 0, row 0")
+    ).toBeInTheDocument();
   });
 
-  it("toggles selection off when the selected piece is clicked again", () => {
+  it("toggles selection off when the selected row is clicked again", () => {
     renderPreview();
-    const cell = screen.getAllByRole("button", {
-      name: /Baseplate 3x2, select for details/i,
-    })[0];
-    fireEvent.click(cell);
+    const row = screen.getByRole("button", {
+      name: /Baseplate 3 × 2 — 2 in this drawer/i,
+    });
+    fireEvent.click(row);
     expect(screen.getByText("Piece details")).toBeInTheDocument();
-    expect(cell).toHaveAttribute("aria-pressed", "true");
+    expect(row).toHaveAttribute("aria-pressed", "true");
 
-    fireEvent.click(cell);
+    fireEvent.click(row);
     expect(screen.queryByText("Piece details")).not.toBeInTheDocument();
-    expect(cell).toHaveAttribute("aria-pressed", "false");
+    expect(row).toHaveAttribute("aria-pressed", "false");
   });
 
   it("clears the selection via the Clear selection button", () => {
     renderPreview();
     fireEvent.click(
-      screen.getAllByRole("button", {
-        name: /Baseplate 3x2, select for details/i,
-      })[0]
+      screen.getByRole("button", {
+        name: /Baseplate 3 × 2 — 2 in this drawer/i,
+      })
     );
     expect(screen.getByText("Piece details")).toBeInTheDocument();
 
@@ -123,9 +136,9 @@ describe("GridfinityVisualPreview piece selection", () => {
   it("clears the selection when the layout changes", () => {
     const { rerender } = renderPreview();
     fireEvent.click(
-      screen.getAllByRole("button", {
-        name: /Baseplate 3x2, select for details/i,
-      })[0]
+      screen.getByRole("button", {
+        name: /Baseplate 3 × 2 — 2 in this drawer/i,
+      })
     );
     expect(screen.getByText("Piece details")).toBeInTheDocument();
 
@@ -137,5 +150,27 @@ describe("GridfinityVisualPreview piece selection", () => {
       />
     );
     expect(screen.queryByText("Piece details")).not.toBeInTheDocument();
+  });
+
+  it("keeps the selection when only the unit toggle changes", () => {
+    const { rerender } = renderPreview(false);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Spacer 6 × 0\.5 — 1 in this drawer/i,
+      })
+    );
+    expect(screen.getByText("Piece details")).toBeInTheDocument();
+
+    rerender(
+      <GridfinityVisualPreview
+        layout={layout}
+        drawerSize={{ width: 15, height: 10 }}
+        useMm={true}
+      />
+    );
+    expect(screen.getByText("Piece details")).toBeInTheDocument();
+    expect(
+      screen.getByText(/252 mm × 21 mm \(9\.92.*× 0\.83.*\)/)
+    ).toBeInTheDocument();
   });
 });

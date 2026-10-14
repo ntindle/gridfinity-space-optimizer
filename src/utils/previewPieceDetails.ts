@@ -31,7 +31,34 @@ const TYPE_LABELS: Record<LayoutItem["type"], string> = {
   spacer: "Spacer",
 };
 
-/** Format a grid-unit number without trailing zeros: 3 -> "3", 2.5 -> "2.5". */
+/** Stable key for grouping identical pieces: type + grid size. */
+export const previewPieceKey = (item: LayoutItem): string =>
+  `${item.type}:${item.width}x${item.height}`;
+
+/** One distinct piece kind in a layout: its first item + how many match. */
+export interface PreviewPieceGroup {
+  item: LayoutItem;
+  count: number;
+}
+
+/**
+ * Group a layout's pieces by type + grid size, in first-appearance order.
+ * Used to render one adequately-sized selection row per distinct piece —
+ * the preview cells themselves are too small to be tap targets.
+ */
+export const groupPreviewPieces = (layout: LayoutItem[]): PreviewPieceGroup[] => {
+  const groups = new Map<string, PreviewPieceGroup>();
+  for (const item of layout) {
+    const key = previewPieceKey(item);
+    const existing = groups.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      groups.set(key, { item, count: 1 });
+    }
+  }
+  return [...groups.values()];
+};
 const formatGridNumber = (value: number): string =>
   String(unitMath.round(value, 2));
 

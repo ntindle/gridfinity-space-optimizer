@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getPreviewPieceDetails } from "./previewPieceDetails";
+import { getPreviewPieceDetails, groupPreviewPieces } from "./previewPieceDetails";
 import type { LayoutItem } from "@/types";
 
 const baseplate = (overrides: Partial<LayoutItem> = {}): LayoutItem => ({
@@ -88,5 +88,44 @@ describe("getPreviewPieceDetails", () => {
     expect(details.gridLabel).toBe("0.5 × 2");
     expect(details.widthMm).toBe(21.5);
     expect(details.heightMm).toBe(84);
+  });
+});
+
+describe("groupPreviewPieces", () => {
+  it("groups identical pieces in first-appearance order", () => {
+    const layout = [
+      baseplate(),
+      baseplate({ x: 3, pixelX: 126 }),
+      baseplate({ x: 6, pixelX: 252, width: 2, pixelWidth: 84 }),
+      baseplate({
+        x: 0,
+        y: 2,
+        pixelY: 84,
+        type: "spacer",
+        width: 3,
+        height: 2,
+        pixelWidth: 126,
+        pixelHeight: 84,
+      }),
+      baseplate({ x: 0, y: 4, pixelY: 168 }),
+    ];
+
+    const groups = groupPreviewPieces(layout);
+
+    expect(groups).toHaveLength(3);
+    expect(groups[0].count).toBe(3);
+    expect(groups[0].item.type).toBe("baseplate");
+    expect(groups[0].item.width).toBe(3);
+    expect(groups[1].count).toBe(1);
+    expect(groups[1].item.width).toBe(2);
+    expect(groups[2].count).toBe(1);
+    expect(groups[2].item.type).toBe("spacer");
+    // The group representative is the FIRST matching item.
+    expect(groups[0].item.x).toBe(0);
+    expect(groups[0].item.y).toBe(0);
+  });
+
+  it("returns an empty list for an empty layout", () => {
+    expect(groupPreviewPieces([])).toEqual([]);
   });
 });

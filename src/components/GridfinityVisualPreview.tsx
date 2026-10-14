@@ -1,6 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { getColor, INCH_TO_MM } from "@/utils/gridfinityUtils";
-import { getPreviewPieceDetails } from "@/utils/previewPieceDetails";
+import {
+  getPreviewPieceDetails,
+  groupPreviewPieces,
+  previewPieceKey,
+} from "@/utils/previewPieceDetails";
 import type { LayoutItem, DrawerSize } from "@/types";
 
 interface GridfinityVisualPreviewProps {
@@ -14,26 +18,28 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
   drawerSize,
   useMm,
 }) => {
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   // A new layout means the old selection may point at a different piece —
-  // clear it so the details panel never describes the wrong cell.
+  // clear it so the details panel never describes the wrong piece.
   useEffect(() => {
-    setSelectedIndex(null);
+    setSelectedKey(null);
   }, [layout]);
 
-  const selectedItem =
-    selectedIndex !== null ? layout[selectedIndex] : undefined;
-  const selectedDetails =
-    selectedItem !== undefined
-      ? getPreviewPieceDetails(selectedItem, layout)
-      : null;
+  const groups = useMemo(() => groupPreviewPieces(layout), [layout]);
+  const selectedGroup = groups.find(
+    (group) => previewPieceKey(group.item) === selectedKey
+  );
+  const selectedDetails = selectedGroup
+    ? getPreviewPieceDetails(selectedGroup.item, layout)
+    : null;
 
   return (
     <div className="w-full">
       <h3 className="text-lg font-semibold">Visual Preview</h3>
       <p className="text-sm text-gray-600 mb-2">
-        Select a piece to see its size and details.
+        Select a piece below to see its size and details. Matching pieces
+        highlight in the preview.
       </p>
       <div
         className="w-full relative border-2 border-black overflow-hidden"
@@ -42,49 +48,65 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
         }}
       >
         <div className="absolute inset-0">
-          {layout.map((item, index) => {
-            const selected = selectedIndex === index;
-            return (
-              <button
-                key={index}
-                type="button"
-                aria-pressed={selected}
-                aria-label={`${item.type === "baseplate" ? "Baseplate" : item.type === "half-size" ? "Half-size bin" : "Spacer"} ${item.width}x${item.height}, select for details`}
-                onClick={() =>
-                  setSelectedIndex(selected ? null : index)
-                }
-                className="absolute flex items-center justify-center border border-black text-xs md:text-sm overflow-hidden whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-inset"
-                style={{
-                  left: `${(item.pixelX / INCH_TO_MM / drawerSize.width) * 100}%`,
-                  top: `${(item.pixelY / INCH_TO_MM / drawerSize.height) * 100}%`,
-                  width: `${
-                    (item.pixelWidth / INCH_TO_MM / drawerSize.width) * 100
-                  }%`,
-                  height: `${
-                    (item.pixelHeight / INCH_TO_MM / drawerSize.height) * 100
-                  }%`,
-                  backgroundColor: getColor(item.type, index),
-                  boxShadow: selected
+          {layout.map((item, index) => (
+            <div
+              key={index}
+              className="absolute flex items-center justify-center border border-black text-xs md:text-sm overflow-hidden whitespace-nowrap"
+              style={{
+                left: `${(item.pixelX / INCH_TO_MM / drawerSize.width) * 100}%`,
+                top: `${(item.pixelY / INCH_TO_MM / drawerSize.height) * 100}%`,
+                width: `${
+                  (item.pixelWidth / INCH_TO_MM / drawerSize.width) * 100
+                }%`,
+                height: `${
+                  (item.pixelHeight / INCH_TO_MM / drawerSize.height) * 100
+                }%`,
+                backgroundColor: getColor(item.type, index),
+                boxShadow:
+                  selectedKey !== null &&
+                  previewPieceKey(item) === selectedKey
                     ? "inset 0 0 0 3px #000"
                     : undefined,
-                }}
-              >
-                {item.type === "baseplate" || item.type === "half-size"
-                  ? `${item.width}x${item.height}`
-                  : "Spacer"}
-              </button>
-            );
-          })}
+              }}
+            >
+              {item.type === "baseplate" || item.type === "half-size"
+                ? `${item.width}x${item.height}`
+                : "Spacer"}
+            </div>
+          ))}
         </div>
       </div>
-      {selectedDetails && (
+      <div className="mt-4">
+        <h4 className="text-base font-semibold">Pieces in this drawer</h4>
+        <ul className="mt-2 space-y-2">
+          {groups.map((group) => {
+            const key = previewPieceKey(group.item);
+            const details = getPreviewPieceDetails(group.item, layout);
+            const selected = selectedKey === key;
+            return (
+              <li key={key}>
+                <button
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setSelectedKey(selected ? null : key)}
+                  className="w-full min-h-12 px-4 py-3 text-left border rounded-lg"
+                >
+                  {details.typeLabel} {details.gridLabel} — {group.count} in
+                  this drawer
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      {selectedDetails && selectedGroup && (
         <div className="mt-4 rounded-lg border p-4">
           <div className="flex items-center justify-between gap-4">
             <h4 className="text-base font-semibold">Piece details</h4>
             <button
               type="button"
-              onClick={() => setSelectedIndex(null)}
-              className="text-sm underline underline-offset-2"
+              onClick={() => setSelectedKey(null)}
+              className="min-h-12 px-4 py-3 text-sm border rounded-lg"
             >
               Clear selection
             </button>
@@ -102,7 +124,9 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
             </dd>
             <dt className="text-gray-600">Position</dt>
             <dd>
-              Column {selectedDetails.column}, row {selectedDetails.row}
+              {selectedGroup.count > 1
+                ? `First at column ${selectedDetails.column}, row ${selectedDetails.row}`
+                : `Column ${selectedDetails.column}, row ${selectedDetails.row}`}
             </dd>
             <dt className="text-gray-600">Identical pieces</dt>
             <dd>{selectedDetails.identicalCount} in this drawer</dd>
