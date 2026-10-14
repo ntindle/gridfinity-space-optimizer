@@ -145,6 +145,30 @@ describe('no-comments rule', () => {
     expect(errorCount(mit.replace('SOFTWARE.', 'SOFTWARE. Do not touch this hack.'))).toBe(1);
   });
 
+  it('rejects prose on descriptive tags without a type group', () => {
+    expect(errorCount('/** @param do not touch this fragile hack */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @returns do not touch this hack */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @typedef do not touch this hack */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @property do not touch this hack */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @template do not touch this hack */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @param x */\nfunction f(x) { return x; }')).toBe(0);
+    expect(errorCount('/** @param [x] - a description */\nfunction f(x) { return x; }')).toBe(0);
+    expect(errorCount('/** @returns */\nfunction f() { return 1; }')).toBe(0);
+  });
+
+  it('rejects glued prose in description type groups', () => {
+    expect(errorCount('/** @param x - desc {Do-not-touch-this-hack} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @param x - desc {Foo */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @param x - use {Foo} for this */\nconst x = 1;')).toBe(0);
+  });
+
+  it('rejects arrow-glued prose outside function types', () => {
+    expect(errorCount('/** @type {Do => not => touch => this => hack} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {a => b} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {(a: string) => void} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {() => void} */\nconst x = 1;')).toBe(0);
+  });
+
   it('rejects malformed global and exported declarations', () => {
     expect(noCommentCount('/* global foo: bogus */\nconst x = 1;')).toBe(1);
     expect(noCommentCount('/* global foo, */\nconst x = 1;')).toBe(1);

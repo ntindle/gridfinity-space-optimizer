@@ -134,10 +134,14 @@ const isTypeFragmentPlausible = (fragment) => {
       const next = tokens[i + 1];
       const nextGap = next ? stripped.slice(token.end, next.start) : null;
       const isArrow = next && nextGap === '' && next.text === '>';
+      const prev = i > 0 ? tokens[i - 1] : null;
+      const prevIsParen = prev !== null && prev.text === ')';
       const inAngle = scopeStack.length > 0 && scopeStack[scopeStack.length - 1].opener === '<';
-      if (isArrow) {
+      if (isArrow && prevIsParen) {
         i += 1;
-      } else if (!inAngle) {
+      } else if (!isArrow && inAngle) {
+        continue;
+      } else {
         return false;
       }
     } else if (text === ':') {
@@ -177,6 +181,25 @@ const isTypeFragmentPlausible = (fragment) => {
       inPair = false;
       questionSeen = false;
     }
+  }
+  return true;
+};
+
+const validateDescriptionGroups = (rest) => {
+  let i = 0;
+  while (i < rest.length) {
+    const start = findGroupStart(rest, i);
+    if (start === -1) {
+      return true;
+    }
+    const end = findGroupEnd(rest, start);
+    if (end === -1) {
+      return false;
+    }
+    if (!isTypeFragmentPlausible(rest.slice(start, end + 1))) {
+      return false;
+    }
+    i = end + 1;
   }
   return true;
 };
@@ -314,7 +337,10 @@ const isJSDocTypeLines = (lines) => {
             return false;
           }
         } else if (before.trim() !== '') {
-          if (!/^[ \t]*\[?[A-Za-z_$][\w$]*\]?([ \t]+-[ \t].*)?$/.test(before)) {
+          if (!/^[ \t]*\[?[A-Za-z_$][\w$]*\]?([ \t]+-[ \t].*)?[ \t]*$/.test(before)) {
+            return false;
+          }
+          if (!validateDescriptionGroups(rest)) {
             return false;
           }
           continue;
@@ -350,6 +376,12 @@ const isJSDocTypeLines = (lines) => {
         if (scan.stack.length > 0) {
           openType = { typeOnly, accumulated: rest, stack: scan.stack };
         }
+      } else if (tag === 'returns' || tag === 'return') {
+        if (rest.trim() !== '') {
+          return false;
+        }
+      } else if (!/^[ \t]*\[?[A-Za-z_$][\w$]*\]?([ \t]+-[ \t].*)?[ \t]*$/.test(rest)) {
+        return false;
       }
       continue;
     }
