@@ -106,6 +106,45 @@ describe('no-comments rule', () => {
     expect(errorCount('/* eslint-disable no-console -- a reason */\nconst x = 1;')).toBe(0);
   });
 
+  it('rejects prose before the type group on descriptive tags', () => {
+    expect(errorCount('/** @param do not touch this fragile hack {number} x */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @returns do not touch this hack {!!!} x */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @typedef do not touch this hack {Foo} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @param x - use {Foo} for this */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @param {number} x */\nfunction f(x) { return x; }')).toBe(0);
+  });
+
+  it('rejects separator-glued prose inside type groups', () => {
+    expect(errorCount('/** @type {Do-not-touch-this-hack} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {Do + not + touch + this + hack} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {Do = not = touch = this + hack} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {Do, not, touch, this, hack} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {Do; not; touch; this; hack} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {Do / not / touch / this / hack} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {Do * not * touch} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {*} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {(a: string, b: number) => void} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {Foo<T = Bar>} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {-readonly [K in T]: U} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {[string, number]} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {a: string, b: number} */\nconst x = 1;')).toBe(0);
+  });
+
+  it('rejects prose appended to license lines', () => {
+    expect(errorCount('// Copyright (c) 2026 Example do not touch this fragile hack\nconst x = 1;')).toBe(1);
+    expect(errorCount('// Licensed under MIT do not touch this hack\nconst x = 1;')).toBe(1);
+    expect(errorCount('// MIT License do not touch this hack\nconst x = 1;')).toBe(1);
+    expect(errorCount('// Copyright (c) 2026 Example\nconst x = 1;')).toBe(0);
+    expect(errorCount('// Licensed under the MIT License\nconst x = 1;')).toBe(0);
+    expect(errorCount('// Licensed under the Apache License, Version 2.0\nconst x = 1;')).toBe(0);
+  });
+
+  it('allows a verbatim MIT license block', () => {
+    const mit = '/*\n * MIT License\n *\n * Copyright (c) 2026 Example Corp\n *\n * Permission is hereby granted, free of charge, to any person obtaining a copy\n * of this software and associated documentation files (the "Software"), to deal\n * in the Software without restriction, including without limitation the rights\n * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n * copies of the Software, and to permit persons to whom the Software is\n * furnished to do so, subject to the following conditions:\n *\n * The above copyright notice and this permission notice shall be included in all\n * copies or substantial portions of the Software.\n *\n * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n * SOFTWARE.\n */\nconst x = 1;';
+    expect(errorCount(mit)).toBe(0);
+    expect(errorCount(mit.replace('SOFTWARE.', 'SOFTWARE. Do not touch this hack.'))).toBe(1);
+  });
+
   it('rejects malformed global and exported declarations', () => {
     expect(noCommentCount('/* global foo: bogus */\nconst x = 1;')).toBe(1);
     expect(noCommentCount('/* global foo, */\nconst x = 1;')).toBe(1);

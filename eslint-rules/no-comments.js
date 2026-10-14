@@ -99,39 +99,86 @@ const scanDelimiters = (text, stack) => {
 
 const isTypeFragmentPlausible = (fragment) => {
   const { stripped, tokens } = tokenizeTypeFragment(fragment);
-  for (let i = 1; i < tokens.length; i += 1) {
-    const gap = stripped.slice(tokens[i - 1].end, tokens[i].start);
-    if (gap.length === 0) {
-      continue;
-    }
-    const left = tokens[i - 1];
-    const right = tokens[i];
-    const leftOk = isOperatorToken(left.text) || TYPE_KEYWORDS.has(left.text);
-    const rightOk = isOperatorToken(right.text) || TYPE_KEYWORDS.has(right.text);
-    if (!leftOk && !rightOk) {
-      return false;
+  const compact = stripped.replace(/\s+/g, '');
+  if (compact !== '*' && compact !== '{*}') {
+    for (const token of tokens) {
+      if (token.text === '/' || token.text === '*') {
+        return false;
+      }
     }
   }
+  const scopeStack = [];
   let inPair = false;
   let questionSeen = false;
-  for (const token of tokens) {
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i];
     const text = token.text;
-    if (text === ':') {
+    if (i > 0) {
+      const prev = tokens[i - 1];
+      const gap = stripped.slice(prev.end, token.start);
+      if (gap.length > 0) {
+        const leftOk = isOperatorToken(prev.text) || TYPE_KEYWORDS.has(prev.text);
+        const rightOk = isOperatorToken(text) || TYPE_KEYWORDS.has(text);
+        if (!leftOk && !rightOk) {
+          return false;
+        }
+      }
+    }
+    if (text === '-' || text === '+') {
+      const next = tokens[i + 1];
+      const nextGap = next ? stripped.slice(token.end, next.start) : null;
+      if (!next || nextGap !== '' || !(next.text === 'readonly' || NUMBER_PATTERN.test(next.text))) {
+        return false;
+      }
+    } else if (text === '=') {
+      const next = tokens[i + 1];
+      const nextGap = next ? stripped.slice(token.end, next.start) : null;
+      const isArrow = next && nextGap === '' && next.text === '>';
+      const inAngle = scopeStack.length > 0 && scopeStack[scopeStack.length - 1].opener === '<';
+      if (isArrow) {
+        i += 1;
+      } else if (!inAngle) {
+        return false;
+      }
+    } else if (text === ':') {
       if (inPair && !questionSeen) {
         return false;
       }
       inPair = true;
       questionSeen = false;
+      const top = scopeStack[scopeStack.length - 1];
+      if (top) {
+        top.colonSeen = true;
+      }
     } else if (text === '?') {
       questionSeen = true;
-    } else if (text === '{') {
+    } else if (text === '{' || text === '(' || text === '[' || text === '<') {
+      scopeStack.push({ opener: text, colonSeen: false });
+      if (text === '{') {
+        inPair = false;
+      }
+    } else if (text === ',' || text === ';') {
+      const top = scopeStack[scopeStack.length - 1];
+      if (!top || ((top.opener === '{' || top.opener === '(') && !top.colonSeen)) {
+        return false;
+      }
       inPair = false;
-    } else if (text === ',' || text === ';' || text === '}' || text === ')' || text === ']' || text === '|' || text === '&') {
+      questionSeen = false;
+    } else if (text === '|' || text === '&') {
+      inPair = false;
+      questionSeen = false;
+    } else if (text === '}' || text === ')' || text === ']' || text === '>') {
+      const opener = { '}': '{', ')': '(', ']': '[', '>': '<' }[text];
+      const top = scopeStack[scopeStack.length - 1];
+      if (!top || top.opener !== opener) {
+        return false;
+      }
+      scopeStack.pop();
       inPair = false;
       questionSeen = false;
     }
   }
-  return !scanDelimiters(fragment, []).mismatch;
+  return true;
 };
 
 const findGroupStart = (text, fromIndex) => {
@@ -262,11 +309,15 @@ const isJSDocTypeLines = (lines) => {
       const groupStart = findGroupStart(rest, 0);
       if (groupStart !== -1) {
         const before = rest.slice(0, groupStart);
-        if (before.trim() !== '' && !typeOnly) {
+        if (typeOnly) {
+          if (before.trim() !== '') {
+            return false;
+          }
+        } else if (before.trim() !== '') {
+          if (!/^[ \t]*\[?[A-Za-z_$][\w$]*\]?([ \t]+-[ \t].*)?$/.test(before)) {
+            return false;
+          }
           continue;
-        }
-        if (before.trim() !== '' && typeOnly) {
-          return false;
         }
         const groupEnd = findGroupEnd(rest, groupStart);
         if (groupEnd !== -1) {
@@ -387,43 +438,125 @@ const SPDX_IDS = [
   'LicenseRef-[\\w.-]+',
   'DocumentRef-[\\w.-]+:LicenseRef-[\\w.-]+',
 ].join('|');
+const LICENSE_NAME_PATTERN = '(?:the\\s+)?(?:mit|apache|bsd|isc|gpl|lgpl|mpl|epl|cc0|unlicense)[\\s-]*license';
+const LICENSE_CONNECTOR = 'the|of|and|or|version|a|an|for';
+const CAPITALIZED_WORD = '[A-Z0-9©&][\\w.,\'&()-]*';
+
+const isCopyrightLine = (line) => {
+  const prefix = /^copyright([\s(©])/i.exec(line);
+  if (!prefix) {
+    return false;
+  }
+  const rest = line.slice(prefix[0].length - 1);
+  return new RegExp(`^(?:\\s*\\(c\\)|\\s*©)?\\s*\\d{4}(?:\\s*[-–]\\s*\\d{4})?,?(?:\\s+${CAPITALIZED_WORD})*\\s*$`).test(rest);
+};
+
+const isCBracketLine = (line) =>
+  /^\((c|©)\)\s*\d{4}(?:\s*[-–]\s*\d{4})?,?(?:\s+[A-Z0-9©&][\w.,'&()-]*)*\s*$/.test(line);
+
+const isAuthorLine = (line) => {
+  const prefix = /^authors?\s*:/i.exec(line);
+  if (!prefix) {
+    return false;
+  }
+  const rest = line.slice(prefix[0].length);
+  return /^[ \t]*[A-Z][\w.,'&()-]*(?:[ \t]+[A-Z][\w.,'&()-]*)*[ \t]*$/.test(rest);
+};
+
+const isLicensedUnderLine = (line) => {
+  const prefix = /^licensed\s+under\s+/i.exec(line);
+  if (!prefix) {
+    return false;
+  }
+  const rest = line.slice(prefix[0].length);
+  return new RegExp(
+    `^(?:the\\s+)?[A-Z][\\w.,()-]*(?:\\s+(?:[A-Z\\d][\\w.,()-]*|${LICENSE_CONNECTOR}))*\\.?\\s*$`,
+  ).test(rest);
+};
+
+const isThisFileLicensedLine = (line) => {
+  const prefix = /^this\s+file\s+is\s+licensed\s+under\s+/i.exec(line);
+  if (!prefix) {
+    return false;
+  }
+  const rest = line.slice(prefix[0].length);
+  return new RegExp(
+    `^(?:the\\s+)?[A-Z][\\w.,()-]*(?:\\s+(?:[A-Z\\d][\\w.,()-]*|${LICENSE_CONNECTOR}))*\\.?\\s*$`,
+  ).test(rest);
+};
+
 const LICENSE_ANCHOR_PATTERNS = [
-  /^copyright[\s(©]/i,
-  /^\(c\)\b/i,
   new RegExp(`^spdx-license-identifier\\s*:\\s*(?:${SPDX_IDS})(?:\\s+(?:or|and)\\s*(?:${SPDX_IDS}))*\\s*$`, 'i'),
-  /^licensed\s+under\b/i,
-  /^this\s+file\s+is\s+licensed\s+under\b/i,
   /^license\s*:\s*[\w.+-]+(?:\s+(?:or|and)\s+[\w.+-]+)*\s*$/i,
-  /^(?:the\s+)?(?:mit|apache|bsd|isc|gpl|lgpl|mpl|epl|cc0|unlicense)[\s-]*license\b/i,
+  new RegExp(`^${LICENSE_NAME_PATTERN}(?:\\s*,\\s*version\\s*[\\d.]+)?\\.?\\s*$`, 'i'),
 ];
 const LICENSE_LINE_PATTERNS = [
   ...LICENSE_ANCHOR_PATTERNS,
-  /^all\s+rights\s+reserved\b/i,
-  /^permission\s+is\s+hereby\s+granted\b/i,
-  /^the\s+software\s+is\s+provided\b/i,
-  /^the\s+above\s+copyright\s+notice\b/i,
-  /^without\s+warranty\b/i,
-  /^in\s+no\s+event\s+shall\b/i,
-  /^redistribution\b/i,
-  /^terms\s+and\s+conditions\b/i,
-  /^you\s+may\s+obtain\s+a\s+copy\s+of\s+the\s+license\b/i,
-  /^version\s+\d/i,
-  /^https?:\/\/\S+$/i,
-  /^see\s+.*\blicense\b/i,
-  /^end\s+of\s+terms\b/i,
-  /^appendix\b/i,
-  /^authors?\s*:/i,
+  /^all\s+rights\s+reserved\.?\s*$/i,
+  /^version\s+[\d.]+(?:\s*,\s*[A-Z][a-z]+\s+\d{4})?\.?\s*$/i,
+  /^https?:\/\/\S+\s*$/i,
+  /^see\s+(?:the\s+|a\s+)?licen[sc]e(?:\s+(?:file|for\s+details))?\.?\s*$/i,
 ];
 
+const MIT_LICENSE_BODY = `Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.`;
+const normalizeLicenseBody = (text) => text.replace(/\s+/g, ' ').trim();
+const MIT_BODY_NORMALIZED = normalizeLicenseBody(MIT_LICENSE_BODY);
+
+const isMitLicenseBlock = (normalized) => {
+  const lines = normalized.split('\n');
+  let index = 0;
+  if (lines.length > 0 && /^mit\s+license\.?\s*$/i.test(lines[0])) {
+    index = 1;
+  }
+  if (index >= lines.length || !isCopyrightLine(lines[index])) {
+    return false;
+  }
+  const body = normalizeLicenseBody(lines.slice(index + 1).join('\n'));
+  return body === MIT_BODY_NORMALIZED;
+};
+
 export const isLicenseHeader = (normalized) => {
+  if (isMitLicenseBlock(normalized)) {
+    return true;
+  }
   const lines = normalized.split('\n');
   if (lines.length === 0) {
     return false;
   }
-  if (!lines.some((line) => LICENSE_ANCHOR_PATTERNS.some((pattern) => pattern.test(line)))) {
+  const isAnchorLine = (line) =>
+    isCopyrightLine(line) ||
+    isCBracketLine(line) ||
+    isLicensedUnderLine(line) ||
+    isThisFileLicensedLine(line) ||
+    LICENSE_ANCHOR_PATTERNS.some((pattern) => pattern.test(line));
+  if (!lines.some(isAnchorLine)) {
     return false;
   }
-  return lines.every((line) => LICENSE_LINE_PATTERNS.some((pattern) => pattern.test(line)));
+  return lines.every(
+    (line) =>
+      isCopyrightLine(line) ||
+      isCBracketLine(line) ||
+      isAuthorLine(line) ||
+      isLicensedUnderLine(line) ||
+      isThisFileLicensedLine(line) ||
+      LICENSE_LINE_PATTERNS.some((pattern) => pattern.test(line)),
+  );
 };
 
 export const isAllowedComment = (text) => {
