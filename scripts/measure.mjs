@@ -85,6 +85,7 @@ const measureInteractions = async () => {
       (patternSource) =>
         [...document.querySelectorAll('button')].some((b) => new RegExp(patternSource).test(b.textContent.trim())),
       PIECE_LABEL_PATTERN.source,
+      { timeout: 10000 },
     );
     layoutTimes.push(Date.now() - t0);
     layoutSteps = steps.count;

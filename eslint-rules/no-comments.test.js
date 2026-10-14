@@ -53,6 +53,37 @@ describe('no-comments rule', () => {
     expect(errorCount('/// <reference path="./foo.d.ts" />\nconst x = 1;')).toBe(0);
   });
 
+  it('rejects inline eslint config with trailing prose', () => {
+    const prose = linter.verify('/* eslint no-console: 0 this is a whole paragraph of prose */\nconst x = 1;', config);
+    expect(prose.filter((m) => m.ruleId === 'no-comments')).toHaveLength(1);
+    expect(errorCount('/* eslint no-console: 0, no-alert: 2 */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/* eslint no-console: [2, {allow: ["warn"]}] */\nconst x = 1;')).toBe(0);
+  });
+
+  it('rejects malformed triple-slash references', () => {
+    expect(errorCount('/// <reference path="./foo.d.ts" /> and now my essay\nconst x = 1;')).toBe(1);
+    expect(errorCount('/// <reference path=hello world\nconst x = 1;')).toBe(1);
+    expect(errorCount('/// <reference types="node" />\nconst x = 1;')).toBe(0);
+  });
+
+  it('rejects tag-prefixed prose outside JSDoc blocks', () => {
+    expect(errorCount('// @param x this is a prose comment about the hack\nconst x = 1;')).toBe(1);
+    expect(errorCount('// @type {number} TODO fix this\nconst x = 1;')).toBe(1);
+    expect(errorCount('/* @type {number} prose */\nconst x = 1;')).toBe(1);
+  });
+
+  it('rejects prose continuation lines inside JSDoc blocks', () => {
+    expect(errorCount('/**\n * @param {number} x\n * Note: this is fragile do not touch it\n */\nfunction f(x) { return x; }')).toBe(1);
+    expect(errorCount('/**\n * @param {number} x\n * (this is prose in parens)\n */\nfunction f(x) { return x; }')).toBe(1);
+    expect(errorCount('/**\n * @param {number} x\n * Why does this exist?\n */\nfunction f(x) { return x; }')).toBe(1);
+    expect(errorCount('/**\n * @param {number} x\n * foo = bar baz\n */\nfunction f(x) { return x; }')).toBe(1);
+  });
+
+  it('allows multi-line type fragments inside JSDoc blocks', () => {
+    expect(errorCount("/**\n * @type {import('foo').Bar |\n *   Baz}\n */\nconst x = 1;")).toBe(0);
+    expect(errorCount('/**\n * @type {{\n *   a: string;\n *   b: number;\n * }}\n */\nconst x = 1;')).toBe(0);
+  });
+
   it('rejects word-prefix bypasses', () => {
     expect(errorCount('// eslint is great\nconst x = 1;')).toBe(1);
     expect(errorCount('// global state is messy\nconst x = 1;')).toBe(1);

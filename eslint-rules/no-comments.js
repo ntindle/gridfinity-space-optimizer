@@ -10,8 +10,19 @@ const TYPE_TAGS = [
   'prop',
 ];
 const TYPE_TAG_PATTERN = new RegExp(`^@(?:${TYPE_TAGS.join('|')})\\b`);
-const TYPE_CONTINUATION_CHARS = ['{', '}', '|', '&', '[', ']', '(', ')', '<', '>', '=', '?', ':', ';'];
-const hasTypeContinuation = (line) => TYPE_CONTINUATION_CHARS.some((ch) => line.includes(ch));
+const TYPE_OPERATORS = new Set(['|', '&', ':', ',', '=', '<', '>', '(', ')', '[', ']', '{', '}', '?']);
+const isTypeContinuation = (line) => {
+  const stripped = line.replace(/"[^"]*"/g, '""').replace(/'[^']*'/g, "''").replace(/`[^`]*`/g, '``');
+  for (let i = 0; i < stripped.length; i += 1) {
+    if (stripped[i] !== ' ' && stripped[i] !== '\t') {
+      continue;
+    }
+    if (!TYPE_OPERATORS.has(stripped[i - 1]) && !TYPE_OPERATORS.has(stripped[i + 1])) {
+      return false;
+    }
+  }
+  return true;
+};
 const IDENTIFIER_CHAR_PATTERN = /[A-Za-z0-9_$]/;
 
 const normalizeComment = (comment) =>
@@ -34,7 +45,7 @@ const isDirective = (normalized) => {
   if (/^eslint-env\s+[\w$-]+(?:\s*,\s*[\w$-]+)*\s*$/.test(normalized)) {
     return true;
   }
-  if (/^eslint\s+[\w/@-]+\s*:\s*(\[|0|1|2|off|warn|error)\b/.test(normalized)) {
+  if (/^eslint\s+[\w/@-]+\s*:\s*(?:\[(?:[^[\]]|\[[^[\]]*\])*\]|0|1|2|off|warn|error)(?:\s*,\s*[\w/@-]+\s*:\s*(?:\[(?:[^[\]]|\[[^[\]]*\])*\]|0|1|2|off|warn|error))*\s*$/.test(normalized)) {
     return true;
   }
   if (
@@ -50,7 +61,7 @@ const isDirective = (normalized) => {
   if (/^@vitest-environment\s+[a-z][a-z0-9-]*\s*$/.test(normalized)) {
     return true;
   }
-  if (/^\/\s*<reference\s+(path|types|lib)\s*=/.test(normalized)) {
+  if (/^\/\s*<reference\s+(path|types|lib)\s*=\s*(["'])[^"']*\2\s*\/>\s*$/.test(normalized)) {
     return true;
   }
   return false;
@@ -63,10 +74,18 @@ const isJSDocTypeLines = (lines) => {
   if (!TYPE_TAG_PATTERN.test(lines[0])) {
     return false;
   }
-  return lines.slice(1).every((line) => TYPE_TAG_PATTERN.test(line) || hasTypeContinuation(line));
+  return lines.slice(1).every((line) => TYPE_TAG_PATTERN.test(line) || isTypeContinuation(line));
 };
 
-const isJSDocTypeComment = (comment) => isJSDocTypeLines(normalizeComment(comment).split('\n'));
+const isJSDocComment = (comment, sourceCode) =>
+  comment.type === 'Block' && sourceCode.text.slice(comment.range[0], comment.range[1]).startsWith('/**');
+
+const isJSDocTypeComment = (comment, sourceCode) => {
+  if (!isJSDocComment(comment, sourceCode)) {
+    return false;
+  }
+  return isJSDocTypeLines(normalizeComment(comment).split('\n'));
+};
 
 export const isLicenseHeader = (normalized) => {
   if (/^copyright\b/i.test(normalized)) {
@@ -98,6 +117,9 @@ export const isAllowedComment = (text) => {
     .join('\n');
   if (isDirective(normalized)) {
     return true;
+  }
+  if (!text.startsWith('*')) {
+    return false;
   }
   return isJSDocTypeLines(normalized.split('\n'));
 };
@@ -163,7 +185,7 @@ export default {
         for (const comment of sourceCode.getAllComments()) {
           if (comment.type === 'Shebang') continue;
           const normalized = normalizeComment(comment);
-          if (isDirective(normalized) || isJSDocTypeComment(comment)) continue;
+          if (isDirective(normalized) || isJSDocTypeComment(comment, sourceCode)) continue;
           if (leadingSet.has(comment) && isLicenseHeader(normalized)) continue;
           if (leadingSet.has(comment) && /^@ts-(check|nocheck)\s*$/.test(normalized)) continue;
           context.report({

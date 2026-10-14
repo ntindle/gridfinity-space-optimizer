@@ -15,12 +15,9 @@ export const getBuiltEntry = (root = process.cwd()) => {
 export const waitForServer = async (target, timeoutMs = 30000) => {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    try {
-      const res = await fetch(target);
-      if (res.ok) return;
-    } catch {
-      await new Promise((r) => setTimeout(r, 250));
-    }
+    const res = await fetch(target).catch(() => null);
+    if (res?.ok) return;
+    await new Promise((r) => setTimeout(r, 250));
   }
   throw new Error(`server at ${target} did not start`);
 };
@@ -28,17 +25,14 @@ export const waitForServer = async (target, timeoutMs = 30000) => {
 export const verifyServedBuild = async (target, expectedEntry, timeoutMs = 10000) => {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    try {
-      const res = await fetch(target);
-      if (res.ok) {
-        const body = await res.text();
-        if (body.includes(expectedEntry)) {
-          return;
-        }
+    const res = await fetch(target).catch(() => null);
+    if (res?.ok) {
+      const body = await res.text();
+      if (body.includes(expectedEntry)) {
+        return;
       }
-    } catch {
-      await new Promise((r) => setTimeout(r, 250));
     }
+    await new Promise((r) => setTimeout(r, 250));
   }
   throw new Error(`served build at ${target} does not match just-built entry ${expectedEntry}`);
 };
