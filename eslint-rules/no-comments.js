@@ -37,7 +37,12 @@ const PREFIX_KEYWORDS = new Set([
 const INFIX_KEYWORDS = new Set(['extends', 'in', 'is']);
 const NUMBER_PATTERN = /^\d/;
 const UNICODE_IDENTIFIER_PATTERN = /^[\p{L}$_][\p{L}\p{N}$_]*$/u;
-const isOperatorToken = (text) => !UNICODE_IDENTIFIER_PATTERN.test(text) && !NUMBER_PATTERN.test(text);
+const TYPE_OPERATOR_CHARS = new Set([
+  '<', '>', '[', ']', '{', '}', '(', ')',
+  '|', '&', ',', ';', ':', '?', '!', '=',
+  '.', '+', '-', '*', '/', "'", '"', '`',
+]);
+const isOperatorToken = (text) => TYPE_OPERATOR_CHARS.has(text);
 
 const stripStringLiterals = (text) => {
   let out = '';
@@ -129,6 +134,12 @@ const isTypeFragmentPlausible = (fragment) => {
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
     const text = token.text;
+    if (!isOperatorToken(text)
+        && !TYPE_KEYWORDS.has(text)
+        && !UNICODE_IDENTIFIER_PATTERN.test(text)
+        && !NUMBER_PATTERN.test(text)) {
+      return false;
+    }
     if (i > 0) {
       const prev = tokens[i - 1];
       const gap = stripped.slice(prev.end, token.start);

@@ -197,6 +197,9 @@ describe('no-comments rule', () => {
     expect(errorCount('/** @type {do\u1160not\u1160touch} */\nconst x = 1;')).toBe(1);
     expect(errorCount('/** @type {do\u034Fnot\u034Ftouch} */\nconst x = 1;')).toBe(1);
     expect(errorCount('/** @type {do\uFE00not\uFE00touch} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {do\u20DDnot\u20DDtouch} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {do\u093Enot\u093Etouch} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {do\u0001not\u0001touch} */\nconst x = 1;')).toBe(1);
   });
 
   it('rejects malformed global and exported declarations', () => {
