@@ -14,13 +14,10 @@ import { parseShareParam } from "@/utils/shareLayout";
 import ShareLayoutButton from "@/components/GridfinityCalculator/ShareLayoutButton";
 
 const GridfinityCalculator: React.FC = () => {
-  // Migrate legacy data first
   useLegacyMigration();
   
-  // Use settings from context for clean state management
   const settings = useSettings();
   
-  // Calculate results based on current settings
   const { result, layout, printerSize } = useGridfinityCalculation({
     drawerSize: settings.drawerSize,
     selectedPrinter: settings.selectedPrinter,
@@ -31,12 +28,9 @@ const GridfinityCalculator: React.FC = () => {
     numDrawers: settings.numDrawers,
   });
   
-  // Maintain backward compatibility with tests by syncing with old format
   useEffect(() => {
-    // Load legacy settings on mount for test compatibility
     const legacySettings = loadUserSettings();
     if (legacySettings && !localStorage.getItem('gridfinity_migration_v1')) {
-      // Apply legacy settings if they exist and haven't been migrated
       if (legacySettings.drawerSize) settings.setDrawerSize(legacySettings.drawerSize);
       if (legacySettings.selectedPrinter) settings.setSelectedPrinter(legacySettings.selectedPrinter);
       if (legacySettings.useHalfSize !== undefined) settings.setUseHalfSize(legacySettings.useHalfSize);
@@ -46,12 +40,6 @@ const GridfinityCalculator: React.FC = () => {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Apply a shared layout from the `?share=` URL param, if present. Runs
-  // after the legacy-migration effect so a shared link always wins over
-  // stale local settings. The param is stripped from the address bar
-  // whether or not it decoded — a valid link applies and then is gone so
-  // later edits don't leave a stale link behind, and an invalid one never
-  // lingers as a dead param.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (!params.has('share')) return;
@@ -72,7 +60,6 @@ const GridfinityCalculator: React.FC = () => {
     url.searchParams.delete('share');
     window.history.replaceState(null, '', url.toString());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  // Save in legacy format for test compatibility
   useEffect(() => {
     saveUserSettings({
       drawerSize: settings.drawerSize,
