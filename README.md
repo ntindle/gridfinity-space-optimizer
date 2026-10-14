@@ -101,6 +101,23 @@ or
 yarn build
 ```
 
+## Production smoke and rollback
+
+After every push to `main`, `.github/workflows/prod-smoke.yml` waits until https://gridfinitylayout.com/ serves the new build, then drives the core tasks in headless Chromium. If the smoke check fails it:
+
+1. Restores the previous ready Netlify production deploy (`POST /api/v1/sites/{site_id}/deploys/{deploy_id}/restore`).
+2. Opens a revert PR for the offending commit.
+3. Opens or comments on a "Production smoke check failing" issue.
+
+### Required Actions credentials
+
+| Name | Kind | Purpose |
+| --- | --- | --- |
+| `NETLIFY_AUTH_TOKEN` | Secret | Personal access token with deploy rights for the site. Create at https://app.netlify.com/user/applications#personal-access-tokens |
+| `NETLIFY_SITE_ID` | Variable (preferred) or Secret | Site UUID. In Netlify: Site configuration → General → Site details → Site ID. This repo uses variable `NETLIFY_SITE_ID`. |
+
+Dry-run without restoring: Actions → Production smoke check → Run workflow → set `dry_run` to true. The log prints the current and target deploy ids, the commit of each, and `authenticatedAs`.
+
 ## CI/CD
 
 This project uses GitHub Actions for continuous integration and deployment:
