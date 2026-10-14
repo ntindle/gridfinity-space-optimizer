@@ -118,10 +118,6 @@ After every push to `main`, `.github/workflows/prod-smoke.yml` waits until https
 
 Dry-run without restoring: Actions → Production smoke check → Run workflow → set `dry_run` to true. The log prints the current and target deploy ids, the commit of each, and `authenticatedAs`.
 
-### Claude Code Review
-
-`.github/workflows/claude-code-review.yml` needs the `CLAUDE_CODE_OAUTH_TOKEN` secret. If it is missing the job skips with a warning. If it is present but expired (Anthropic returns 401), the job warns and still passes so merges are not blocked. Refresh it by running `claude setup-token` locally and replacing the repo secret.
-
 ## CI/CD
 
 This project uses GitHub Actions for continuous integration and deployment:
