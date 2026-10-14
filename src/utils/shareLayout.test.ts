@@ -32,7 +32,6 @@ const customSettings: ShareableSettings = {
   useMm: false,
 };
 
-/** Craft a payload without going through the encoder (simulates hand-made links). */
 function rawPayload(payload: Record<string, unknown>): string {
   const json = JSON.stringify(payload);
   const bytes = new TextEncoder().encode(json);
@@ -63,7 +62,7 @@ describe('shareLayout', () => {
     expect(decodeShareSettings(null)).toBeNull();
     expect(decodeShareSettings('')).toBeNull();
     expect(decodeShareSettings('!!!not-base64!!!')).toBeNull();
-    expect(decodeShareSettings(rawPayload({ v: 1 }))).toBeNull(); // missing dw/dh/p
+    expect(decodeShareSettings(rawPayload({ v: 1 }))).toBeNull();
     expect(decodeShareSettings(rawPayload({ v: 2, dw: 10, dh: 10, p: 'Bambu Lab A1' }))).toBeNull();
   });
 
@@ -83,9 +82,6 @@ describe('shareLayout', () => {
   });
 
   it('rejects prototype-chain names that `in` would accept but are not real printers', () => {
-    // printerSizes["toString"] is the inherited Function — truthy, so a
-    // truthiness/`in` allowlist would accept it and the calculator would
-    // crash on its undefined dimensions. Only own properties count.
     for (const name of ['toString', '__proto__', 'constructor', 'hasOwnProperty', 'valueOf']) {
       expect(
         decodeShareSettings(rawPayload({ v: 1, dw: 22.5, dh: 10, p: name })),
@@ -124,7 +120,7 @@ describe('shareLayout', () => {
 
   it('requires a valid custom size for Custom Printer links', () => {
     const base = { v: 1, dw: 22.5, dh: 10, p: 'Custom Printer' };
-    expect(decodeShareSettings(rawPayload(base))).toBeNull(); // missing c
+    expect(decodeShareSettings(rawPayload(base))).toBeNull();
     expect(decodeShareSettings(rawPayload({ ...base, c: { x: 0, y: 200, z: 200 } }))).toBeNull();
     expect(
       decodeShareSettings(

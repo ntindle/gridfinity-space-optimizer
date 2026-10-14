@@ -3,9 +3,6 @@ import { calculateGrids } from '@/utils/gridfinityUtils';
 import { printerSizes } from '@/lib/utils';
 import type { DrawerSize, PrinterSize, GridfinityResult, LayoutItem } from '@/types';
 
-/**
- * Input parameters for the calculation hook
- */
 export interface CalculationInput {
   drawerSize: DrawerSize | null;
   selectedPrinter: string;
@@ -16,16 +13,10 @@ export interface CalculationInput {
   numDrawers: number;
 }
 
-/**
- * Extended result with drawer count
- */
 export interface CalculationResultWithDrawers extends Omit<GridfinityResult, 'layout'> {
   numDrawers: number;
 }
 
-/**
- * Return type for the calculation hook
- */
 export interface CalculationOutput {
   result: CalculationResultWithDrawers | null;
   layout: LayoutItem[];
@@ -33,10 +24,6 @@ export interface CalculationOutput {
   isCalculating: boolean;
 }
 
-/**
- * Custom hook for Gridfinity calculation logic
- * Encapsulates the calculation and memoizes results for performance
- */
 export const useGridfinityCalculation = ({
   drawerSize,
   selectedPrinter,
@@ -49,21 +36,15 @@ export const useGridfinityCalculation = ({
   const [result, setResult] = useState<CalculationResultWithDrawers | null>(null);
   const [layout, setLayout] = useState<LayoutItem[]>([]);
 
-  // Get printer size from selected printer or custom dimensions
   const printerSize = useMemo<PrinterSize>(() => {
     if (selectedPrinter === 'Custom Printer' && customPrinterSize) {
       return customPrinterSize;
     }
-    // Own-property check: `printerSizes["toString"]` is an inherited
-    // Function (truthy), which would skip a `||` fallback and then crash
-    // the calculator with undefined dimensions. A corrupted persisted
-    // printer name must fall back to the 256mm cube, never crash.
     return Object.prototype.hasOwnProperty.call(printerSizes, selectedPrinter)
       ? printerSizes[selectedPrinter]
       : { x: 256, y: 256, z: 256 };
   }, [selectedPrinter, customPrinterSize]);
 
-  // Memoize the calculation to avoid unnecessary recalculations
   const calculationResult = useMemo<GridfinityResult | null>(() => {
     if (!drawerSize || !printerSize) return null;
     
@@ -76,7 +57,6 @@ export const useGridfinityCalculation = ({
     );
   }, [drawerSize, printerSize, useHalfSize, preferHalfSize, preferUniformBaseplates]);
 
-  // Update state when calculation changes
   useEffect(() => {
     if (calculationResult) {
       const { baseplates, spacers, halfSizeBins, layout } = calculationResult;
@@ -89,6 +69,6 @@ export const useGridfinityCalculation = ({
     result,
     layout,
     printerSize,
-    isCalculating: false, // For future loading state
+    isCalculating: false,
   };
 };

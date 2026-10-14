@@ -1,33 +1,21 @@
-/**
- * Core type definitions for Gridfinity Space Optimizer
- */
 
-/**
- * Drawer dimensions in inches
- */
 export interface DrawerSize {
-  width: number;  // in inches
-  height: number; // in inches
+  width: number;
+  height: number;
 }
 
-/**
- * 3D printer build volume in millimeters
- */
 export interface PrinterSize {
-  x: number;  // in mm
-  y: number;  // in mm
-  z: number;  // in mm
+  x: number;
+  y: number;
+  z: number;
   exclusionZone?: {
-    front?: number;  // mm from front edge
-    back?: number;   // mm from back edge
-    left?: number;   // mm from left edge
-    right?: number;  // mm from right edge
+    front?: number;
+    back?: number;
+    left?: number;
+    right?: number;
   };
 }
 
-/**
- * Individual item in the layout grid
- */
 export interface LayoutItem {
   x: number;
   y: number;
@@ -40,9 +28,6 @@ export interface LayoutItem {
   pixelHeight: number;
 }
 
-/**
- * Result of gridfinity calculation
- */
 export interface GridfinityResult {
   baseplates: Record<string, number>;
   spacers: Record<string, number>;
@@ -50,9 +35,6 @@ export interface GridfinityResult {
   layout: LayoutItem[];
 }
 
-/**
- * Application settings
- */
 export interface Settings {
   drawerSize: DrawerSize;
   selectedPrinter: string;
@@ -63,9 +45,6 @@ export interface Settings {
   useMm: boolean;
 }
 
-/**
- * Calculation input parameters
- */
 export interface CalculationParams {
   drawerSize: DrawerSize;
   printerSize: PrinterSize;
@@ -73,36 +52,21 @@ export interface CalculationParams {
   preferHalfSize: boolean;
 }
 
-/**
- * Options for persisted state hook
- */
 export interface PersistOptions<T = unknown> {
   syncTabs?: boolean;
   serialize?: (value: T) => string;
   deserialize?: (value: string) => T;
 }
 
-/**
- * Printer presets (predefined printer sizes)
- */
 export type PrinterPresets = Record<string, PrinterSize>;
 
-/**
- * Unit types for conversion
- */
 export type Unit = 'mm' | 'inch' | 'inches';
 
-/**
- * Validation result
- */
 export interface ValidationResult {
   valid: boolean;
   error?: string;
 }
 
-/**
- * Custom printer dialog state
- */
 export interface CustomPrinterState {
   dimensions: PrinterSize;
   errors: {
