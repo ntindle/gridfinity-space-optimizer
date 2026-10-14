@@ -12,12 +12,6 @@ on:
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-    
     runs-on: ubuntu-latest
     permissions:
       contents: write  # Allow Claude to suggest file changes
@@ -34,8 +28,20 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Check for Claude token
+        id: token
+        env:
+          HAS_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        run: |
+          echo "present=$HAS_TOKEN" >> "$GITHUB_OUTPUT"
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "::warning::CLAUDE_CODE_OAUTH_TOKEN is not set. Claude Code Review skipped. Add it under Settings, Secrets and variables, Actions."
+          fi
+
       - name: Run Claude Code Review
         id: claude-review
+        if: steps.token.outputs.present == 'true'
+        continue-on-error: true
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -73,6 +79,8 @@ jobs:
 
           # Use sticky comments to update review on new commits
           use_sticky_comment: true
+
+
           
           # Enhanced permissions for review actions
           additional_permissions: |
@@ -118,3 +126,9 @@ jobs:
             PROJECT: gridfinity-space-optimizer
             TECH_STACK: React,TypeScript,Vite,TailwindCSS,MathJS
 
+      - name: Report Claude auth failures without failing the check
+        if: steps.claude-review.outcome == 'failure'
+        run: |
+          echo "::warning::Claude Code Review failed. Job log usually shows a 401 if CLAUDE_CODE_OAUTH_TOKEN is expired."
+          echo "To refresh: run claude setup-token locally, then replace the CLAUDE_CODE_OAUTH_TOKEN repo secret."
+          echo "This check passes when auth fails so merges are not blocked by an expired Claude login."
