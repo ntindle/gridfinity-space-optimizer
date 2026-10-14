@@ -112,7 +112,6 @@ const PrinterSettings = ({
               </PopoverContent>
             </Popover>
             
-            {}
             {selectedPrinter === "Custom Printer" && (
               <Button
                 variant="outline"
@@ -126,14 +125,12 @@ const PrinterSettings = ({
           </div>
         </div>
         
-        {}
         {printerSize && (
           <div className="space-y-2">
             <div className="text-sm text-muted-foreground">
               Build Volume: {getBedSizeDisplay()}
             </div>
             
-            {}
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center justify-center">
                 <div 
@@ -162,7 +159,6 @@ const PrinterSettings = ({
         )}
       </div>
 
-      {}
       <CustomPrinterDialog
         open={customDialogOpen}
         onOpenChange={setCustomDialogOpen}
