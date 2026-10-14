@@ -60,7 +60,7 @@ const stripStringLiterals = (text) => {
 };
 
 const tokenizeTypeFragment = (fragment) => {
-  const defused = fragment.replace(/[\p{Cf}\u2800\u3164\uFFA0]/gu, ' ');
+  const defused = fragment.replace(/[\p{Cf}\p{Mn}\u2800\u3164\uFFA0\u115F\u1160]/gu, ' ');
   const stripped = stripStringLiterals(defused.trim());
   const tokens = [];
   const pattern = /[\p{L}$_][\p{L}\p{N}$_]*|\d+(?:\.\d+)?|[^\s]/gu;
