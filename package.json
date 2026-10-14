@@ -11,7 +11,10 @@
     "preview": "vite preview",
     "test": "vitest --config vite.config.test.js",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "metrics:parity": "node scripts/metrics/parity.mjs",
+    "metrics:bundle": "node scripts/metrics/bundle-size.mjs",
+    "metrics:lighthouse": "node scripts/metrics/lighthouse.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.6.0",
