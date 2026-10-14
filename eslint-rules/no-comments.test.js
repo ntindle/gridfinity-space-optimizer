@@ -169,6 +169,19 @@ describe('no-comments rule', () => {
     expect(errorCount('/** @type {() => void} */\nconst x = 1;')).toBe(0);
   });
 
+  it('rejects keyword-interleaved prose in type groups', () => {
+    expect(errorCount('/** @type {do is not in touch is this in fragile is hack} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @param x - {do is not in touch} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {do keyof not keyof touch} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {keyof Foo} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {readonly keyof Foo} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {T extends U ? X : Y} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {[K in T]} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {(x: unknown) => x is string} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {T extends infer U} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {typeof foo} */\nconst x = 1;')).toBe(0);
+  });
+
   it('rejects malformed global and exported declarations', () => {
     expect(noCommentCount('/* global foo: bogus */\nconst x = 1;')).toBe(1);
     expect(noCommentCount('/* global foo, */\nconst x = 1;')).toBe(1);

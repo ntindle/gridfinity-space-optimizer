@@ -18,13 +18,23 @@ const TYPE_KEYWORDS = new Set([
   'infer',
   'new',
   'extends',
-  'implements',
   'abstract',
   'in',
   'out',
   'is',
   'asserts',
 ]);
+const PREFIX_KEYWORDS = new Set([
+  'keyof',
+  'typeof',
+  'readonly',
+  'infer',
+  'new',
+  'out',
+  'abstract',
+  'asserts',
+]);
+const INFIX_KEYWORDS = new Set(['extends', 'in', 'is']);
 const NUMBER_PATTERN = /^\d/;
 const isOperatorToken = (text) => !IDENTIFIER_PATTERN.test(text) && !NUMBER_PATTERN.test(text);
 
@@ -110,6 +120,10 @@ const isTypeFragmentPlausible = (fragment) => {
   const scopeStack = [];
   let inPair = false;
   let questionSeen = false;
+  let infixSeen = false;
+  const resetInfix = () => {
+    infixSeen = false;
+  };
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
     const text = token.text;
@@ -123,6 +137,15 @@ const isTypeFragmentPlausible = (fragment) => {
           return false;
         }
       }
+      if (PREFIX_KEYWORDS.has(text) && IDENTIFIER_PATTERN.test(prev.text) && !TYPE_KEYWORDS.has(prev.text)) {
+        return false;
+      }
+    }
+    if (INFIX_KEYWORDS.has(text)) {
+      if (infixSeen) {
+        return false;
+      }
+      infixSeen = true;
     }
     if (text === '-' || text === '+') {
       const next = tokens[i + 1];
@@ -137,6 +160,7 @@ const isTypeFragmentPlausible = (fragment) => {
       const prev = i > 0 ? tokens[i - 1] : null;
       const prevIsParen = prev !== null && prev.text === ')';
       const inAngle = scopeStack.length > 0 && scopeStack[scopeStack.length - 1].opener === '<';
+      resetInfix();
       if (isArrow && prevIsParen) {
         i += 1;
       } else if (!isArrow && inAngle) {
@@ -150,14 +174,17 @@ const isTypeFragmentPlausible = (fragment) => {
       }
       inPair = true;
       questionSeen = false;
+      resetInfix();
       const top = scopeStack[scopeStack.length - 1];
       if (top) {
         top.colonSeen = true;
       }
     } else if (text === '?') {
       questionSeen = true;
+      resetInfix();
     } else if (text === '{' || text === '(' || text === '[' || text === '<') {
       scopeStack.push({ opener: text, colonSeen: false });
+      resetInfix();
       if (text === '{') {
         inPair = false;
       }
@@ -168,9 +195,11 @@ const isTypeFragmentPlausible = (fragment) => {
       }
       inPair = false;
       questionSeen = false;
+      resetInfix();
     } else if (text === '|' || text === '&') {
       inPair = false;
       questionSeen = false;
+      resetInfix();
     } else if (text === '}' || text === ')' || text === ']' || text === '>') {
       const opener = { '}': '{', ')': '(', ']': '[', '>': '<' }[text];
       const top = scopeStack[scopeStack.length - 1];
@@ -180,6 +209,7 @@ const isTypeFragmentPlausible = (fragment) => {
       scopeStack.pop();
       inPair = false;
       questionSeen = false;
+      resetInfix();
     }
   }
   return true;
