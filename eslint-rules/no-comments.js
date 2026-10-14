@@ -10,18 +10,174 @@ const TYPE_TAGS = [
   'prop',
 ];
 const TYPE_TAG_PATTERN = new RegExp(`^@(?:${TYPE_TAGS.join('|')})\\b`);
-const TYPE_OPERATORS = new Set(['|', '&', ':', ',', '=', '<', '>', '(', ')', '[', ']', '{', '}', '?']);
-const isTypeContinuation = (line) => {
-  const stripped = line.replace(/"[^"]*"/g, '""').replace(/'[^']*'/g, "''").replace(/`[^`]*`/g, '``');
-  for (let i = 0; i < stripped.length; i += 1) {
-    if (stripped[i] !== ' ' && stripped[i] !== '\t') {
+const TYPE_ONLY_TAGS = new Set(['type', 'satisfies']);
+const TYPE_KEYWORDS = new Set([
+  'keyof',
+  'typeof',
+  'readonly',
+  'infer',
+  'new',
+  'extends',
+  'implements',
+  'abstract',
+  'in',
+  'out',
+  'is',
+  'asserts',
+]);
+const NUMBER_PATTERN = /^\d/;
+const isOperatorToken = (text) => !IDENTIFIER_PATTERN.test(text) && !NUMBER_PATTERN.test(text);
+
+const stripStringLiterals = (text) => {
+  let out = '';
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === "'" || ch === '"' || ch === '`') {
+      out += "''";
+      i += 1;
+      while (i < text.length && text[i] !== ch) {
+        if (text[i] === '\\') {
+          i += 1;
+        }
+        i += 1;
+      }
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+};
+
+const tokenizeTypeFragment = (fragment) => {
+  const stripped = stripStringLiterals(fragment.trim());
+  const tokens = [];
+  const pattern = /[A-Za-z_$][\w$]*|\d+(?:\.\d+)?|[^\s]/g;
+  let match = pattern.exec(stripped);
+  while (match !== null) {
+    tokens.push({ text: match[0], start: match.index, end: match.index + match[0].length });
+    match = pattern.exec(stripped);
+  }
+  return { stripped, tokens };
+};
+
+const scanDelimiters = (text, stack) => {
+  const next = [...stack];
+  let closedAt = null;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === "'" || ch === '"' || ch === '`') {
+      i += 1;
+      while (i < text.length && text[i] !== ch) {
+        if (text[i] === '\\') {
+          i += 1;
+        }
+        i += 1;
+      }
       continue;
     }
-    if (!TYPE_OPERATORS.has(stripped[i - 1]) && !TYPE_OPERATORS.has(stripped[i + 1])) {
+    if (ch === '=' && text[i + 1] === '>') {
+      i += 1;
+      continue;
+    }
+    if (ch === '{' || ch === '(' || ch === '[' || ch === '<') {
+      next.push(ch);
+      continue;
+    }
+    if (ch === '}' || ch === ')' || ch === ']' || ch === '>') {
+      const opener = { '}': '{', ')': '(', ']': '[', '>': '<' }[ch];
+      if (next.length === 0 || next[next.length - 1] !== opener) {
+        return { stack: next, closedAt, mismatch: true };
+      }
+      next.pop();
+      if (next.length === 0 && closedAt === null) {
+        closedAt = i;
+      }
+    }
+  }
+  return { stack: next, closedAt, mismatch: false };
+};
+
+const isTypeFragmentPlausible = (fragment) => {
+  const { stripped, tokens } = tokenizeTypeFragment(fragment);
+  for (let i = 1; i < tokens.length; i += 1) {
+    const gap = stripped.slice(tokens[i - 1].end, tokens[i].start);
+    if (gap.length === 0) {
+      continue;
+    }
+    const left = tokens[i - 1];
+    const right = tokens[i];
+    const leftOk = isOperatorToken(left.text) || TYPE_KEYWORDS.has(left.text);
+    const rightOk = isOperatorToken(right.text) || TYPE_KEYWORDS.has(right.text);
+    if (!leftOk && !rightOk) {
       return false;
     }
   }
-  return true;
+  let inPair = false;
+  let questionSeen = false;
+  for (const token of tokens) {
+    const text = token.text;
+    if (text === ':') {
+      if (inPair && !questionSeen) {
+        return false;
+      }
+      inPair = true;
+      questionSeen = false;
+    } else if (text === '?') {
+      questionSeen = true;
+    } else if (text === '{') {
+      inPair = false;
+    } else if (text === ',' || text === ';' || text === '}' || text === ')' || text === ']' || text === '|' || text === '&') {
+      inPair = false;
+      questionSeen = false;
+    }
+  }
+  return !scanDelimiters(fragment, []).mismatch;
+};
+
+const findGroupStart = (text, fromIndex) => {
+  for (let i = fromIndex; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === "'" || ch === '"' || ch === '`') {
+      i += 1;
+      while (i < text.length && text[i] !== ch) {
+        if (text[i] === '\\') {
+          i += 1;
+        }
+        i += 1;
+      }
+      continue;
+    }
+    if (ch === '{') {
+      return i;
+    }
+  }
+  return -1;
+};
+
+const findGroupEnd = (text, startIndex) => {
+  let depth = 0;
+  for (let i = startIndex; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === "'" || ch === '"' || ch === '`') {
+      i += 1;
+      while (i < text.length && text[i] !== ch) {
+        if (text[i] === '\\') {
+          i += 1;
+        }
+        i += 1;
+      }
+      continue;
+    }
+    if (ch === '{') {
+      depth += 1;
+    } else if (ch === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return i;
+      }
+    }
+  }
+  return -1;
 };
 const IDENTIFIER_CHAR_PATTERN = /[A-Za-z0-9_$]/;
 
@@ -56,19 +212,19 @@ const parseExportedDeclaration = (rest) => {
 };
 
 const isDirective = (normalized) => {
-  if (/^@ts-(expect-error|ignore)(\s+.*)?$/.test(normalized)) {
+  if (/^@ts-(expect-error|ignore)([ \t]+.*)?$/.test(normalized)) {
     return true;
   }
-  if (/^eslint-disable(-next-line|-line)?(?:\s+[\w/@-]+(?:\s*,\s*[\w/@-]+)*)?(?:\s+--\s+.*)?\s*$/.test(normalized)) {
+  if (/^eslint-disable(-next-line|-line)?(?:[ \t]+[\w/@-]+(?:[ \t]*,[ \t]*[\w/@-]+)*)?(?:[ \t]+--[ \t]*.*)?[ \t]*$/.test(normalized)) {
     return true;
   }
-  if (/^eslint-enable(?:\s+[\w/@-]+(?:\s*,\s*[\w/@-]+)*)?(?:\s+--\s+.*)?\s*$/.test(normalized)) {
+  if (/^eslint-enable(?:[ \t]+[\w/@-]+(?:[ \t]*,[ \t]*[\w/@-]+)*)?(?:[ \t]+--[ \t]*.*)?[ \t]*$/.test(normalized)) {
     return true;
   }
-  if (/^eslint-env\s+[\w$-]+(?:\s*,\s*[\w$-]+)*\s*$/.test(normalized)) {
+  if (/^eslint-env[ \t]+[\w$-]+(?:[ \t]*,[ \t]*[\w$-]+)*[ \t]*$/.test(normalized)) {
     return true;
   }
-  if (/^eslint\s+[\w/@-]+\s*:\s*(?:\[(?:[^[\]]|\[[^[\]]*\])*\]|0|1|2|off|warn|error)(?:\s*,\s*[\w/@-]+\s*:\s*(?:\[(?:[^[\]]|\[[^[\]]*\])*\]|0|1|2|off|warn|error))*\s*$/.test(normalized)) {
+  if (/^eslint[ \t]+[\w/@-]+[ \t]*:[ \t]*(?:\[(?:[^[\]]|\[[^[\]]*\])*\]|0|1|2|off|warn|error)(?:[ \t]*,[ \t]*[\w/@-]+[ \t]*:[ \t]*(?:\[(?:[^[\]]|\[[^[\]]*\])*\]|0|1|2|off|warn|error))*[ \t]*$/.test(normalized)) {
     return true;
   }
   const globalMatch = /^global\s+([\s\S]*)$/.exec(normalized);
@@ -92,10 +248,82 @@ const isJSDocTypeLines = (lines) => {
   if (lines.length === 0) {
     return false;
   }
-  if (!TYPE_TAG_PATTERN.test(lines[0])) {
-    return false;
+  let openType = null;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const tagMatch = TYPE_TAG_PATTERN.exec(line);
+    if (tagMatch) {
+      if (openType) {
+        return false;
+      }
+      const tag = tagMatch[0].slice(1);
+      const typeOnly = TYPE_ONLY_TAGS.has(tag);
+      const rest = line.slice(tagMatch[0].length);
+      const groupStart = findGroupStart(rest, 0);
+      if (groupStart !== -1) {
+        const before = rest.slice(0, groupStart);
+        if (before.trim() !== '' && !typeOnly) {
+          continue;
+        }
+        if (before.trim() !== '' && typeOnly) {
+          return false;
+        }
+        const groupEnd = findGroupEnd(rest, groupStart);
+        if (groupEnd !== -1) {
+          const group = rest.slice(groupStart, groupEnd + 1);
+          if (!isTypeFragmentPlausible(group)) {
+            return false;
+          }
+          if (typeOnly && rest.slice(groupEnd + 1).trim() !== '') {
+            return false;
+          }
+        } else {
+          const typePortion = rest.slice(groupStart);
+          if (!isTypeFragmentPlausible(typePortion)) {
+            return false;
+          }
+          const scan = scanDelimiters(typePortion, []);
+          if (scan.mismatch) {
+            return false;
+          }
+          openType = { typeOnly, accumulated: typePortion, stack: scan.stack };
+        }
+      } else if (typeOnly) {
+        if (!isTypeFragmentPlausible(rest)) {
+          return false;
+        }
+        const scan = scanDelimiters(rest, []);
+        if (scan.mismatch) {
+          return false;
+        }
+        if (scan.stack.length > 0) {
+          openType = { typeOnly, accumulated: rest, stack: scan.stack };
+        }
+      }
+      continue;
+    }
+    if (!openType) {
+      return false;
+    }
+    const scan = scanDelimiters(line, openType.stack);
+    if (scan.mismatch) {
+      return false;
+    }
+    const typeEnd = scan.closedAt === null ? line.length : scan.closedAt + 1;
+    const accumulated = `${openType.accumulated}\n${line.slice(0, typeEnd)}`;
+    if (!isTypeFragmentPlausible(accumulated)) {
+      return false;
+    }
+    if (scan.closedAt !== null) {
+      if (openType.typeOnly && line.slice(typeEnd).trim() !== '') {
+        return false;
+      }
+      openType = null;
+    } else {
+      openType = { ...openType, accumulated, stack: scan.stack };
+    }
   }
-  return lines.slice(1).every((line) => TYPE_TAG_PATTERN.test(line) || isTypeContinuation(line));
+  return openType === null;
 };
 
 const isJSDocComment = (comment, sourceCode) =>
@@ -108,26 +336,94 @@ const isJSDocTypeComment = (comment, sourceCode) => {
   return isJSDocTypeLines(normalizeComment(comment).split('\n'));
 };
 
+const SPDX_IDS = [
+  'MIT',
+  'MIT-0',
+  'Apache-2.0',
+  'BSD-1-Clause',
+  'BSD-2-Clause',
+  'BSD-3-Clause',
+  'BSD-3-Clause-Clear',
+  'ISC',
+  'GPL-2.0-only',
+  'GPL-2.0-or-later',
+  'GPL-3.0-only',
+  'GPL-3.0-or-later',
+  'LGPL-2.0-only',
+  'LGPL-2.0-or-later',
+  'LGPL-2.1-only',
+  'LGPL-2.1-or-later',
+  'LGPL-3.0-only',
+  'LGPL-3.0-or-later',
+  'AGPL-3.0-only',
+  'AGPL-3.0-or-later',
+  'MPL-2.0',
+  'EPL-1.0',
+  'EPL-2.0',
+  'CC0-1.0',
+  'CC-BY-4.0',
+  'CC-BY-SA-4.0',
+  'Unlicense',
+  'BSL-1.0',
+  'Zlib',
+  'Artistic-2.0',
+  'WTFPL',
+  '0BSD',
+  'CDDL-1.0',
+  'EUPL-1.2',
+  'PostgreSQL',
+  'NCSA',
+  'OpenSSL',
+  'PSF-2.0',
+  'Ruby',
+  'Vim',
+  'X11',
+  'OFL-1.1',
+  'MS-PL',
+  'MS-RL',
+  'AFL-3.0',
+  'APL-1.0',
+  'BlueOak-1.0.0',
+  'LicenseRef-[\\w.-]+',
+  'DocumentRef-[\\w.-]+:LicenseRef-[\\w.-]+',
+].join('|');
+const LICENSE_ANCHOR_PATTERNS = [
+  /^copyright[\s(©]/i,
+  /^\(c\)\b/i,
+  new RegExp(`^spdx-license-identifier\\s*:\\s*(?:${SPDX_IDS})(?:\\s+(?:or|and)\\s*(?:${SPDX_IDS}))*\\s*$`, 'i'),
+  /^licensed\s+under\b/i,
+  /^this\s+file\s+is\s+licensed\s+under\b/i,
+  /^license\s*:\s*[\w.+-]+(?:\s+(?:or|and)\s+[\w.+-]+)*\s*$/i,
+  /^(?:the\s+)?(?:mit|apache|bsd|isc|gpl|lgpl|mpl|epl|cc0|unlicense)[\s-]*license\b/i,
+];
+const LICENSE_LINE_PATTERNS = [
+  ...LICENSE_ANCHOR_PATTERNS,
+  /^all\s+rights\s+reserved\b/i,
+  /^permission\s+is\s+hereby\s+granted\b/i,
+  /^the\s+software\s+is\s+provided\b/i,
+  /^the\s+above\s+copyright\s+notice\b/i,
+  /^without\s+warranty\b/i,
+  /^in\s+no\s+event\s+shall\b/i,
+  /^redistribution\b/i,
+  /^terms\s+and\s+conditions\b/i,
+  /^you\s+may\s+obtain\s+a\s+copy\s+of\s+the\s+license\b/i,
+  /^version\s+\d/i,
+  /^https?:\/\/\S+$/i,
+  /^see\s+.*\blicense\b/i,
+  /^end\s+of\s+terms\b/i,
+  /^appendix\b/i,
+  /^authors?\s*:/i,
+];
+
 export const isLicenseHeader = (normalized) => {
-  if (/^copyright\b/i.test(normalized)) {
-    return true;
+  const lines = normalized.split('\n');
+  if (lines.length === 0) {
+    return false;
   }
-  if (/^license\s*:/i.test(normalized)) {
-    return true;
+  if (!lines.some((line) => LICENSE_ANCHOR_PATTERNS.some((pattern) => pattern.test(line)))) {
+    return false;
   }
-  if (/^licensed\s+under\b/i.test(normalized)) {
-    return true;
-  }
-  if (/^this\s+file\s+is\s+licensed\s+under\b/i.test(normalized)) {
-    return true;
-  }
-  if (/^spdx-license-identifier\b/i.test(normalized)) {
-    return true;
-  }
-  if (/^(?:mit|apache|bsd|isc|gpl|lgpl|mpl)[\s-]license\b/i.test(normalized)) {
-    return true;
-  }
-  return false;
+  return lines.every((line) => LICENSE_LINE_PATTERNS.some((pattern) => pattern.test(line)));
 };
 
 export const isAllowedComment = (text) => {
@@ -208,7 +504,7 @@ export default {
           const normalized = normalizeComment(comment);
           if (isDirective(normalized) || isJSDocTypeComment(comment, sourceCode)) continue;
           if (leadingSet.has(comment) && isLicenseHeader(normalized)) continue;
-          if (leadingSet.has(comment) && /^@ts-(check|nocheck)\s*$/.test(normalized)) continue;
+          if (leadingSet.has(comment) && /^@ts-(check|nocheck)[ \t]*$/.test(normalized)) continue;
           context.report({
             loc: comment.loc,
             messageId: 'noComment',

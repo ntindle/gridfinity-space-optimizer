@@ -55,6 +55,57 @@ describe('no-comments rule', () => {
     expect(errorCount('/// <reference path="./foo.d.ts" />\nconst x = 1;')).toBe(0);
   });
 
+  it('rejects trailing prose after type-only JSDoc tags', () => {
+    expect(errorCount('/** @type {number} HACK do not touch this fragile workaround */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @satisfies {Foo} TODO fix this later it is broken */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/**\n * @type {number} HACK do not touch\n */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {Foo Bar} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {Foo} | Bar */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {Foo} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {Foo | Bar} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {{ a: string; b: number }} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {Foo<Bar>} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @param {number} x - a description is standard JSDoc */\nfunction f(x) { return x; }')).toBe(0);
+  });
+
+  it('rejects operator-per-word prose in JSDoc continuations', () => {
+    expect(errorCount('/**\n * @param {number} x\n * This: is: a: long: prose: explanation: of: the: hack:\n */\nfunction f(x) { return x; }')).toBe(1);
+    expect(errorCount('/**\n * @param {number} x\n * Do, not, touch, this, fragile, hack,\n */\nfunction f(x) { return x; }')).toBe(1);
+    expect(errorCount('/**\n * @param {number} x\n * Do | not | touch | this | hack\n */\nfunction f(x) { return x; }')).toBe(1);
+    expect(errorCount("/**\n * @type {import('foo').Bar |\n * Baz}\n */\nconst x = 1;")).toBe(0);
+    expect(errorCount('/**\n * @type {{\n * a: string;\n * b: number;\n * }}\n */\nconst x = 1;')).toBe(0);
+    expect(errorCount("/**\n * @param {import('foo').Bar |\n * Baz} x\n */\nfunction f(x) { return x; }")).toBe(0);
+    expect(errorCount('/**\n * @type {Foo\n * | Bar}\n */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/**\n * @type {Foo\n * | Bar} tail\n */\nconst x = 1;')).toBe(1);
+  });
+
+  it('rejects prose lines inside license blocks', () => {
+    expect(errorCount('/* Copyright (c) 2026 X\nTODO: this is a fragile hack do not touch\nFIXME: rewrite this later\n*/\nconst x = 1;')).toBe(1);
+    expect(errorCount('/* License: MIT\nTODO: this is a fragile hack\n*/\nconst x = 1;')).toBe(1);
+    expect(errorCount('/* SPDX-License-Identifier: MIT\nSome prose about the hack\n*/\nconst x = 1;')).toBe(1);
+    expect(errorCount('// SPDX-License-Identifier: MIT and stuff\nconst x = 1;')).toBe(1);
+    expect(errorCount('// License: do not touch this\nconst x = 1;')).toBe(1);
+    expect(errorCount('// copyright: do not touch this, it is fragile\nconst x = 1;')).toBe(1);
+    expect(errorCount('/*\n * Copyright (c) 2026 Example\n * All rights reserved.\n */\nconst x = 1;')).toBe(0);
+    expect(errorCount('// SPDX-License-Identifier: MIT\nconst x = 1;')).toBe(0);
+    expect(errorCount('// SPDX-License-Identifier: MIT OR Apache-2.0\nconst x = 1;')).toBe(0);
+  });
+
+  it('rejects prose after block ts-ignore and expect-error directives', () => {
+    expect(errorCount('/* @ts-ignore\nDo not touch this fragile hack */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/* @ts-expect-error\nDo not touch this fragile hack */\nconst x = 1;')).toBe(1);
+    expect(errorCount('// @ts-ignore a reason on the same line\nconst x = 1;')).toBe(0);
+    expect(errorCount('/* @ts-ignore */\nconst x = 1;')).toBe(0);
+  });
+
+  it('rejects prose on the next line of block eslint directives', () => {
+    expect(errorCount('/* eslint-disable\nno-console */\nconst x = 1;')).toBe(1);
+    expect(noCommentCount('/* eslint-disable no-console\nprose */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/* eslint-env node\nprose */\nconst x = 1;')).toBe(1);
+    expect(noCommentCount('/* eslint no-console: 0\nprose */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/* eslint-disable no-console -- a reason */\nconst x = 1;')).toBe(0);
+  });
+
   it('rejects malformed global and exported declarations', () => {
     expect(noCommentCount('/* global foo: bogus */\nconst x = 1;')).toBe(1);
     expect(noCommentCount('/* global foo, */\nconst x = 1;')).toBe(1);
