@@ -191,3 +191,28 @@ describe.skip('useGridfinityCalculation', () => {
     expect(result.current.result?.halfSizeBins).toBeDefined();
   });
 });
+
+describe('useGridfinityCalculation printer fallback', () => {
+  it('falls back to the 256mm cube for prototype-chain printer names', () => {
+    // printerSizes["toString"] is the inherited Function (truthy), so a
+    // truthiness fallback would hand the calculator a Function and crash
+    // on its undefined dimensions. Only own properties count.
+    // NOTE: drawerSize must be a stable reference — an inline literal
+    // would change identity every render, re-trigger the calculation
+    // memo, and loop forever (the reason the block above is skipped).
+    const drawerSize = { width: 10, height: 10 };
+    const { result } = renderHook(() =>
+      useGridfinityCalculation({
+        drawerSize,
+        selectedPrinter: 'toString',
+        customPrinterSize: null,
+        useHalfSize: false,
+        preferHalfSize: false,
+        preferUniformBaseplates: false,
+        numDrawers: 1,
+      }),
+    );
+
+    expect(result.current.printerSize).toEqual({ x: 256, y: 256, z: 256 });
+  });
+});

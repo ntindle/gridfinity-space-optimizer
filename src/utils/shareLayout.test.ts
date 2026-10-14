@@ -82,6 +82,29 @@ describe('shareLayout', () => {
     ).toBeNull();
   });
 
+  it('rejects prototype-chain names that `in` would accept but are not real printers', () => {
+    // printerSizes["toString"] is the inherited Function — truthy, so a
+    // truthiness/`in` allowlist would accept it and the calculator would
+    // crash on its undefined dimensions. Only own properties count.
+    for (const name of ['toString', '__proto__', 'constructor', 'hasOwnProperty', 'valueOf']) {
+      expect(
+        decodeShareSettings(rawPayload({ v: 1, dw: 22.5, dh: 10, p: name })),
+      ).toBeNull();
+    }
+  });
+
+  it('rejects overlong params', () => {
+    expect(decodeShareSettings('A'.repeat(4097))).toBeNull();
+  });
+
+  it('normalizes contradictory half-size flags from corrupted state instead of emitting a dead link', () => {
+    const encoded = encodeShareSettings({ ...presetSettings, useHalfSize: true, preferHalfSize: true });
+    const decoded = decodeShareSettings(encoded);
+    expect(decoded).not.toBeNull();
+    expect(decoded?.useHalfSize).toBe(true);
+    expect(decoded?.preferHalfSize).toBe(false);
+  });
+
   it('rejects ambiguous links with both half-size flags set', () => {
     expect(
       decodeShareSettings(

@@ -60,6 +60,8 @@ const isBoolean = (value: unknown): value is boolean =>
 /** Validate a decoded payload, returning clean settings or null. Never throws. */
 export function decodeShareSettings(param: string | null | undefined): ShareableSettings | null {
   if (!param || typeof param !== 'string') return null;
+  // A legitimate payload is ~200 chars; bound hostile parse work.
+  if (param.length > 4096) return null;
   if (!/^[A-Za-z0-9_-]+$/.test(param)) return null;
 
   const json = base64UrlDecode(param);
@@ -82,8 +84,14 @@ export function decodeShareSettings(param: string | null | undefined): Shareable
 
   // Printer must be a known preset or the custom-printer label; anything else
   // would silently fall back to a 256mm cube in the calculation hook.
+  // Use an own-property check: `in` also matches the prototype chain, so
+  // "toString" / "__proto__" / "constructor" would pass and then crash the
+  // calculator (printerSizes["toString"] is an inherited Function, truthy
+  // enough to skip the fallback but with no x/y/z dimensions).
   if (typeof payload.p !== 'string') return null;
-  const knownPrinter = payload.p === CUSTOM_PRINTER_LABEL || payload.p in printerSizes;
+  const knownPrinter =
+    payload.p === CUSTOM_PRINTER_LABEL ||
+    Object.prototype.hasOwnProperty.call(printerSizes, payload.p);
   if (!knownPrinter) return null;
 
   const custom = decodeCustomPrinterSize(payload.c, payload.p);
@@ -152,13 +160,18 @@ function decodeCustomPrinterSize(
 
 /** Encode settings into the `?share=` payload. Custom size only for Custom Printer. */
 export function encodeShareSettings(settings: ShareableSettings): string {
+  // Normalize: the UI keeps the half-size flags mutually exclusive, but
+  // corrupted persisted state could hold both true — and decode rejects
+  // that as ambiguous. Emit a decodable payload (use-only-half-size wins).
+  const useHalfSize = settings.useHalfSize;
+  const preferHalfSize = settings.useHalfSize ? false : settings.preferHalfSize;
   const payload: Record<string, unknown> = {
     v: 1,
     dw: settings.drawerSize.width,
     dh: settings.drawerSize.height,
     p: settings.selectedPrinter,
-    hs: settings.useHalfSize,
-    ph: settings.preferHalfSize,
+    hs: useHalfSize,
+    ph: preferHalfSize,
     ub: settings.preferUniformBaseplates,
     n: settings.numDrawers,
     mm: settings.useMm,

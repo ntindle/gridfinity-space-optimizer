@@ -15,6 +15,7 @@ import { buildShareUrl } from '@/utils/shareLayout';
 const ShareLayoutButton: React.FC = () => {
   const settings = useSettings();
   const [status, setStatus] = useState<'idle' | 'copied' | 'error'>('idle');
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -26,7 +27,11 @@ const ShareLayoutButton: React.FC = () => {
   const flashStatus = (next: 'copied' | 'error') => {
     setStatus(next);
     if (resetTimer.current) clearTimeout(resetTimer.current);
-    resetTimer.current = setTimeout(() => setStatus('idle'), 2500);
+    // "Copied" is transient; the failure UI (with the selectable link)
+    // stays until the next click so the user has time to copy it.
+    if (next === 'copied') {
+      resetTimer.current = setTimeout(() => setStatus('idle'), 2500);
+    }
   };
 
   const copyViaFallback = (text: string): boolean => {
@@ -43,12 +48,15 @@ const ShareLayoutButton: React.FC = () => {
       ok = document.execCommand('copy');
     } catch {
       ok = false;
+    } finally {
+      document.body.removeChild(textarea);
     }
-    document.body.removeChild(textarea);
     return ok;
   };
 
   const handleCopy = async () => {
+    setStatus('idle');
+    setFailedUrl(null);
     const shareUrl = buildShareUrl(
       `${window.location.origin}${window.location.pathname}`,
       {
@@ -74,6 +82,7 @@ const ShareLayoutButton: React.FC = () => {
       if (copyViaFallback(shareUrl)) {
         flashStatus('copied');
       } else {
+        setFailedUrl(shareUrl);
         flashStatus('error');
       }
     }
@@ -95,13 +104,23 @@ const ShareLayoutButton: React.FC = () => {
         )}
         {status === 'copied' ? 'Link copied!' : 'Copy share link'}
       </Button>
-      <span className="text-sm text-muted-foreground" role="status" aria-live="polite">
+      <span className="text-sm text-muted-foreground" role="status">
         {status === 'copied'
           ? 'Send this link — it opens your exact layout.'
           : status === 'error'
-            ? 'Couldn’t copy the link — copy it from the address bar after sharing this page.'
+            ? 'Copy failed — select the link below and copy it manually.'
             : 'Share this exact layout with one link.'}
       </span>
+      {failedUrl && (
+        <input
+          type="text"
+          readOnly
+          value={failedUrl}
+          aria-label="Share link — select and copy manually"
+          onFocus={(e) => e.target.select()}
+          className="w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm"
+        />
+      )}
     </div>
   );
 };

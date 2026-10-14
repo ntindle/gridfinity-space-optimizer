@@ -11,7 +11,7 @@ import { useGridfinityCalculation } from "@/hooks/useGridfinityCalculation";
 import { useLegacyMigration } from "@/hooks/useLegacyMigration";
 import { saveUserSettings, loadUserSettings } from "@/lib/utils";
 import { parseShareParam } from "@/utils/shareLayout";
-import ShareLayoutButton from "./GridfinityCalculator/ShareLayoutButton";
+import ShareLayoutButton from "@/components/GridfinityCalculator/ShareLayoutButton";
 
 const GridfinityCalculator: React.FC = () => {
   // Migrate legacy data first
@@ -48,22 +48,26 @@ const GridfinityCalculator: React.FC = () => {
 
   // Apply a shared layout from the `?share=` URL param, if present. Runs
   // after the legacy-migration effect so a shared link always wins over
-  // stale local settings. An invalid param is ignored (never crashes the
-  // page), and the param is stripped from the address bar so later edits
-  // don't leave a stale share link behind.
+  // stale local settings. The param is stripped from the address bar
+  // whether or not it decoded — a valid link applies and then is gone so
+  // later edits don't leave a stale link behind, and an invalid one never
+  // lingers as a dead param.
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('share')) return;
     const shared = parseShareParam(window.location.search);
-    if (!shared) return;
-    settings.setDrawerSize(shared.drawerSize);
-    settings.setSelectedPrinter(shared.selectedPrinter);
-    if (shared.customPrinterSize) {
-      settings.setCustomPrinterSize(shared.customPrinterSize);
+    if (shared) {
+      settings.setDrawerSize(shared.drawerSize);
+      settings.setSelectedPrinter(shared.selectedPrinter);
+      if (shared.customPrinterSize) {
+        settings.setCustomPrinterSize(shared.customPrinterSize);
+      }
+      settings.setUseHalfSize(shared.useHalfSize);
+      settings.setPreferHalfSize(shared.preferHalfSize);
+      settings.setPreferUniformBaseplates(shared.preferUniformBaseplates);
+      settings.setNumDrawers(shared.numDrawers);
+      settings.setUseMm(shared.useMm);
     }
-    settings.setUseHalfSize(shared.useHalfSize);
-    settings.setPreferHalfSize(shared.preferHalfSize);
-    settings.setPreferUniformBaseplates(shared.preferUniformBaseplates);
-    settings.setNumDrawers(shared.numDrawers);
-    settings.setUseMm(shared.useMm);
     const url = new URL(window.location.href);
     url.searchParams.delete('share');
     window.history.replaceState(null, '', url.toString());
