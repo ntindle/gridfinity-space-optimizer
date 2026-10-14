@@ -30,7 +30,6 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: npm ci
-      - run: npm install --no-save @playwright/test@1.64.1
       - run: npx playwright install --with-deps chromium
       - name: Wait until production serves this commit's build
         if: github.event_name == 'push'
