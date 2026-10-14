@@ -1,6 +1,4 @@
-/**
- * @vitest-environment jsdom
- */
+
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
@@ -76,10 +74,10 @@ describe("GridfinityVisualPreview piece selection", () => {
     );
 
     expect(screen.getByText("Piece details")).toBeInTheDocument();
-    // "Spacer" appears twice: once as the cell's label, once as the Type value.
+    
     expect(screen.getAllByText("Spacer")).toHaveLength(2);
-    // Grid size is covered by the row-button name above and the helper tests.
-    // 252mm = 9.92″, 21mm = 0.83″
+    
+    
     expect(
       screen.getByText(/9\.92.*×.*0\.83.*\(252 mm × 21 mm\)/)
     ).toBeInTheDocument();
@@ -95,8 +93,8 @@ describe("GridfinityVisualPreview piece selection", () => {
       })
     );
 
-    // 126mm × 84mm (4.96″ × 3.31″); two identical 3×2 baseplates,
-    // first at column 0, row 0.
+    
+    
     expect(
       screen.getByText(/126 mm × 84 mm \(4\.96.*× 3\.31.*\)/)
     ).toBeInTheDocument();

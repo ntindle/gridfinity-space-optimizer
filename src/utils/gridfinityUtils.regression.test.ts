@@ -9,7 +9,7 @@ describe('gridfinityUtils - Regression Tests', () => {
       const { input, expected } = fixture;
       let result: ReturnType<typeof calculateGrids>;
 
-      // Calculate once for all tests in this fixture
+      
       beforeEach(() => {
         result = calculateGrids(
           input.drawerSize,
@@ -24,12 +24,12 @@ describe('gridfinityUtils - Regression Tests', () => {
       });
 
       it('should produce correct spacers', () => {
-        // For spacers, we check the count matches since exact dimensions might vary slightly
+        
         const expectedSpacerCount = Object.keys(expected.spacers).length;
         const actualSpacerCount = Object.keys(result.spacers).length;
         expect(actualSpacerCount).toBe(expectedSpacerCount);
         
-        // If we expect no spacers, verify that
+        
         if (expectedSpacerCount === 0) {
           expect(result.spacers).toEqual({});
         }
@@ -60,7 +60,7 @@ describe('gridfinityUtils - Regression Tests', () => {
             maxY = Math.max(maxY, item.pixelY + item.pixelHeight);
           });
 
-          // Allow 1mm tolerance for rounding
+          
           expect(Math.abs(maxX - expected.totalCoverage.width)).toBeLessThan(1);
           expect(Math.abs(maxY - expected.totalCoverage.height)).toBeLessThan(1);
         });
@@ -119,14 +119,14 @@ describe('gridfinityUtils - Regression Tests', () => {
         false
       );
       
-      // After fix: should return empty for invalid dimensions
+      
       expect(result.baseplates).toEqual({});
       expect(result.spacers).toEqual({});
       expect(result.layout).toEqual([]);
     });
 
     it('should handle very large drawer dimensions', () => {
-      const drawerSize: DrawerSize = { width: 1000, height: 1000 }; // 1000 inches = 25.4 meters!
+      const drawerSize: DrawerSize = { width: 1000, height: 1000 }; 
       const printerSize: PrinterSize = { x: 200, y: 200, z: 200 };
       
       const result = calculateGrids(
@@ -136,11 +136,11 @@ describe('gridfinityUtils - Regression Tests', () => {
         false
       );
       
-      // Should still produce a valid result
+      
       expect(result.layout).toBeDefined();
       expect(result.layout.length).toBeGreaterThan(0);
       
-      // No single item should exceed printer size
+      
       result.layout.forEach((item: LayoutItem) => {
         expect(item.pixelWidth).toBeLessThanOrEqual(200);
         expect(item.pixelHeight).toBeLessThanOrEqual(200);

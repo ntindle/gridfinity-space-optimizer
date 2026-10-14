@@ -138,7 +138,7 @@ describe('gridfinityUtils - Snapshot Tests', () => {
 
     printers.forEach(({ name, size }) => {
       it(`should match snapshot for ${name}`, () => {
-        const drawerSize: DrawerSize = { width: 12, height: 10 }; // Standard test drawer
+        const drawerSize: DrawerSize = { width: 12, height: 10 }; 
         
         const result = calculateGrids(
           drawerSize,

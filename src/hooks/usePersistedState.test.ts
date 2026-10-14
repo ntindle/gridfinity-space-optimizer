@@ -1,6 +1,4 @@
-/**
- * @vitest-environment jsdom
- */
+
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { usePersistedState } from './usePersistedState';
@@ -13,10 +11,10 @@ describe('usePersistedState', () => {
   let mockStorage: MockStorage = {};
 
   beforeEach(() => {
-    // Reset mock storage
+    
     mockStorage = {};
     
-    // Mock localStorage methods
+    
     global.localStorage = {
       getItem: vi.fn((key: string) => mockStorage[key] || null),
       setItem: vi.fn((key: string, value: string) => {
@@ -32,7 +30,7 @@ describe('usePersistedState', () => {
       key: vi.fn(() => null),
     };
     
-    // Clear all mocks
+    
     vi.clearAllMocks();
   });
 
@@ -91,7 +89,7 @@ describe('usePersistedState', () => {
   it('should handle localStorage errors gracefully', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     
-    // Mock localStorage.getItem to throw an error
+    
     global.localStorage.getItem = vi.fn(() => {
       throw new Error('Storage error');
     });
@@ -117,7 +115,7 @@ describe('usePersistedState', () => {
     expect(result.current[0]).toBe('changed');
 
     act(() => {
-      result.current[2](); // Call reset
+      result.current[2](); 
     });
     expect(result.current[0]).toBe('default');
   });
@@ -127,7 +125,7 @@ describe('usePersistedState', () => {
       usePersistedState('test-key', 'initial', { syncAcrossTabs: true })
     );
 
-    // Simulate storage event from another tab
+    
     const storageEvent = new StorageEvent('storage', {
       key: 'test-key',
       newValue: JSON.stringify('from-another-tab'),

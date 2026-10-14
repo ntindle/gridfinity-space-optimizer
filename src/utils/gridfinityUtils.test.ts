@@ -14,7 +14,7 @@ import type { DrawerSize, PrinterSize, LayoutItem } from '@/types/gridfinity'
 describe('gridfinityUtils', () => {
   describe('calculateGrids', () => {
     it('should calculate correct grid layout for standard drawer size', () => {
-      const drawerSize: DrawerSize = { width: 10, height: 10 } // inches
+      const drawerSize: DrawerSize = { width: 10, height: 10 } 
       const printerSize: PrinterSize = { x: 210, y: 210, z: 200 }
       
       const result = calculateGrids(drawerSize, printerSize, false, false)
@@ -36,7 +36,7 @@ describe('gridfinityUtils', () => {
     })
 
     it('should generate spacers for non-standard dimensions', () => {
-      const drawerSize: DrawerSize = { width: 3.5, height: 3.5 } // Creates remainder
+      const drawerSize: DrawerSize = { width: 3.5, height: 3.5 } 
       const printerSize: PrinterSize = { x: 200, y: 200, z: 200 }
       
       const result = calculateGrids(drawerSize, printerSize, false, false)
@@ -45,12 +45,12 @@ describe('gridfinityUtils', () => {
     })
 
     it('should respect printer build volume constraints', () => {
-      const drawerSize: DrawerSize = { width: 20, height: 20 } // Large drawer
-      const printerSize: PrinterSize = { x: 100, y: 100, z: 100 } // Small printer
+      const drawerSize: DrawerSize = { width: 20, height: 20 } 
+      const printerSize: PrinterSize = { x: 100, y: 100, z: 100 } 
       
       const result = calculateGrids(drawerSize, printerSize, false, false)
       
-      // Check that no baseplate exceeds printer size
+      
       result.layout.forEach(item => {
         if (item.type === 'baseplate') {
           expect(item.pixelWidth).toBeLessThanOrEqual(printerSize.x)
@@ -132,7 +132,7 @@ describe('gridfinityUtils', () => {
       
       const result = fillSpacerWithHalfSizeBins(spacer)
       
-      expect(result.halfSizeBins).toHaveLength(4) // 2x2 half-size bins
+      expect(result.halfSizeBins).toHaveLength(4) 
       expect(result.remainingSpacers).toHaveLength(0)
     })
 
@@ -167,9 +167,9 @@ describe('gridfinityUtils', () => {
       
       const result = combineHalfSizeBins(halfSizeBins, 200, 200)
       
-      // The function combines bins, so we should have fewer results
+      
       expect(result.length).toBeLessThanOrEqual(halfSizeBins.length)
-      // Check that bins were combined (have larger dimensions)
+      
       const hasCombinedBin = result.some(bin => 
         bin.pixelWidth > 21 || bin.pixelHeight > 21
       )
@@ -221,23 +221,23 @@ describe('gridfinityUtils', () => {
       const drawerSize: DrawerSize = { width: 22.5, height: 16.5 }
       const printerSize: PrinterSize = { x: 256, y: 256, z: 256 }
       
-      // Test with half-size bins enabled
+      
       const result = calculateGrids(drawerSize, printerSize, true, false)
       
-      // Should have half-size bins
+      
       expect(Object.keys(result.halfSizeBins).length).toBeGreaterThan(0)
       
-      // Should also have spacers for the remaining space
+      
       expect(Object.keys(result.spacers).length).toBeGreaterThan(0)
       
-      // Check that spacers are in the layout
+      
       const spacersInLayout = result.layout.filter(item => item.type === 'spacer')
       expect(spacersInLayout.length).toBeGreaterThan(0)
       
-      // Verify the spacers cover the edges (remainder space)
-      // With 22.5" x 16.5" drawer and 21mm half-size bins:
-      // 571.5mm / 21mm = 27.21... -> 27 bins with remainder
-      // 419.1mm / 21mm = 19.95... -> 19 bins with remainder
+      
+      
+      
+      
       const hasHorizontalSpacer = spacersInLayout.some(s => s.pixelX > 500)
       const hasVerticalSpacer = spacersInLayout.some(s => s.pixelY > 350)
       
