@@ -182,6 +182,19 @@ describe('no-comments rule', () => {
     expect(errorCount('/** @type {typeof foo} */\nconst x = 1;')).toBe(0);
   });
 
+  it('rejects operand-less infix keywords and invisible format glue', () => {
+    expect(errorCount('/** @type {is fragile} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {extends hack} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {in do} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {is do | is not | is touch} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {do\u200Bnot\u200Btouch} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {do\u200Cnot\u200Ctouch} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {do\u2060not\u2060touch} */\nconst x = 1;')).toBe(1);
+    expect(errorCount('/** @type {T extends U ? X : Y} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {[K in T]} */\nconst x = 1;')).toBe(0);
+    expect(errorCount('/** @type {(x: unknown) => x is string} */\nconst x = 1;')).toBe(0);
+  });
+
   it('rejects malformed global and exported declarations', () => {
     expect(noCommentCount('/* global foo: bogus */\nconst x = 1;')).toBe(1);
     expect(noCommentCount('/* global foo, */\nconst x = 1;')).toBe(1);

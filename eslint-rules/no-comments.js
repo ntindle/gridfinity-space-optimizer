@@ -59,7 +59,8 @@ const stripStringLiterals = (text) => {
 };
 
 const tokenizeTypeFragment = (fragment) => {
-  const stripped = stripStringLiterals(fragment.trim());
+  const defused = fragment.replace(/\p{Cf}/gu, ' ');
+  const stripped = stripStringLiterals(defused.trim());
   const tokens = [];
   const pattern = /[A-Za-z_$][\w$]*|\d+(?:\.\d+)?|[^\s]/g;
   let match = pattern.exec(stripped);
@@ -143,6 +144,21 @@ const isTypeFragmentPlausible = (fragment) => {
     }
     if (INFIX_KEYWORDS.has(text)) {
       if (infixSeen) {
+        return false;
+      }
+      const prev = i > 0 ? tokens[i - 1] : null;
+      const prevIsOperand =
+        prev !== null &&
+        (IDENTIFIER_PATTERN.test(prev.text) ||
+          NUMBER_PATTERN.test(prev.text) ||
+          prev.text === ')' ||
+          prev.text === ']' ||
+          prev.text === '>' ||
+          prev.text === '}' ||
+          prev.text === "'" ||
+          prev.text === '"' ||
+          prev.text === '`');
+      if (!prevIsOperand) {
         return false;
       }
       infixSeen = true;
