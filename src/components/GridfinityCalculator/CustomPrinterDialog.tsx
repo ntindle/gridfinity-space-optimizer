@@ -61,7 +61,7 @@ const CustomPrinterDialog: React.FC<CustomPrinterDialogProps> = ({ open, onOpenC
         <div className="space-y-6">
 
 
-          {/* Printer Dimensions */}
+          {}
           <div className="space-y-4">
             <h4 className="text-sm font-medium">Printer Dimensions</h4>
             <div className="grid grid-cols-3 gap-4">
@@ -87,7 +87,7 @@ const CustomPrinterDialog: React.FC<CustomPrinterDialogProps> = ({ open, onOpenC
             </div>
           </div>
 
-          {/* Exclusion Zones */}
+          {}
           <div className="space-y-4">
             <h4 className="text-sm font-medium">Exclusion Zones (Optional)</h4>
             <p className="text-xs text-muted-foreground">

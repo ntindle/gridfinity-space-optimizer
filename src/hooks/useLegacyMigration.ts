@@ -1,8 +1,6 @@
 import { useEffect } from 'react';
 
-/**
- * Legacy settings structure (for migration)
- */
+
 interface LegacySettings {
   drawerSize?: { width: number; height: number };
   selectedPrinter?: string;
@@ -12,23 +10,20 @@ interface LegacySettings {
   useMm?: boolean;
 }
 
-/**
- * Migrate legacy localStorage data to new format
- * This ensures backward compatibility with existing user data
- */
+
 export const useLegacyMigration = (): void => {
   useEffect(() => {
-    // Check if migration has already been done
+    
     const migrationDone = localStorage.getItem('gridfinity_migration_v1');
     if (migrationDone) return;
 
-    // Check for legacy settings
+    
     const legacySettings = localStorage.getItem('gridfinitySettings');
     if (legacySettings) {
       try {
         const settings: LegacySettings = JSON.parse(legacySettings);
         
-        // Migrate each setting to new key format
+        
         if (settings.drawerSize) {
           localStorage.setItem('gridfinity_drawerSize', JSON.stringify(settings.drawerSize));
         }
@@ -48,13 +43,13 @@ export const useLegacyMigration = (): void => {
           localStorage.setItem('gridfinity_useMm', JSON.stringify(settings.useMm));
         }
         
-        // Mark migration as done
+        
         localStorage.setItem('gridfinity_migration_v1', 'true');
       } catch {
-        // Silently handle migration errors - don't break the app
+        
       }
     } else {
-      // No legacy settings, just mark migration as done
+      
       localStorage.setItem('gridfinity_migration_v1', 'true');
     }
   }, []);

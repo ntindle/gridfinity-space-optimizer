@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react';
 import { useGridfinityCalculation } from './useGridfinityCalculation';
 import type { DrawerSize, PrinterSize, GridfinityResult } from '@/types/gridfinity';
 
-// Mock the calculateGrids function
+
 vi.mock('../utils/gridfinityUtils', () => ({
   calculateGrids: vi.fn((drawerSize: DrawerSize, printerSize: PrinterSize, useHalfSize: boolean): GridfinityResult => ({
     baseplates: {
@@ -21,7 +21,7 @@ vi.mock('../utils/gridfinityUtils', () => ({
   })),
 }));
 
-// Mock printerSizes
+
 vi.mock('../lib/utils', () => ({
   printerSizes: {
     'Test Printer': { x: 200, y: 200, z: 200 },
@@ -125,11 +125,11 @@ describe.skip('useGridfinityCalculation', () => {
 
     const initialPrinterSize = result.current.printerSize;
 
-    // Rerender with same printer
+    
     rerender({ selectedPrinter: 'Test Printer' });
     expect(result.current.printerSize).toBe(initialPrinterSize);
 
-    // Rerender with different printer
+    
     rerender({ selectedPrinter: 'Large Printer' });
     expect(result.current.printerSize).not.toBe(initialPrinterSize);
     expect(result.current.printerSize).toEqual({ x: 300, y: 300, z: 300 });
@@ -194,12 +194,12 @@ describe.skip('useGridfinityCalculation', () => {
 
 describe('useGridfinityCalculation printer fallback', () => {
   it('falls back to the 256mm cube for prototype-chain printer names', () => {
-    // printerSizes["toString"] is the inherited Function (truthy), so a
-    // truthiness fallback would hand the calculator a Function and crash
-    // on its undefined dimensions. Only own properties count.
-    // NOTE: drawerSize must be a stable reference — an inline literal
-    // would change identity every render, re-trigger the calculation
-    // memo, and loop forever (the reason the block above is skipped).
+    
+    
+    
+    
+    
+    
     const drawerSize = { width: 10, height: 10 };
     const { result } = renderHook(() =>
       useGridfinityCalculation({

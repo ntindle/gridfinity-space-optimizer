@@ -1,35 +1,25 @@
-/**
- * Unit Conversion Service
- * Handles all unit conversions throughout the application
- * Now uses mathjs for precise calculations to avoid floating-point errors
- */
+
 
 import { unitMath, INCH_TO_MM } from './unitMath';
 import type { PrinterSize } from '@/types';
 
 export { INCH_TO_MM };
 
-/**
- * Convert a value to millimeters
- */
+
 export const convertToMm = (value: number, fromUnit: string = 'in'): number => {
   if (fromUnit === 'mm') return value;
   if (fromUnit === 'in') return unitMath.convert(value, 'inch', 'mm');
   throw new Error(`Unknown unit: ${fromUnit}`);
 };
 
-/**
- * Convert a value from millimeters
- */
+
 export const convertFromMm = (value: number, toUnit: string = 'in'): number => {
   if (toUnit === 'mm') return value;
   if (toUnit === 'in') return unitMath.convert(value, 'mm', 'inch');
   throw new Error(`Unknown unit: ${toUnit}`);
 };
 
-/**
- * Format a dimension value with appropriate precision
- */
+
 export const formatDimension = (
   value: number, 
   unit: string = 'mm', 
@@ -44,9 +34,7 @@ export const formatDimension = (
   return `${formatted}${unitSuffix}`;
 };
 
-/**
- * Format a dimension object (x, y, z) with units
- */
+
 export const formatBuildVolume = (
   dimensions: Partial<PrinterSize> | null, 
   useMm: boolean = true
@@ -63,17 +51,13 @@ export const formatBuildVolume = (
   return `${formatDimension(xVal, unit)} × ${formatDimension(yVal, unit)} × ${formatDimension(zVal, unit)}`;
 };
 
-/**
- * Result of parsing a dimension string
- */
+
 export interface ParsedDimension {
   value: number;
   unit: string;
 }
 
-/**
- * Parse a dimension string (e.g., "10.5" or "256mm") to a number
- */
+
 export const parseDimension = (
   input: string | number, 
   defaultUnit: string = 'mm'
@@ -92,33 +76,28 @@ export const parseDimension = (
   const value = parseFloat(match[1]);
   let unit = match[2] || defaultUnit;
   
-  // Normalize unit
+  
   if (unit === '"') unit = 'in';
   unit = unit.toLowerCase();
   
   return { value, unit };
 };
 
-/**
- * Options for dimension validation
- */
+
 export interface DimensionValidationOptions {
-  min?: number;      // Minimum value in mm
-  max?: number;      // Maximum value in mm
+  min?: number;      
+  max?: number;      
   allowZero?: boolean;
 }
 
-/**
- * Validate dimension value
- * Returns { valid: boolean, error?: string } for backward compatibility
- */
+
 export const validateDimension = (
   value: number, 
   options: DimensionValidationOptions = {}
 ): { valid: boolean; error?: string } => {
   const {
-    min = 10,      // Minimum 10mm
-    max = 1000,    // Maximum 1000mm (1 meter)
+    min = 10,      
+    max = 1000,    
     allowZero = false,
   } = options;
   

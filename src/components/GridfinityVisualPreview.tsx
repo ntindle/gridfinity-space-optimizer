@@ -20,8 +20,8 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
 }) => {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  // A new layout means the old selection may point at a different piece —
-  // clear it so the details panel never describes the wrong piece.
+  
+  
   useEffect(() => {
     setSelectedKey(null);
   }, [layout]);

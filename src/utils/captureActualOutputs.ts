@@ -9,7 +9,7 @@ interface CaptureInput {
   preferHalfSize: boolean;
 }
 
-// Helper to capture actual outputs for test fixtures
+
 const captureOutput = (name: string, input: CaptureInput): void => {
   const result = calculateGrids(
     input.drawerSize,
@@ -24,7 +24,7 @@ const captureOutput = (name: string, input: CaptureInput): void => {
   console.log('HalfSizeBins:', JSON.stringify(result.halfSizeBins, null, 2));
   console.log('Layout count:', result.layout.length);
   
-  // Calculate coverage
+  
   let maxX = 0;
   let maxY = 0;
   result.layout.forEach(item => {
@@ -34,7 +34,7 @@ const captureOutput = (name: string, input: CaptureInput): void => {
   console.log('Coverage:', { width: maxX, height: maxY });
 };
 
-// Standard US drawer
+
 captureOutput('Standard US Drawer', {
   drawerSize: { width: 22.5, height: 16.5 },
   printerSize: { x: 256, y: 256, z: 256 },
@@ -42,7 +42,7 @@ captureOutput('Standard US Drawer', {
   preferHalfSize: false,
 });
 
-// Small drawer
+
 captureOutput('Small Drawer', {
   drawerSize: { width: 5, height: 5 },
   printerSize: { x: 180, y: 180, z: 180 },
@@ -50,7 +50,7 @@ captureOutput('Small Drawer', {
   preferHalfSize: false,
 });
 
-// Exact grid multiple
+
 captureOutput('Exact Grid Multiple', {
   drawerSize: { width: 420 / 25.4, height: 420 / 25.4 },
   printerSize: { x: 256, y: 256, z: 256 },

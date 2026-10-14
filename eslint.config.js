@@ -5,10 +5,11 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
+import noComments from "./eslint-local/no-comments.js";
 
 export default [
   { ignores: ["dist", "node_modules"] },
-  // TypeScript files
+  
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
@@ -39,12 +40,19 @@ export default [
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
       "@typescript-eslint": tsPlugin,
+      local: {
+        rules: {
+          "no-comments": noComments,
+        },
+      },
     },
     rules: {
       ...js.configs.recommended.rules,
       ...react.configs.recommended.rules,
       ...react.configs["jsx-runtime"].rules,
       ...reactHooks.configs.recommended.rules,
+      "local/no-comments": "error",
+      "no-empty": ["error", { allowEmptyCatch: true }],
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },
@@ -60,7 +68,7 @@ export default [
       },
     },
   },
-  // JavaScript config files
+  
   {
     files: ["**/*.{js,jsx}"],
     languageOptions: {
@@ -80,12 +88,19 @@ export default [
       react,
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      local: {
+        rules: {
+          "no-comments": noComments,
+        },
+      },
     },
     rules: {
       ...js.configs.recommended.rules,
       ...react.configs.recommended.rules,
       ...react.configs["jsx-runtime"].rules,
       ...reactHooks.configs.recommended.rules,
+      "local/no-comments": "error",
+      "no-empty": ["error", { allowEmptyCatch: true }],
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },
