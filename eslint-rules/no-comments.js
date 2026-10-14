@@ -36,7 +36,8 @@ const PREFIX_KEYWORDS = new Set([
 ]);
 const INFIX_KEYWORDS = new Set(['extends', 'in', 'is']);
 const NUMBER_PATTERN = /^\d/;
-const isOperatorToken = (text) => !IDENTIFIER_PATTERN.test(text) && !NUMBER_PATTERN.test(text);
+const UNICODE_IDENTIFIER_PATTERN = /^[\p{L}$_][\p{L}\p{N}$_]*$/u;
+const isOperatorToken = (text) => !UNICODE_IDENTIFIER_PATTERN.test(text) && !NUMBER_PATTERN.test(text);
 
 const stripStringLiterals = (text) => {
   let out = '';
@@ -59,10 +60,10 @@ const stripStringLiterals = (text) => {
 };
 
 const tokenizeTypeFragment = (fragment) => {
-  const defused = fragment.replace(/\p{Cf}/gu, ' ');
+  const defused = fragment.replace(/[\p{Cf}\u2800\u3164\uFFA0]/gu, ' ');
   const stripped = stripStringLiterals(defused.trim());
   const tokens = [];
-  const pattern = /[A-Za-z_$][\w$]*|\d+(?:\.\d+)?|[^\s]/g;
+  const pattern = /[\p{L}$_][\p{L}\p{N}$_]*|\d+(?:\.\d+)?|[^\s]/gu;
   let match = pattern.exec(stripped);
   while (match !== null) {
     tokens.push({ text: match[0], start: match.index, end: match.index + match[0].length });
@@ -138,7 +139,7 @@ const isTypeFragmentPlausible = (fragment) => {
           return false;
         }
       }
-      if (PREFIX_KEYWORDS.has(text) && IDENTIFIER_PATTERN.test(prev.text) && !TYPE_KEYWORDS.has(prev.text)) {
+      if (PREFIX_KEYWORDS.has(text) && UNICODE_IDENTIFIER_PATTERN.test(prev.text) && !TYPE_KEYWORDS.has(prev.text)) {
         return false;
       }
     }
@@ -149,7 +150,7 @@ const isTypeFragmentPlausible = (fragment) => {
       const prev = i > 0 ? tokens[i - 1] : null;
       const prevIsOperand =
         prev !== null &&
-        (IDENTIFIER_PATTERN.test(prev.text) ||
+        (UNICODE_IDENTIFIER_PATTERN.test(prev.text) ||
           NUMBER_PATTERN.test(prev.text) ||
           prev.text === ')' ||
           prev.text === ']' ||
