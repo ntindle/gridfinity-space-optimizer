@@ -54,7 +54,13 @@ export const useGridfinityCalculation = ({
     if (selectedPrinter === 'Custom Printer' && customPrinterSize) {
       return customPrinterSize;
     }
-    return printerSizes[selectedPrinter] || { x: 256, y: 256, z: 256 };
+    // Own-property check: `printerSizes["toString"]` is an inherited
+    // Function (truthy), which would skip a `||` fallback and then crash
+    // the calculator with undefined dimensions. A corrupted persisted
+    // printer name must fall back to the 256mm cube, never crash.
+    return Object.prototype.hasOwnProperty.call(printerSizes, selectedPrinter)
+      ? printerSizes[selectedPrinter]
+      : { x: 256, y: 256, z: 256 };
   }, [selectedPrinter, customPrinterSize]);
 
   // Memoize the calculation to avoid unnecessary recalculations

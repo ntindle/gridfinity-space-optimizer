@@ -4,7 +4,6 @@
 [![Code Quality](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/code-quality.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/code-quality.yml)
 [![CodeQL](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/codeql.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/codeql.yml)
 [![SAST](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/sast.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/sast.yml)
-[![Deploy](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/deploy.yml/badge.svg)](https://github.com/ntindle/gridfinity-space-optimizer/actions/workflows/deploy.yml)
 [![codecov](https://codecov.io/gh/ntindle/gridfinity-space-optimizer/branch/main/graph/badge.svg)](https://codecov.io/gh/ntindle/gridfinity-space-optimizer)
 
 This project is a web-based calculator for designing custom Gridfinity layouts, built with React, Vite, and Tailwind CSS.
@@ -117,7 +116,7 @@ This project uses GitHub Actions for continuous integration and deployment:
   - Code quality metrics
   - Automated PR comments with status
 
-- **Deployment**: Automatic deployment to GitHub Pages on main branch
+- **Deployment**: Netlify auto-deploys the `main` branch to https://gridfinitylayout.com/ (build: `npm run build` → `dist/`). There is no GitHub Pages deploy and no `deploy.yml` workflow — the old Deploy badge and GitHub Pages claim were removed.
 
 - **Security**: 
   - CodeQL semantic analysis for JavaScript/TypeScript

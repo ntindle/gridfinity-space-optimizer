@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GridfinityCalculator from './GridfinityCalculator';
@@ -198,5 +199,158 @@ describe('GridfinityCalculator', () => {
       const lastCall = vi.mocked(saveUserSettings).mock.calls[vi.mocked(saveUserSettings).mock.calls.length - 1][0];
       expect(lastCall.drawerSize.height).toBe(25);
     });
+  });
+
+  it('should apply a shared layout from the ?share= URL param on mount', async () => {
+    const { encodeShareSettings } = await import('../utils/shareLayout');
+    const shared = encodeShareSettings({
+      drawerSize: { width: 15, height: 12 },
+      selectedPrinter: 'Bambu Lab A1',
+      customPrinterSize: null,
+      useHalfSize: false,
+      preferHalfSize: false,
+      preferUniformBaseplates: false,
+      numDrawers: 2,
+      useMm: false,
+    });
+    window.history.pushState(null, '', `/?share=${shared}`);
+    try {
+      renderWithProviders(<GridfinityCalculator />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/width/i)).toHaveValue('15');
+      });
+      expect(screen.getByLabelText(/height/i)).toHaveValue('12');
+      // The share param is stripped after applying so later edits don't
+      // leave a stale link in the address bar.
+      expect(window.location.search).not.toContain('share=');
+    } finally {
+      window.history.pushState(null, '', '/');
+    }
+  });
+
+  it('should ignore an invalid ?share= param and render defaults', async () => {
+    window.history.pushState(null, '', '/?share=not-a-valid-payload');
+    try {
+      renderWithProviders(<GridfinityCalculator />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/width/i)).toHaveValue('22.5');
+      });
+      // Even an invalid param is stripped so it never lingers as a dead param.
+      expect(window.location.search).not.toContain('share=');
+    } finally {
+      window.history.pushState(null, '', '/');
+    }
+  });
+
+  it('should apply all shared fields (printer, drawers, units, flags) from ?share=', async () => {
+    const { encodeShareSettings } = await import('../utils/shareLayout');
+    const shared = encodeShareSettings({
+      drawerSize: { width: 15, height: 12 },
+      selectedPrinter: 'Test Printer',
+      customPrinterSize: null,
+      useHalfSize: false,
+      preferHalfSize: true,
+      preferUniformBaseplates: true,
+      numDrawers: 2,
+      useMm: true,
+    });
+    window.history.pushState(null, '', `/?share=${shared}`);
+    try {
+      renderWithProviders(<GridfinityCalculator />);
+
+      // 15 in shown in mm, 12 in shown in mm
+      await waitFor(() => {
+        expect(screen.getByLabelText(/width/i)).toHaveValue('381');
+      });
+      expect(screen.getByLabelText(/height/i)).toHaveValue('304.8');
+      expect(screen.getByLabelText(/number of duplicate drawers/i)).toHaveValue('2');
+      // The saved settings must carry every shared field.
+      await waitFor(() => {
+        const match = vi.mocked(saveUserSettings).mock.calls.some((call) =>
+          call[0]?.selectedPrinter === 'Test Printer' &&
+          call[0]?.numDrawers === 2 &&
+          call[0]?.useMm === true &&
+          call[0]?.preferHalfSize === true &&
+          call[0]?.drawerSize?.width === 15 &&
+          call[0]?.drawerSize?.height === 12,
+        );
+        expect(match).toBe(true);
+      });
+    } finally {
+      window.history.pushState(null, '', '/');
+    }
+  });
+
+  it('should apply a shared custom-printer size from ?share=', async () => {
+    const { encodeShareSettings } = await import('../utils/shareLayout');
+    const shared = encodeShareSettings({
+      drawerSize: { width: 15, height: 12 },
+      selectedPrinter: 'Custom Printer',
+      customPrinterSize: { x: 300, y: 300, z: 300, exclusionZone: { front: 10 } },
+      useHalfSize: false,
+      preferHalfSize: false,
+      preferUniformBaseplates: false,
+      numDrawers: 1,
+      useMm: false,
+    });
+    window.history.pushState(null, '', `/?share=${shared}`);
+    try {
+      renderWithProviders(<GridfinityCalculator />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/width/i)).toHaveValue('15');
+      });
+      const writes = (localStorage.setItem as unknown as Mock).mock.calls
+        .filter(([key]) => key === 'gridfinity_customPrinterSize')
+        .map(([, value]) => value);
+      expect(writes).toContain(
+        JSON.stringify({ x: 300, y: 300, z: 300, exclusionZone: { front: 10 } }),
+      );
+    } finally {
+      window.history.pushState(null, '', '/');
+    }
+  });
+
+  it('should not clobber the stored custom-printer size when opening a preset-printer share link', async () => {
+    const seeded = JSON.stringify({ x: 300, y: 300, z: 300 });
+    const getItem = localStorage.getItem as unknown as Mock;
+    getItem.mockImplementation((key: string) =>
+      key === 'gridfinity_customPrinterSize' ? seeded : undefined,
+    );
+    try {
+      const { encodeShareSettings } = await import('../utils/shareLayout');
+      const shared = encodeShareSettings({
+        drawerSize: { width: 15, height: 12 },
+        selectedPrinter: 'Bambu Lab A1',
+        customPrinterSize: null,
+        useHalfSize: false,
+        preferHalfSize: false,
+        preferUniformBaseplates: false,
+        numDrawers: 1,
+        useMm: false,
+      });
+      window.history.pushState(null, '', `/?share=${shared}`);
+      try {
+        renderWithProviders(<GridfinityCalculator />);
+
+        await waitFor(() => {
+          expect(screen.getByLabelText(/width/i)).toHaveValue('15');
+        });
+        const writes = (localStorage.setItem as unknown as Mock).mock.calls
+          .filter(([key]) => key === 'gridfinity_customPrinterSize')
+          .map(([, value]) => value);
+        expect(writes.length).toBeGreaterThan(0);
+        // The old decoder placeholder must never be written over the seed.
+        expect(writes).not.toContain(JSON.stringify({ x: 200, y: 200, z: 200 }));
+        expect(writes.every((value) => value === seeded)).toBe(true);
+      } finally {
+        window.history.pushState(null, '', '/');
+      }
+    } finally {
+      getItem.mockReset();
+      (localStorage.setItem as unknown as Mock).mockClear();
+    }
   });
 });
