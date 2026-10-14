@@ -13,7 +13,7 @@ This project is a web-based calculator for designing custom Gridfinity layouts, 
 - Easy-to-use calculator interface
 - Customizable grid dimensions
 - Real-time visual preview
-- Export designs for 3D printing
+- Shareable layout links (export for printing is not built yet; see docs/backlog.md)
 - Support for various 3D printer sizes
 
 ## Getting Started
