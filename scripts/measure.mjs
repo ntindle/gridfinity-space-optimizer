@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { chromium } from '@playwright/test';
 import lighthouse from 'lighthouse';
 import * as chromeLauncher from 'chrome-launcher';
+import { measureParity as scoreParity } from './lib/parity.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).map((a) => a.replace(/^--/, '').split('=')));
 const N = Number(args.n ?? 15);
@@ -157,11 +158,7 @@ const measureLighthouse = async () => {
 const measureParity = () => {
   const path = 'docs/feature-map.md';
   if (!existsSync(path)) return null;
-  const rows = readFileSync(path, 'utf8').split('\n').filter((l) => /^\|\s*F\d+/.test(l));
-  const ours = rows.map((l) => l.split('|')[3].trim());
-  const supported = ours.filter((c) => c.startsWith('✅')).length;
-  const partial = ours.filter((c) => c.startsWith('🟡')).length;
-  return { rows: rows.length, supported, partial, percent: round(((supported + partial / 2) / rows.length) * 100) };
+  return scoreParity(readFileSync(path, 'utf8'));
 };
 
 const server = externalUrl ? null : await startPreview();
