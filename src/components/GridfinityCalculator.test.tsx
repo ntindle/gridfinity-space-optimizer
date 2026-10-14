@@ -199,4 +199,45 @@ describe('GridfinityCalculator', () => {
       expect(lastCall.drawerSize.height).toBe(25);
     });
   });
+
+  it('should apply a shared layout from the ?share= URL param on mount', async () => {
+    const { encodeShareSettings } = await import('../utils/shareLayout');
+    const shared = encodeShareSettings({
+      drawerSize: { width: 15, height: 12 },
+      selectedPrinter: 'Bambu Lab A1',
+      customPrinterSize: null,
+      useHalfSize: false,
+      preferHalfSize: false,
+      preferUniformBaseplates: false,
+      numDrawers: 2,
+      useMm: false,
+    });
+    window.history.pushState(null, '', `/?share=${shared}`);
+    try {
+      renderWithProviders(<GridfinityCalculator />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/width/i)).toHaveValue('15');
+      });
+      expect(screen.getByLabelText(/height/i)).toHaveValue('12');
+      // The share param is stripped after applying so later edits don't
+      // leave a stale link in the address bar.
+      expect(window.location.search).not.toContain('share=');
+    } finally {
+      window.history.pushState(null, '', '/');
+    }
+  });
+
+  it('should ignore an invalid ?share= param and render defaults', async () => {
+    window.history.pushState(null, '', '/?share=not-a-valid-payload');
+    try {
+      renderWithProviders(<GridfinityCalculator />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/width/i)).toHaveValue('22.5');
+      });
+    } finally {
+      window.history.pushState(null, '', '/');
+    }
+  });
 });
