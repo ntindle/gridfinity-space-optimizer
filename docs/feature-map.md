@@ -67,7 +67,7 @@ Parity = (✅ + ½·🟡) / rows, computed by `scripts/measure.mjs` from the `Ou
 | F35 | Installable offline app | ❌ | ✅ [src](https://gridfinitylayouttool.com/) | — | — | — | — | — | — |
 | F36 | Free, no account required | ✅ [src](https://gridfinitylayout.com/) | ✅ [src](https://gridfinitylayouttool.com/) | ✅ [src](https://gridmint.net/en/) | — | — | — | — | — |
 
-**Our parity: 12 ✅ + 2 🟡 of 36 rows = 36.1%.****
+**Our parity: 12 ✅ + 2 🟡 of 36 rows = 36.1%.**
 
 ## Gaps ranked by demand
 

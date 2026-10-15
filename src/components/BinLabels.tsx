@@ -32,6 +32,7 @@ const BinLabels: React.FC<BinLabelsProps> = ({ layout, useMm, numDrawers }) => {
     window.addEventListener("afterprint", handleAfterPrint);
     return () => {
       window.removeEventListener("afterprint", handleAfterPrint);
+      document.body.classList.remove(PRINT_BODY_CLASS);
     };
   }, []);
 
