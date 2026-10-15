@@ -6,6 +6,7 @@ import BinOptions from "./GridfinityCalculator/BinOptions";
 import DrawerOptions from "./GridfinityCalculator/DrawerOptions";
 import GridfinityResults from "./GridfinityResults";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
+import BinLabels from "./BinLabels";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useGridfinityCalculation } from "@/hooks/useGridfinityCalculation";
 import { useLegacyMigration } from "@/hooks/useLegacyMigration";
@@ -138,12 +139,24 @@ const GridfinityCalculator: React.FC = () => {
 
       {result && (
         <>
-          <GridfinityResults result={result} useMm={settings.useMm} />
+          <GridfinityResults
+            result={result}
+            useMm={settings.useMm}
+            useHalfSize={settings.useHalfSize}
+            preferHalfSize={settings.preferHalfSize}
+          />
           {layout && layout.length > 0 && (
             <GridfinityVisualPreview
               layout={layout}
               drawerSize={settings.drawerSize}
               useMm={settings.useMm}
+            />
+          )}
+          {layout && layout.length > 0 && (
+            <BinLabels
+              layout={layout}
+              useMm={settings.useMm}
+              numDrawers={settings.numDrawers}
             />
           )}
         </>

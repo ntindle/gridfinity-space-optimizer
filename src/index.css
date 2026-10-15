@@ -75,3 +75,24 @@
     @apply bg-background text-foreground;
   }
 } */
+@media print {
+  body.print-bin-labels #root {
+    visibility: hidden;
+  }
+  body.print-bin-labels #root .bin-label-sheet,
+  body.print-bin-labels #root .bin-label-sheet * {
+    visibility: visible;
+  }
+  body.print-bin-labels #root .bin-label-sheet {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #ffffff;
+  }
+  body.print-bin-labels #root .bin-label-card {
+    width: 3in;
+    height: 1.25in;
+    break-inside: avoid;
+  }
+}
