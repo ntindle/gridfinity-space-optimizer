@@ -1,9 +1,10 @@
-import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { chromium } from '@playwright/test';
 import lighthouse from 'lighthouse';
 import * as chromeLauncher from 'chrome-launcher';
 import { measureParity as scoreParity } from './lib/parity.mjs';
+import { startPreviewServer, stopPreviewServer } from './lib/preview-server.mjs';
+import { PIECE_LABEL_PATTERN } from './lib/piece-labels.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).map((a) => a.replace(/^--/, '').split('=')));
 const N = Number(args.n ?? 15);
@@ -19,37 +20,21 @@ const median = (xs) => {
 };
 const round = (x, d = 1) => Math.round(x * 10 ** d) / 10 ** d;
 
-const waitForServer = async (target, timeoutMs = 30000) => {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const res = await fetch(target);
-      if (res.ok) return;
-    } catch {
-      await new Promise((r) => setTimeout(r, 250));
-    }
-  }
-  throw new Error(`server at ${target} did not start`);
-};
-
-const startPreview = async () => {
-  const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
-  await waitForServer(url);
-  return server;
-};
-
 const pieceSignature = (page) =>
-  page.$$eval('button', (bs) =>
-    bs.map((b) => b.textContent.trim()).filter((t) => /^(Baseplate|Spacer|Bin)\b/.test(t)).join('|'),
+  page.$$eval(
+    'button',
+    (bs, patternSource) =>
+      bs.map((b) => b.textContent.trim()).filter((t) => new RegExp(patternSource).test(t)).join('|'),
+    PIECE_LABEL_PATTERN.source,
   );
 
 const timeUntilPreviewChanges = async (page, action) => {
-  await page.evaluate(() => {
+  await page.evaluate((patternSource) => {
     window.__previewChangedAt = null;
     const read = () =>
       [...document.querySelectorAll('button')]
         .map((b) => b.textContent.trim())
-        .filter((t) => /^(Baseplate|Spacer|Bin)\b/.test(t))
+        .filter((t) => new RegExp(patternSource).test(t))
         .join('|');
     const before = read();
     const observer = new MutationObserver(() => {
@@ -60,7 +45,7 @@ const timeUntilPreviewChanges = async (page, action) => {
     });
     observer.observe(document.body, { subtree: true, childList: true, characterData: true });
     window.__actionAt = performance.now();
-  });
+  }, PIECE_LABEL_PATTERN.source);
   await action();
   await page.waitForFunction(() => window.__previewChangedAt !== null, null, { timeout: 10000 });
   return page.evaluate(() => window.__previewChangedAt - window.__actionAt);
@@ -97,7 +82,10 @@ const measureInteractions = async () => {
     await page.getByRole('option').nth(1 + (i % 3)).click();
     steps.count += 1;
     await page.waitForFunction(
-      () => [...document.querySelectorAll('button')].some((b) => /^Baseplate\b/.test(b.textContent.trim())),
+      (patternSource) =>
+        [...document.querySelectorAll('button')].some((b) => new RegExp(patternSource).test(b.textContent.trim())),
+      PIECE_LABEL_PATTERN.source,
+      { timeout: 10000 },
     );
     layoutTimes.push(Date.now() - t0);
     layoutSteps = steps.count;
@@ -133,7 +121,7 @@ const measureInteractions = async () => {
 
   const signature = await pieceSignature(page);
   await browser.close();
-  return { tasks, previewPieces: signature.split('|').length };
+  return { tasks, previewPieces: signature === '' ? 0 : signature.split('|').length };
 };
 
 const measureLighthouse = async () => {
@@ -161,7 +149,7 @@ const measureParity = () => {
   return scoreParity(readFileSync(path, 'utf8'));
 };
 
-const server = externalUrl ? null : await startPreview();
+const server = externalUrl ? null : await startPreviewServer({ port: PORT });
 try {
   const interactions = await measureInteractions();
   const lh = await measureLighthouse();
@@ -177,5 +165,5 @@ try {
   writeFileSync('measurements/latest.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally {
-  server?.kill();
+  await stopPreviewServer(server);
 }
