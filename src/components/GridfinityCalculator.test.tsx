@@ -332,4 +332,31 @@ describe('GridfinityCalculator', () => {
       (localStorage.setItem as unknown as Mock).mockClear();
     }
   });
+
+  it('should show the half-size bins results section when useHalfSize is on', async () => {
+    vi.mocked(loadUserSettings).mockReturnValue({
+      drawerSize: { width: 15, height: 12 },
+      selectedPrinter: 'Bambu Lab A1',
+      useHalfSize: true,
+      preferHalfSize: false,
+      numDrawers: 1,
+      useMm: false,
+    });
+    renderWithProviders(<GridfinityCalculator />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Half-size Bins:')).toBeInTheDocument();
+    });
+  });
+
+  it('should render the bin labels section once the layout is calculated', async () => {
+    renderWithProviders(<GridfinityCalculator />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Bin labels')).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole('button', { name: /print labels/i })
+    ).toBeInTheDocument();
+  });
 });

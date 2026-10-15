@@ -1,6 +1,6 @@
 # Feature map
 
-Every Gridfinity tool we could read, compared to gridfinitylayout.com, grouped by job. Built 2026-10-14 against `main` at a486b37.
+Every Gridfinity tool we could read, compared to gridfinitylayout.com, grouped by job. Built 2026-10-14 against `main` at a486b37; refreshed 2026-10-15 (no new competitor moves on labels; andymai "labels" hits are bin-designer UI labels, not printable bin labels).
 
 Legend: ✅ supported, 🟡 partial, ❌ we lack it, — not claimed in the source we fetched (not proof the tool lacks it). Every ✅ links the page it came from. Ours was checked by driving the built app in headless Chromium.
 
@@ -45,7 +45,7 @@ Parity = (✅ + ½·🟡) / rows, computed by `scripts/measure.mjs` from the `Ou
 
 | ID | Feature | Ours | Gridfinity Layout Tool | Gridmint | Gridfinity Generator | Rebuilt (OpenSCAD) | Fusion Generator | Extended (OpenSCAD) | GFLabel |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| F26 | Printable bin labels | ❌ | — | — | — | — | — | — | ✅ [src](https://github.com/ndevenish/gflabel#label-bases) |
+| F26 | Printable bin labels | ✅ [src](https://gridfinitylayout.com/) | — | — | — | — | — | — | ✅ [src](https://github.com/ndevenish/gflabel#label-bases) |
 | F27 | Multiple label systems and styles | ❌ | — | — | — | — | — | — | ✅ [src](https://github.com/ndevenish/gflabel#label-bases) |
 
 ## Export
@@ -67,7 +67,7 @@ Parity = (✅ + ½·🟡) / rows, computed by `scripts/measure.mjs` from the `Ou
 | F35 | Installable offline app | ❌ | ✅ [src](https://gridfinitylayouttool.com/) | — | — | — | — | — | — |
 | F36 | Free, no account required | ✅ [src](https://gridfinitylayout.com/) | ✅ [src](https://gridfinitylayouttool.com/) | ✅ [src](https://gridmint.net/en/) | — | — | — | — | — |
 
-**Our parity: 11 ✅ + 2 🟡 of 36 rows = 33.3%.**
+**Our parity: 12 ✅ + 2 🟡 of 36 rows = 36.1%.**
 
 ## Gaps ranked by demand
 
@@ -96,10 +96,9 @@ Direct demand signal is thin: the repo has one open feature issue (#5). So rank 
 | 19 | F13 | Stacked layers for deep drawers | 1 |  |
 | 20 | F23 | Custom cutouts from your own STL | 1 |  |
 | 21 | F25 | Specialty holders (drawers, sockets, silverware) | 1 |  |
-| 22 | F26 | Printable bin labels | 1 |  |
-| 23 | F27 | Multiple label systems and styles | 1 |  |
-| 24 | F30 | One-click open in slicer | 1 |  |
-| 25 | F35 | Installable offline app | 1 |  |
+| 22 | F27 | Multiple label systems and styles | 1 |  |
+| 23 | F30 | One-click open in slicer | 1 |  |
+| 24 | F35 | Installable offline app | 1 |  |
 
 ## Tools found but not mapped
 
