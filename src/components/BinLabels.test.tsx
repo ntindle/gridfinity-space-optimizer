@@ -54,7 +54,12 @@ const layout: LayoutItem[] = [
 ];
 
 afterEach(() => {
-  document.body.classList.remove("print-bin-labels");
+  document.body.classList.remove(
+    "print-bin-labels",
+    "print-bin-labels-paper",
+    "print-bin-labels-cullenect",
+    "print-bin-labels-pred-slot"
+  );
   vi.restoreAllMocks();
 });
 
@@ -96,7 +101,70 @@ describe("BinLabels", () => {
     fireEvent.click(screen.getByRole("button", { name: /print labels/i }));
     expect(printSpy).toHaveBeenCalledTimes(1);
     expect(document.body.classList.contains("print-bin-labels")).toBe(true);
+    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(
+      true
+    );
     fireEvent(window, new Event("afterprint"));
     expect(document.body.classList.contains("print-bin-labels")).toBe(false);
+    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(
+      false
+    );
+  });
+
+  it("offers three label styles with the paper card selected by default", () => {
+    render(<BinLabels layout={layout} useMm={true} numDrawers={1} />);
+    const group = screen.getByRole("group", { name: /label style/i });
+    expect(group).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Paper card" })
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: /Cullenect 36.4/ })
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: /Bin-width slot/ })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+  });
+
+  it("switching styles changes the print body class", () => {
+    const printSpy = vi.fn();
+    Object.defineProperty(window, "print", {
+      value: printSpy,
+      writable: true,
+      configurable: true,
+    });
+    render(<BinLabels layout={layout} useMm={true} numDrawers={1} />);
+    fireEvent.click(screen.getByRole("button", { name: /Cullenect 36.4/ }));
+    expect(screen.getByRole("button", { name: /Cullenect 36.4/ })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    fireEvent.click(screen.getByRole("button", { name: /print labels/i }));
+    expect(document.body.classList.contains("print-bin-labels-cullenect")).toBe(
+      true
+    );
+    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(
+      false
+    );
+    fireEvent(window, new Event("afterprint"));
+    expect(
+      document.body.classList.contains("print-bin-labels-cullenect")
+    ).toBe(false);
+  });
+
+  it("pred-slot cards carry the bin width as a print CSS variable", () => {
+    render(<BinLabels layout={layout} useMm={true} numDrawers={1} />);
+    fireEvent.click(screen.getByRole("button", { name: /Bin-width slot/ }));
+    const cards = document.querySelectorAll(".bin-label-card");
+    expect(cards.length).toBeGreaterThan(0);
+    cards.forEach((card) => {
+      expect(
+        (card as HTMLElement).style.getPropertyValue("--label-w")
+      ).toMatch(/^\d+(\.\d+)?mm$/);
+    });
+    expect(
+      (cards[0] as HTMLElement).style.getPropertyValue("--label-w")
+    ).toBe("252mm");
   });
 });

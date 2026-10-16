@@ -47,3 +47,21 @@ Local preview, branch vs trunk measured back-to-back on the same box. TTI/Lighth
 | Labels task (new core task 5) | 1 click, print dialog opens label-only sheet | not supported |
 
 Verdict: no regression past noise on any speed metric; parity +2.8pp; labels job new. Bundle delta: index chunk 157.27 → 158.91 kB (+1%).
+
+## 2026-10-16, PR #87 (multiple bin-label styles, F27)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`).
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 38.9% (13 ✅ + 2 🟡 / 36) | 36.1% |
+| Lighthouse perf | 92 | 86 |
+| TTI | 2788 ms | 3050 ms |
+| Input-to-preview (median) | 52.6 ms | 47.2 ms |
+| Layout task | 4 steps, 454 ms | 4 steps, 523 ms |
+| Adjust-grid task | 1 edit, 52.6 ms | 1 edit, 47.2 ms |
+| Export task | not supported | not supported |
+| Share task | 1 click, 82 ms | 1 click, 88 ms |
+| Labels task | 3 styles selectable; per-style print sheet | 1 style (paper card) |
+
+Verdict: no credible regression. TTI/Lighthouse overlap the 81–93 / 2557–3282 bands seen 2026-10-14/15; the +5.4 ms input-to-preview delta sits on a code path this diff does not touch (drawer-width edit → preview piece list is unchanged code). Parity +2.8pp; labels job extended to 3 styles. Bundle delta: index chunk 158.91 → 160.68 kB (+1.1%).
