@@ -90,9 +90,19 @@
     width: 100%;
     background: #ffffff;
   }
-  body.print-bin-labels #root .bin-label-card {
+  body.print-bin-labels-paper #root .bin-label-card {
     width: 3in;
     height: 1.25in;
+    break-inside: avoid;
+  }
+  body.print-bin-labels-cullenect #root .bin-label-card {
+    width: 36.4mm;
+    height: 11mm;
+    break-inside: avoid;
+  }
+  body.print-bin-labels-pred-slot #root .bin-label-card {
+    width: var(--label-w);
+    height: 25mm;
     break-inside: avoid;
   }
 }

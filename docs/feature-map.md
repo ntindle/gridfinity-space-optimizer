@@ -1,6 +1,6 @@
 # Feature map
 
-Every Gridfinity tool we could read, compared to gridfinitylayout.com, grouped by job. Built 2026-10-14 against `main` at a486b37; refreshed 2026-10-15 (no new competitor moves on labels; andymai "labels" hits are bin-designer UI labels, not printable bin labels).
+Every Gridfinity tool we could read, compared to gridfinitylayout.com, grouped by job. Built 2026-10-14 against `main` at a486b37; refreshed 2026-10-15 (no new competitor moves on labels; andymai "labels" hits are bin-designer UI labels, not printable bin labels); refreshed 2026-10-16 (andymai label plates + click-in sockets + tweezer hole verified → F27; Perplexing Labs hub and the label-tool crop noted; gridmint.net fetch failed so gridmint cells stay as-is, unverified).
 
 Legend: ✅ supported, 🟡 partial, ❌ we lack it, — not claimed in the source we fetched (not proof the tool lacks it). Every ✅ links the page it came from. Ours was checked by driving the built app in headless Chromium.
 
@@ -46,7 +46,7 @@ Parity = (✅ + ½·🟡) / rows, computed by `scripts/measure.mjs` from the `Ou
 | ID | Feature | Ours | Gridfinity Layout Tool | Gridmint | Gridfinity Generator | Rebuilt (OpenSCAD) | Fusion Generator | Extended (OpenSCAD) | GFLabel |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | F26 | Printable bin labels | ✅ [src](https://gridfinitylayout.com/) | — | — | — | — | — | — | ✅ [src](https://github.com/ndevenish/gflabel#label-bases) |
-| F27 | Multiple label systems and styles | ❌ | — | — | — | — | — | — | ✅ [src](https://github.com/ndevenish/gflabel#label-bases) |
+| F27 | Multiple label systems and styles | ✅ [src](https://gridfinitylayout.com/) | ✅ [src](https://github.com/andymai/gridfinity-layout-tool/blob/HEAD/CHANGELOG.md) | — | — | — | — | — | ✅ [src](https://github.com/ndevenish/gflabel#label-bases) |
 
 ## Export
 
@@ -67,7 +67,7 @@ Parity = (✅ + ½·🟡) / rows, computed by `scripts/measure.mjs` from the `Ou
 | F35 | Installable offline app | ❌ | ✅ [src](https://gridfinitylayouttool.com/) | — | — | — | — | — | — |
 | F36 | Free, no account required | ✅ [src](https://gridfinitylayout.com/) | ✅ [src](https://gridfinitylayouttool.com/) | ✅ [src](https://gridmint.net/en/) | — | — | — | — | — |
 
-**Our parity: 12 ✅ + 2 🟡 of 36 rows = 36.1%.**
+**Our parity: 13 ✅ + 2 🟡 of 36 rows = 38.9%.**
 
 ## Gaps ranked by demand
 
@@ -96,13 +96,20 @@ Direct demand signal is thin: the repo has one open feature issue (#5). So rank 
 | 19 | F13 | Stacked layers for deep drawers | 1 |  |
 | 20 | F23 | Custom cutouts from your own STL | 1 |  |
 | 21 | F25 | Specialty holders (drawers, sockets, silverware) | 1 |  |
-| 22 | F27 | Multiple label systems and styles | 1 |  |
-| 23 | F30 | One-click open in slicer | 1 |  |
-| 24 | F35 | Installable offline app | 1 |  |
+| 22 | F30 | One-click open in slicer | 1 |  |
+| 23 | F35 | Installable offline app | 1 |  |
 
 ## Tools found but not mapped
 
 - Perplexing Labs generator (https://gridfinity.perplexinglabs.com/): page is rendered client-side and returned no readable feature text to our fetch; needs a browser pass.
+- Perplexing Labs generator hub (https://gridfinity.perplexinglabs.com/) — systems: Gridfinity Rebuilt/Extended bins+bases, GridFlock drawer grids, Gridfinity Anylid snap-on lids, Cullenect printable labels, openGrid, GridPlates. Homepage copy verified 2026-10-16; in-app params unverified.
+- kamilpajak/gridfinity-label-generator ("GridScribe") — SvelteKit web label generator, print-ready PNG + batch strip export. F27 relevance.
+- gridlabelstudio.com — print-ready labels in PNG/SVG at exact heights. F27 relevance.
+- stlkit3d.com ("STLKit3D") — free client-side browser parametric bin generator, watertight binary STL export. F18 relevance.
+- gridpilot.us ("GridPilot") — AI-powered custom tray generator: photo tool detection, 3MF export. F25/F29 relevance.
+- pocketry.xyz ("Pocketry") — photographs to editable outlines and bins. F18/F25 relevance.
+- gridpitch.io ("GridPitch") — organizers on any grid pitch. Niche.
+- automaat/gridfinity-generator — WASM CAD web worker, exportSTEP/exportSTL, presets. Possible new column.
 - Zack Freedman's original Fusion models, Printables/MakerWorld bin libraries, and other OpenSCAD forks: not fetched yet.
 
 ## Open GitHub issues
