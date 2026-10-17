@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v5
         
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20.x'
           cache: 'npm'
@@ -75,7 +75,7 @@ jobs:
           
       - name: Upload accessibility reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: accessibility-reports
           path: axe-reports/
@@ -90,7 +90,7 @@ jobs:
         uses: actions/checkout@v5
         
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20.x'
           cache: 'npm'
@@ -138,7 +138,7 @@ jobs:
         
       - name: Upload Pa11y results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: pa11y-results
           path: pa11y-results.json
