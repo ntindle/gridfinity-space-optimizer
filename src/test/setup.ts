@@ -1,5 +1,5 @@
 import { vi, beforeEach } from 'vitest'
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom/vitest'
 
 const localStorageMock = {
   getItem: vi.fn(),
@@ -9,11 +9,13 @@ const localStorageMock = {
 }
 global.localStorage = localStorageMock as unknown as Storage
 
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-})) as unknown as typeof ResizeObserver
+global.ResizeObserver = vi.fn().mockImplementation(function () {
+  return {
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+  }
+}) as unknown as typeof ResizeObserver
 
 Element.prototype.scrollIntoView = vi.fn()
 
