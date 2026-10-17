@@ -65,3 +65,13 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 | Labels task | 3 styles selectable; per-style print sheet | 1 style (paper card) |
 
 Verdict: no credible regression. TTI/Lighthouse overlap the 81–93 / 2557–3282 bands seen 2026-10-14/15; the +5.4 ms input-to-preview delta sits on a code path this diff does not touch (drawer-width edit → preview piece list is unchanged code). Parity +2.8pp; labels job extended to 3 styles. Bundle delta: index chunk 158.91 → 160.68 kB (+1.1%).
+
+## 2026-10-16, PR #84 (feature map expanded to 35 tools as columns)
+
+Docs-only merge: `docs/feature-map.md` replaced by the 50-row / 35-tool map (Ours + 34 competitor columns). Rebased onto main, incorporating the Ours ✅ flips for printable bin labels (#86) and multiple label styles (#87) plus andymai's label-systems cell. No app code changed; no speed/ease re-measurement (bundle identical to trunk).
+
+| Metric | This merge |
+| --- | --- |
+| Parity | 27.0% (10 ✅ + 7 🟡 / 50), via live harness `measureParity()` on the merged file |
+
+Note: parity denominator changes here from 36 rows (narrow map) to 50 rows (expanded map), so 27.0% does not compare directly with the 38.9% above — same counting rule, wider row set. The expanded map is now the source of record for parity.
