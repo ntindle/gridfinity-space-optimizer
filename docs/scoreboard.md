@@ -75,3 +75,20 @@ Docs-only merge: `docs/feature-map.md` replaced by the 50-row / 35-tool map (Our
 | Parity | 27.0% (10 ✅ + 7 🟡 / 50), via live harness `measureParity()` on the merged file |
 
 Note: parity denominator changes here from 36 rows (narrow map) to 50 rows (expanded map), so 27.0% does not compare directly with the 38.9% above — same counting rule, wider row set. The expanded map is now the source of record for parity.
+
+## 2026-10-17, PR #TBD (drawer measurement guidance, F42)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`). An earlier branch run executed while the trunk build was still compiling and showed inflated numbers; it was discarded as contaminated and re-run clean.
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 29.0% (11 ✅ + 7 🟡 / 50) | 27.0% |
+| Lighthouse perf | 75 | 66 |
+| TTI | 3543 ms | 4396 ms |
+| Input-to-preview (median) | 62.5 ms | 151.8 ms |
+| Layout task | 4 steps, 794 ms | 4 steps, 820 ms |
+| Adjust-grid task | 1 edit, 62.5 ms | 1 edit, 151.8 ms |
+| Export task | not supported | not supported |
+| Share task | 1 click, 94 ms | 1 click, 188 ms |
+
+Verdict: no credible regression — branch is at or above trunk on every speed metric (the trunk run itself shows the same box-level slowness vs the 2026-10-16 baselines, consistent with the day's dependency updates and VM load, not with this diff, which adds one static content block to the input card). Parity +2.0pp; F42 (measurement guidance) ships. Bundle delta: index chunk 156.91 → 159.04 kB (+1.4%).
