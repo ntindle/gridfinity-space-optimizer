@@ -76,7 +76,7 @@ Docs-only merge: `docs/feature-map.md` replaced by the 50-row / 35-tool map (Our
 
 Note: parity denominator changes here from 36 rows (narrow map) to 50 rows (expanded map), so 27.0% does not compare directly with the 38.9% above — same counting rule, wider row set. The expanded map is now the source of record for parity.
 
-## 2026-10-17, PR #TBD (drawer measurement guidance, F42)
+## 2026-10-17, PR #114 (drawer measurement guidance, F42)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`). An earlier branch run executed while the trunk build was still compiling and showed inflated numbers; it was discarded as contaminated and re-run clean.
 
