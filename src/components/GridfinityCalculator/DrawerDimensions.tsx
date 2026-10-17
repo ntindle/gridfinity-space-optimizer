@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -8,18 +8,30 @@ import { Switch } from "@/components/ui/switch"
 const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
   const [localWidth, setLocalWidth] = useState("")
   const [localHeight, setLocalHeight] = useState("")
+  const [prevSynced, setPrevSynced] = useState({
+    width: null,
+    height: null,
+    useMm: null,
+  })
 
   const convertToInches = (value) => value / 25.4
 
-  useEffect(() => {
+  const formatDimension = (value) => {
     if (useMm) {
-      setLocalWidth(drawerSize.width ? String(Math.round(drawerSize.width * 25.4 * 100) / 100) : "")
-      setLocalHeight(drawerSize.height ? String(Math.round(drawerSize.height * 25.4 * 100) / 100) : "")
-    } else {
-      setLocalWidth(drawerSize.width ? String(drawerSize.width) : "")
-      setLocalHeight(drawerSize.height ? String(drawerSize.height) : "")
+      return value ? String(Math.round(value * 25.4 * 100) / 100) : ""
     }
-  }, [useMm, drawerSize.width, drawerSize.height])
+    return value ? String(value) : ""
+  }
+
+  if (
+    drawerSize.width !== prevSynced.width ||
+    drawerSize.height !== prevSynced.height ||
+    useMm !== prevSynced.useMm
+  ) {
+    setPrevSynced({ width: drawerSize.width, height: drawerSize.height, useMm })
+    setLocalWidth(formatDimension(drawerSize.width))
+    setLocalHeight(formatDimension(drawerSize.height))
+  }
 
   const handleInputChange = (dimension) => (e) => {
     const value = e.target.value

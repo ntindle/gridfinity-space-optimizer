@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { getColor, INCH_TO_MM } from "@/utils/gridfinityUtils";
 import {
   getPreviewPieceDetails,
@@ -19,10 +19,12 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
   useMm,
 }) => {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [prevLayout, setPrevLayout] = useState(layout);
 
-  useEffect(() => {
+  if (layout !== prevLayout) {
+    setPrevLayout(layout);
     setSelectedKey(null);
-  }, [layout]);
+  }
 
   const groups = useMemo(() => groupPreviewPieces(layout), [layout]);
   const selectedGroup = groups.find(

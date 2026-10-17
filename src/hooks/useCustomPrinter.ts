@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { usePersistedState } from "./usePersistedState";
 import { convertToMm, convertFromMm, validateDimension } from "@/services/unitConversion";
 import type { PrinterSize } from "@/types";
@@ -88,7 +88,7 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
     return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
   };
 
-  useEffect(() => {
+  const syncInputsFromDimensions = () => {
     setInputValues({
       x: useMm
         ? customDimensions.x.toString()
@@ -124,13 +124,32 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
           : formatNumber(convertFromMm(zone.right, "in"))
         : "",
     });
-  }, [
-    useMm,
-    customDimensions.x,
-    customDimensions.y,
-    customDimensions.z,
-    customDimensions.exclusionZone,
-  ]);
+  };
+
+  const [prevSyncedDimensions, setPrevSyncedDimensions] = useState({
+    useMm: null,
+    x: null,
+    y: null,
+    z: null,
+    exclusionZone: null,
+  });
+
+  if (
+    useMm !== prevSyncedDimensions.useMm ||
+    customDimensions.x !== prevSyncedDimensions.x ||
+    customDimensions.y !== prevSyncedDimensions.y ||
+    customDimensions.z !== prevSyncedDimensions.z ||
+    customDimensions.exclusionZone !== prevSyncedDimensions.exclusionZone
+  ) {
+    setPrevSyncedDimensions({
+      useMm,
+      x: customDimensions.x,
+      y: customDimensions.y,
+      z: customDimensions.z,
+      exclusionZone: customDimensions.exclusionZone,
+    });
+    syncInputsFromDimensions();
+  }
 
   const handleInputChange = (axis: "x" | "y" | "z", value: string) => {
     setInputValues((prev) => ({
