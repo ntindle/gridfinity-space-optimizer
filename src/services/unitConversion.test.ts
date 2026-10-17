@@ -183,4 +183,17 @@ describe('unitConversion', () => {
       expect(result.error).toContain('10mm');
     });
   });
+
+  describe('unit convention pins', () => {
+    it('treats PrinterSize as millimeters', () => {
+      const dimensions: PrinterSize = { x: 25.4, y: 25.4, z: 25.4 };
+      expect(formatBuildVolume(dimensions, true)).toBe('25mm × 25mm × 25mm');
+      expect(formatBuildVolume(dimensions, false)).toBe('1.0" × 1.0" × 1.0"');
+    });
+
+    it('treats validateDimension bounds as millimeters', () => {
+      expect(validateDimension(5)).toEqual({ valid: false, error: 'Dimension must be at least 10mm' });
+      expect(validateDimension(1500)).toEqual({ valid: false, error: 'Dimension must not exceed 1000mm' });
+    });
+  });
 });
