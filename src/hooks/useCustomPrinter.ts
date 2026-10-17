@@ -5,18 +5,12 @@ import { usePersistedState } from "./usePersistedState";
 import { convertToMm, convertFromMm, validateDimension } from "@/services/unitConversion";
 import type { PrinterSize } from "@/types";
 
-/**
- * Input values for dimensions (as strings for form inputs)
- */
 interface DimensionInputs {
   x: string;
   y: string;
   z: string;
 }
 
-/**
- * Input values for exclusion zones (as strings for form inputs)
- */
 interface ExclusionZoneInputs {
   front: string;
   back: string;
@@ -24,18 +18,12 @@ interface ExclusionZoneInputs {
   right: string;
 }
 
-/**
- * Validation errors for each dimension
- */
 interface DimensionErrors {
   x: string | null;
   y: string | null;
   z: string | null;
 }
 
-/**
- * Validation errors for exclusion zones
- */
 interface ExclusionZoneErrors {
   front: string | null;
   back: string | null;
@@ -43,9 +31,6 @@ interface ExclusionZoneErrors {
   right: string | null;
 }
 
-/**
- * Return type for the custom printer hook
- */
 export interface CustomPrinterState {
   customDimensions: PrinterSize;
   inputValues: DimensionInputs;
@@ -62,11 +47,7 @@ export interface CustomPrinterState {
   resetToDefault: () => void;
 }
 
-/**
- * Custom hook for managing custom printer dimensions
- */
 export const useCustomPrinter = (useMm = false): CustomPrinterState => {
-  // Persisted custom printer dimensions (stored in mm)
   const [customDimensions, setCustomDimensions] =
     usePersistedState<PrinterSize>("gridfinity_customPrinterDimensions", {
       x: 200,
@@ -74,21 +55,18 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
       z: 200,
     });
 
-  // Local state for input values (in current unit)
   const [inputValues, setInputValues] = useState<DimensionInputs>({
     x: "",
     y: "",
     z: "",
   });
 
-  // Validation errors
   const [errors, setErrors] = useState<DimensionErrors>({
     x: null,
     y: null,
     z: null,
   });
 
-  // Exclusion zone inputs
   const [exclusionZoneInputs, setExclusionZoneInputs] =
     useState<ExclusionZoneInputs>({
       front: "",
@@ -97,7 +75,6 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
       right: "",
     });
 
-  // Exclusion zone errors
   const [exclusionZoneErrors, setExclusionZoneErrors] =
     useState<ExclusionZoneErrors>({
       front: null,
@@ -106,13 +83,11 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
       right: null,
     });
 
-  // Helper function to format numbers without unnecessary decimals
   const formatNumber = (value: number): string => {
     const rounded = Math.round(value * 10) / 10;
     return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
   };
 
-  // Update input values when unit changes or dimensions change
   useEffect(() => {
     setInputValues({
       x: useMm
@@ -126,7 +101,6 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
         : formatNumber(convertFromMm(customDimensions.z, "in")),
     });
 
-    // Update exclusion zone inputs
     const zone = customDimensions.exclusionZone || {};
     setExclusionZoneInputs({
       front: zone.front
@@ -158,15 +132,12 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
     customDimensions.exclusionZone,
   ]);
 
-  // Handle input change for a dimension
   const handleInputChange = (axis: "x" | "y" | "z", value: string) => {
-    // Always allow the user to type freely
     setInputValues((prev) => ({
       ...prev,
       [axis]: value,
     }));
 
-    // Clear error when user starts typing
     if (errors[axis]) {
       setErrors((prev) => ({
         ...prev,
@@ -174,13 +145,10 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
       }));
     }
 
-    // Only update the actual dimension if we have a valid positive number
     const numericValue = Number.parseFloat(value);
     if (!isNaN(numericValue) && numericValue > 0) {
-      // Convert to mm for storage
       const mmValue = useMm ? numericValue : convertToMm(numericValue, "in");
 
-      // Only do basic range check, don't show errors while typing
       if (mmValue >= 10 && mmValue <= 1000) {
         setCustomDimensions((prev) => ({
           ...prev,
@@ -190,7 +158,6 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
     }
   };
 
-  // Handle exclusion zone input change
   const handleExclusionZoneChange = (
     zone: "front" | "back" | "left" | "right",
     value: string
@@ -200,15 +167,12 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
       [zone]: value,
     }));
 
-    // Clear error for this zone
     setExclusionZoneErrors((prev) => ({
       ...prev,
       [zone]: null,
     }));
 
-    // Parse the value
     if (value === "") {
-      // Clear the exclusion zone value
       setCustomDimensions((prev) => ({
         ...prev,
         exclusionZone: {
@@ -219,10 +183,8 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
     } else {
       const numericValue = Number.parseFloat(value);
       if (!isNaN(numericValue) && numericValue >= 0) {
-        // Convert to mm for storage
         const mmValue = useMm ? numericValue : convertToMm(numericValue, "in");
 
-        // Basic validation
         const maxDimension =
           zone === "front" || zone === "back"
             ? customDimensions.y
@@ -245,7 +207,6 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
     }
   };
 
-  // Validate all dimensions
   const validateAll = (): boolean => {
     const newErrors: DimensionErrors = { x: null, y: null, z: null };
     let isValid = true;
@@ -271,7 +232,6 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
     return isValid;
   };
 
-  // Reset to default dimensions
   const resetToDefault = () => {
     const defaults: PrinterSize = { x: 200, y: 200, z: 200 };
     setCustomDimensions(defaults);
@@ -296,7 +256,6 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
     });
   };
 
-  // Validate a single dimension (for onBlur)
   const validateSingleDimension = (axis: "x" | "y" | "z") => {
     const value = Number.parseFloat(inputValues[axis]);
     if (isNaN(value) || value <= 0) {

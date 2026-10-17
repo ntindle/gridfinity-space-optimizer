@@ -5,10 +5,12 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
+import noComments from "./eslint-rules/no-comments.js";
+
+const local = { rules: { "no-comments": noComments } };
 
 export default [
   { ignores: ["dist", "node_modules"] },
-  // TypeScript files
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
@@ -39,6 +41,7 @@ export default [
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
       "@typescript-eslint": tsPlugin,
+      local,
     },
     rules: {
       ...js.configs.recommended.rules,
@@ -53,6 +56,7 @@ export default [
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/no-explicit-any": "warn",
+      "local/no-comments": "error",
     },
     settings: {
       react: {
@@ -60,7 +64,6 @@ export default [
       },
     },
   },
-  // JavaScript config files
   {
     files: ["**/*.{js,jsx}"],
     languageOptions: {
@@ -80,6 +83,7 @@ export default [
       react,
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      local,
     },
     rules: {
       ...js.configs.recommended.rules,
@@ -92,6 +96,7 @@ export default [
       ],
       "react/prop-types": "off",
       "no-unused-vars": "warn",
+      "local/no-comments": "error",
     },
     settings: {
       react: {
