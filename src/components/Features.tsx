@@ -39,7 +39,7 @@ const Features = () => {
           </li>
           <li className="flex items-center">
             <Printer className="mr-4 h-6 w-6" />
-            <span>Export designs for 3D printing <span className="text-yellow-400 font-semibold">(Coming Soon!)</span></span>
+            <span>Printable bin labels for every bin</span>
           </li>
         </ul>
       </div>

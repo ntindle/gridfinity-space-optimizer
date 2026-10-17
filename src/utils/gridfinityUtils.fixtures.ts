@@ -1,7 +1,3 @@
-/**
- * Test fixtures with pre-computed expected outputs for various drawer configurations
- * These are known-good solutions that should not change unless the algorithm is intentionally modified
- */
 
 import type { DrawerSize, PrinterSize } from '@/types/gridfinity';
 
@@ -30,7 +26,6 @@ interface TestFixture {
 }
 
 export const testFixtures: Record<string, TestFixture> = {
-  // Standard US drawer - 22.5" x 16.5" with Bambu Lab A1 (256x256x256mm)
   standardUSDrawer: {
     input: {
       drawerSize: { width: 22.5, height: 16.5 },
@@ -54,13 +49,12 @@ export const testFixtures: Record<string, TestFixture> = {
       },
       layoutCount: 12,
       totalCoverage: {
-        width: 571.5,  // mm
-        height: 419.1, // mm
+        width: 571.5,
+        height: 419.1,
       },
     },
   },
 
-  // Small drawer - 5" x 5" with Prusa Mini (180x180x180mm)
   smallDrawer: {
     input: {
       drawerSize: { width: 5, height: 5 },
@@ -85,10 +79,9 @@ export const testFixtures: Record<string, TestFixture> = {
     },
   },
 
-  // Metric drawer - 400mm x 300mm with Ender 3 (220x220x250mm)
   metricDrawer: {
     input: {
-      drawerSize: { width: 400 / 25.4, height: 300 / 25.4 }, // Convert to inches
+      drawerSize: { width: 400 / 25.4, height: 300 / 25.4 },
       printerSize: { x: 220, y: 220, z: 250 },
       useHalfSize: false,
       preferHalfSize: false,
@@ -101,7 +94,6 @@ export const testFixtures: Record<string, TestFixture> = {
         '4x2': 1,
       },
       spacers: {
-        // Actual implementation produces these spacers
         '22.00mm x 210.00mm': 1,
         '22.00mm x 84.00mm': 1,
         '210.00mm x 6.00mm': 1,
@@ -116,7 +108,6 @@ export const testFixtures: Record<string, TestFixture> = {
     },
   },
 
-  // Exact grid multiple - 10 grids x 10 grids (420mm x 420mm)
   exactGridMultiple: {
     input: {
       drawerSize: { width: 420 / 25.4, height: 420 / 25.4 },
@@ -131,7 +122,7 @@ export const testFixtures: Record<string, TestFixture> = {
         '6x4': 1,
         '4x4': 1,
       },
-      spacers: {}, // No spacers for exact multiples after fix
+      spacers: {},
       layoutCount: 4,
       totalCoverage: {
         width: 420,
@@ -140,7 +131,6 @@ export const testFixtures: Record<string, TestFixture> = {
     },
   },
 
-  // Large drawer requiring split - 15" x 15" with small printer (150x150x150mm)
   largeSplitRequired: {
     input: {
       drawerSize: { width: 15, height: 15 },
@@ -150,10 +140,9 @@ export const testFixtures: Record<string, TestFixture> = {
     },
     expected: {
       baseplates: {
-        '3x3': 9, // Maximum that fits in 150x150mm printer
+        '3x3': 9,
       },
       spacers: {
-        // Actual implementation produces these spacers
         '3.00mm x 126.00mm': 3,
         '126.00mm x 3.00mm': 3,
         '3.00mm x 3.00mm': 1,
@@ -166,7 +155,6 @@ export const testFixtures: Record<string, TestFixture> = {
     },
   },
 
-  // Half-size bins enabled - 6" x 4" 
   withHalfSizeBins: {
     input: {
       drawerSize: { width: 6, height: 4 },
@@ -175,24 +163,20 @@ export const testFixtures: Record<string, TestFixture> = {
       preferHalfSize: false,
     },
     expected: {
-      baseplates: {}, // No full-size baseplates when using only half-size
+      baseplates: {},
       spacers: {
-        // Now includes spacers for remainder space after half-size bins
-        // 6" = 152.4mm, 152.4mm / 21mm = 7.25... -> 7 bins + remainder
-        // 4" = 101.6mm, 101.6mm / 21mm = 4.83... -> 4 bins + remainder  
-        '5.40mm x 84.00mm': 1,  // Horizontal remainder
-        '147.00mm x 17.60mm': 1, // Vertical remainder
-        '5.40mm x 17.60mm': 1,  // Corner remainder
+        '5.40mm x 84.00mm': 1,
+        '147.00mm x 17.60mm': 1,
+        '5.40mm x 17.60mm': 1,
       },
       halfSizeBins: {
-        '7x4': 1, // Single combined half-size bin grid
+        '7x4': 1,
       },
-      layoutCount: 4, // 1 half-size bin + 3 spacers
+      layoutCount: 4,
       hasHalfSizeBins: true,
     },
   },
 
-  // Prefer half-size for spacers - 5" x 5"
   preferHalfSize: {
     input: {
       drawerSize: { width: 5, height: 5 },
@@ -205,21 +189,18 @@ export const testFixtures: Record<string, TestFixture> = {
         '3x3': 1,
       },
       spacers: {
-        // Actual implementation produces these after half-size fills
         '0.84mm x 126.00mm': 1,
         '0.84mm x 0.84mm': 1,
         '126.00mm x 0.84mm': 1,
         '0.84mm x 127.00mm': 1,
       },
       halfSizeBins: {
-        // No half-size bins in this case
       },
       hasHalfSizeBins: false,
       layoutCount: 5,
     },
   },
 
-  // Tiny drawer - smaller than one grid (30mm x 30mm)
   tinyDrawer: {
     input: {
       drawerSize: { width: 30 / 25.4, height: 30 / 25.4 },
@@ -228,9 +209,9 @@ export const testFixtures: Record<string, TestFixture> = {
       preferHalfSize: false,
     },
     expected: {
-      baseplates: {}, // Too small for any baseplates
+      baseplates: {},
       spacers: {
-        '30.00mm x 30.00mm': 1, // Single spacer covering entire area
+        '30.00mm x 30.00mm': 1,
       },
       layoutCount: 1,
       totalCoverage: {
@@ -240,7 +221,6 @@ export const testFixtures: Record<string, TestFixture> = {
     },
   },
 
-  // Edge case - drawer exactly printer size
   exactPrinterSize: {
     input: {
       drawerSize: { width: 256 / 25.4, height: 256 / 25.4 },
@@ -265,7 +245,6 @@ export const testFixtures: Record<string, TestFixture> = {
     },
   },
 
-  // Common IKEA drawer size - 500mm x 370mm
   ikeaDrawer: {
     input: {
       drawerSize: { width: 500 / 25.4, height: 370 / 25.4 },
@@ -281,7 +260,6 @@ export const testFixtures: Record<string, TestFixture> = {
         '5x2': 1,
       },
       spacers: {
-        // Actual implementation produces these spacers
         '38.00mm x 252.00mm': 1,
         '38.00mm x 84.00mm': 1,
         '252.00mm x 34.00mm': 1,

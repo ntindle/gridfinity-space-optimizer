@@ -3,7 +3,6 @@ import { renderHook } from '@testing-library/react';
 import { useGridfinityCalculation } from './useGridfinityCalculation';
 import type { DrawerSize, PrinterSize, GridfinityResult } from '@/types/gridfinity';
 
-// Mock the calculateGrids function
 vi.mock('../utils/gridfinityUtils', () => ({
   calculateGrids: vi.fn((drawerSize: DrawerSize, printerSize: PrinterSize, useHalfSize: boolean): GridfinityResult => ({
     baseplates: {
@@ -21,7 +20,6 @@ vi.mock('../utils/gridfinityUtils', () => ({
   })),
 }));
 
-// Mock printerSizes
 vi.mock('../lib/utils', () => ({
   printerSizes: {
     'Test Printer': { x: 200, y: 200, z: 200 },
@@ -125,11 +123,9 @@ describe.skip('useGridfinityCalculation', () => {
 
     const initialPrinterSize = result.current.printerSize;
 
-    // Rerender with same printer
     rerender({ selectedPrinter: 'Test Printer' });
     expect(result.current.printerSize).toBe(initialPrinterSize);
 
-    // Rerender with different printer
     rerender({ selectedPrinter: 'Large Printer' });
     expect(result.current.printerSize).not.toBe(initialPrinterSize);
     expect(result.current.printerSize).toEqual({ x: 300, y: 300, z: 300 });
@@ -189,5 +185,24 @@ describe.skip('useGridfinityCalculation', () => {
 
     rerender({ useHalfSize: true });
     expect(result.current.result?.halfSizeBins).toBeDefined();
+  });
+});
+
+describe('useGridfinityCalculation printer fallback', () => {
+  it('falls back to the 256mm cube for prototype-chain printer names', () => {
+    const drawerSize = { width: 10, height: 10 };
+    const { result } = renderHook(() =>
+      useGridfinityCalculation({
+        drawerSize,
+        selectedPrinter: 'toString',
+        customPrinterSize: null,
+        useHalfSize: false,
+        preferHalfSize: false,
+        preferUniformBaseplates: false,
+        numDrawers: 1,
+      }),
+    );
+
+    expect(result.current.printerSize).toEqual({ x: 256, y: 256, z: 256 });
   });
 });

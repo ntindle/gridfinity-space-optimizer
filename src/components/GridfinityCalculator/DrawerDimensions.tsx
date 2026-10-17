@@ -9,10 +9,8 @@ const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
   const [localWidth, setLocalWidth] = useState("")
   const [localHeight, setLocalHeight] = useState("")
 
-  // Simple conversion functions
   const convertToInches = (value) => value / 25.4
 
-  // Initialize local values when component mounts or unit changes
   useEffect(() => {
     if (useMm) {
       setLocalWidth(drawerSize.width ? String(Math.round(drawerSize.width * 25.4 * 100) / 100) : "")
@@ -21,9 +19,8 @@ const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
       setLocalWidth(drawerSize.width ? String(drawerSize.width) : "")
       setLocalHeight(drawerSize.height ? String(drawerSize.height) : "")
     }
-  }, [useMm, drawerSize.width, drawerSize.height]) // Include all dependencies
+  }, [useMm, drawerSize.width, drawerSize.height])
 
-  // Handle input changes - just update local state, don't interfere with typing
   const handleInputChange = (dimension) => (e) => {
     const value = e.target.value
 
@@ -34,13 +31,11 @@ const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
     }
   }
 
-  // Handle when user finishes typing (on blur)
   const handleInputBlur = (dimension) => (e) => {
     const value = e.target.value
     const numericValue = Number.parseFloat(value)
 
     if (!isNaN(numericValue) && numericValue >= 0) {
-      // Convert to inches for internal storage
       const inchesValue = useMm ? convertToInches(numericValue) : numericValue
       setDrawerSize((prevSize) => ({
         ...prevSize,
@@ -51,14 +46,12 @@ const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
         ...prevSize,
         [dimension]: 0,
       }))
-      // Reset display value to empty
       if (dimension === "width") {
         setLocalWidth("")
       } else {
         setLocalHeight("")
       }
     } else {
-      // Invalid input - revert to previous valid value
       if (useMm) {
         const displayValue = drawerSize[dimension] ? String(Math.round(drawerSize[dimension] * 25.4 * 100) / 100) : ""
         if (dimension === "width") {

@@ -12,7 +12,10 @@
       "Bash(npx vite:*)",
       "Bash(npx tsc:*)",
       "Bash(gh pr view:*)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(cp:*)",
+      "Fetch(*)",
+      "WebSearch(*)"
     ],
     "deny": []
   }
