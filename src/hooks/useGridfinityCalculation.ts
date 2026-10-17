@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { calculateGrids } from '@/utils/gridfinityUtils';
 import { printerSizes } from '@/lib/utils';
 import type { DrawerSize, PrinterSize, GridfinityResult, LayoutItem } from '@/types';
@@ -57,13 +57,22 @@ export const useGridfinityCalculation = ({
     );
   }, [drawerSize, printerSize, useHalfSize, preferHalfSize, preferUniformBaseplates]);
 
-  useEffect(() => {
+  const [prevSynced, setPrevSynced] = useState<{
+    calculationResult: GridfinityResult | null;
+    numDrawers: number;
+  }>({ calculationResult: null, numDrawers });
+
+  if (
+    calculationResult !== prevSynced.calculationResult ||
+    numDrawers !== prevSynced.numDrawers
+  ) {
+    setPrevSynced({ calculationResult, numDrawers });
     if (calculationResult) {
       const { baseplates, spacers, halfSizeBins, layout } = calculationResult;
       setResult({ baseplates, spacers, halfSizeBins, numDrawers });
       setLayout(layout);
     }
-  }, [calculationResult, numDrawers]);
+  }
 
   return {
     result,

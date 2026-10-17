@@ -4,10 +4,12 @@ import { Label } from "@/components/ui/label";
 
 const DrawerOptions = ({ numDrawers, setNumDrawers }) => {
   const [localValue, setLocalValue] = React.useState(String(numDrawers || 1));
-  
-  React.useEffect(() => {
+  const [prevNumDrawers, setPrevNumDrawers] = React.useState(numDrawers);
+
+  if (numDrawers !== prevNumDrawers) {
+    setPrevNumDrawers(numDrawers);
     setLocalValue(String(numDrawers || 1));
-  }, [numDrawers]);
+  }
   
   const handleInputChange = (e) => {
     const value = e.target.value;

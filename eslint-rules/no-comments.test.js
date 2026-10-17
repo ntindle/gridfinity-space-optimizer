@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Linter } from 'eslint';
 import rule from './no-comments.js';
 
-const linter = new Linter();
+const linter = new Linter({ configType: 'eslintrc' });
 linter.defineRule('no-comments', rule);
 linter.defineRule('react-refresh/only-export-components', { create: () => ({}) });
 linter.defineRule('react-hooks/exhaustive-deps', { create: () => ({}) });
