@@ -6,19 +6,19 @@ import BinOptions from "./GridfinityCalculator/BinOptions";
 import DrawerOptions from "./GridfinityCalculator/DrawerOptions";
 import GridfinityResults from "./GridfinityResults";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
+import BinLabels from "./BinLabels";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useGridfinityCalculation } from "@/hooks/useGridfinityCalculation";
 import { useLegacyMigration } from "@/hooks/useLegacyMigration";
 import { saveUserSettings, loadUserSettings } from "@/lib/utils";
+import { parseShareParam } from "@/utils/shareLayout";
+import ShareLayoutButton from "@/components/GridfinityCalculator/ShareLayoutButton";
 
 const GridfinityCalculator: React.FC = () => {
-  // Migrate legacy data first
   useLegacyMigration();
   
-  // Use settings from context for clean state management
   const settings = useSettings();
   
-  // Calculate results based on current settings
   const { result, layout, printerSize } = useGridfinityCalculation({
     drawerSize: settings.drawerSize,
     selectedPrinter: settings.selectedPrinter,
@@ -29,12 +29,9 @@ const GridfinityCalculator: React.FC = () => {
     numDrawers: settings.numDrawers,
   });
   
-  // Maintain backward compatibility with tests by syncing with old format
   useEffect(() => {
-    // Load legacy settings on mount for test compatibility
     const legacySettings = loadUserSettings();
     if (legacySettings && !localStorage.getItem('gridfinity_migration_v1')) {
-      // Apply legacy settings if they exist and haven't been migrated
       if (legacySettings.drawerSize) settings.setDrawerSize(legacySettings.drawerSize);
       if (legacySettings.selectedPrinter) settings.setSelectedPrinter(legacySettings.selectedPrinter);
       if (legacySettings.useHalfSize !== undefined) settings.setUseHalfSize(legacySettings.useHalfSize);
@@ -43,8 +40,27 @@ const GridfinityCalculator: React.FC = () => {
       if (legacySettings.useMm !== undefined) settings.setUseMm(legacySettings.useMm);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  
-  // Save in legacy format for test compatibility
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('share')) return;
+    const shared = parseShareParam(window.location.search);
+    if (shared) {
+      settings.setDrawerSize(shared.drawerSize);
+      settings.setSelectedPrinter(shared.selectedPrinter);
+      if (shared.customPrinterSize) {
+        settings.setCustomPrinterSize(shared.customPrinterSize);
+      }
+      settings.setUseHalfSize(shared.useHalfSize);
+      settings.setPreferHalfSize(shared.preferHalfSize);
+      settings.setPreferUniformBaseplates(shared.preferUniformBaseplates);
+      settings.setNumDrawers(shared.numDrawers);
+      settings.setUseMm(shared.useMm);
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.delete('share');
+    window.history.replaceState(null, '', url.toString());
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     saveUserSettings({
       drawerSize: settings.drawerSize,
@@ -119,14 +135,28 @@ const GridfinityCalculator: React.FC = () => {
         </Card>
       </div>
 
+      <ShareLayoutButton />
+
       {result && (
         <>
-          <GridfinityResults result={result} useMm={settings.useMm} />
+          <GridfinityResults
+            result={result}
+            useMm={settings.useMm}
+            useHalfSize={settings.useHalfSize}
+            preferHalfSize={settings.preferHalfSize}
+          />
           {layout && layout.length > 0 && (
             <GridfinityVisualPreview
               layout={layout}
               drawerSize={settings.drawerSize}
               useMm={settings.useMm}
+            />
+          )}
+          {layout && layout.length > 0 && (
+            <BinLabels
+              layout={layout}
+              useMm={settings.useMm}
+              numDrawers={settings.numDrawers}
             />
           )}
         </>
