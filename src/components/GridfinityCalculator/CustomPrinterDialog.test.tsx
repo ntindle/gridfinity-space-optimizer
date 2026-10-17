@@ -7,7 +7,6 @@ import userEvent from '@testing-library/user-event';
 import CustomPrinterDialog from './CustomPrinterDialog';
 import { useCustomPrinter } from '../../hooks/useCustomPrinter';
 
-// Mock the useCustomPrinter hook
 vi.mock('../../hooks/useCustomPrinter', () => ({
   useCustomPrinter: vi.fn(() => ({
     customDimensions: { x: 200, y: 200, z: 200 },
@@ -90,9 +89,7 @@ describe('CustomPrinterDialog', () => {
     expect(screen.getByText(/Z \(in\)/)).toBeInTheDocument();
   });
 
-  // Preview section was removed from the component
   it.skip('should show preview with current dimensions', () => {
-    // This test is skipped as the preview was removed
   });
 
   it('should handle input changes', async () => {
@@ -121,10 +118,8 @@ describe('CustomPrinterDialog', () => {
     );
 
     const xInput = screen.getByRole('textbox', { name: /X \(mm\)/i });
-    // Use fireEvent.change for more predictable behavior in tests
     fireEvent.change(xInput, { target: { value: '250' } });
 
-    // Check that handleInputChange was called with the correct value
     expect(mockHandleInputChange).toHaveBeenCalledWith('x', '250');
   });
 
@@ -259,13 +254,9 @@ describe('CustomPrinterDialog', () => {
     expect(mockResetToDefault).toHaveBeenCalled();
   });
 
-  // Step attributes test removed - inputs are now text type
   it.skip('should have correct step values for inputs', () => {
-    // Text inputs don't have step attributes
   });
 
-  // Step attributes test removed - inputs are now text type
   it.skip('should have correct step values for inch inputs', () => {
-    // Text inputs don't have step attributes
   });
 });

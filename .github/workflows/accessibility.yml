@@ -75,7 +75,7 @@ jobs:
           
       - name: Upload accessibility reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: accessibility-reports
           path: axe-reports/
@@ -138,7 +138,7 @@ jobs:
         
       - name: Upload Pa11y results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: pa11y-results
           path: pa11y-results.json
