@@ -5,8 +5,8 @@ import { GithubIcon } from "@/components/icons";
 
 const Header = () => {
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-sm">
-      <div className="container mx-auto px-4 py-6 flex justify-between items-center">
+    <header className="bg-white dark:bg-gray-800 shadow-xs">
+      <div className="mx-auto w-full max-w-[1400px] px-4 py-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
           Gridfinity Layout
         </h1>

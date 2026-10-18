@@ -215,7 +215,7 @@ import { something } from '@/lib/utils';
 - `vite.config.test.js` - Test configuration
 - `eslint.config.js` - Linting rules (max warnings: 0)
 - `tsconfig.json` - TypeScript configuration
-- `tailwind.config.js` - CSS framework configuration
+- `src/index.css` - CSS framework configuration (Tailwind CSS v4, CSS-first config)
 
 ### Development Workflow
 1. **Start development**: `npm run dev`
