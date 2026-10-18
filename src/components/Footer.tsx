@@ -6,7 +6,7 @@ import { GithubIcon } from "@/components/icons";
 const Footer = () => {
   return (
     <footer className="bg-gray-800 text-white py-12">
-      <div className="container mx-auto px-4 text-center">
+      <div className="mx-auto w-full max-w-[1400px] px-4 text-center">
         <h3 className="text-2xl font-semibold mb-4">Gridfinity Calculator</h3>
         <p className="text-gray-300 mb-8">
           An open-source project to help you design custom Gridfinity layouts.

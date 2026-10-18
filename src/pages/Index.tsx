@@ -8,9 +8,9 @@ import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-linear-to-b from-gray-50 to-gray-100">
       <Header />
-      <main className="container mx-auto px-4 py-16">
+      <main className="mx-auto w-full max-w-[1400px] px-4 py-16">
         <Hero />
         <Features />
         <HowItWorks />
