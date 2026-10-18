@@ -76,6 +76,24 @@ Docs-only merge: `docs/feature-map.md` replaced by the 50-row / 35-tool map (Our
 
 Note: parity denominator changes here from 36 rows (narrow map) to 50 rows (expanded map), so 27.0% does not compare directly with the 38.9% above — same counting rule, wider row set. The expanded map is now the source of record for parity.
 
+## 2026-10-18, PR #133 (per-group bin contents, F10 slice)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`; branch re-run `--n=15 --lh=1` to check a first-run outlier).
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 30.0% (11 ✅ + 8 🟡 / 50) | 29.0% |
+| Lighthouse perf | 82–89 | 80 |
+| TTI | 3125–3393 ms | 3298 ms |
+| Input-to-preview (median) | 43.8–63.5 ms | 41.2 ms |
+| Layout task | 4 steps, 445–553 ms | 4 steps, 417 ms |
+| Adjust-grid task | 1 edit, 43.8–63.5 ms | 1 edit, 41.2 ms |
+| Export task | not supported | not supported |
+| Share task | 1 click, 77–81 ms | 1 click, 70 ms |
+| Labels task | contents set per group in piece details, printed on all 3 styles | no contents |
+
+Verdict: no credible regression. The first branch run's 63.5 ms input-to-preview did not reproduce (43.8 ms on re-run vs trunk 41.2 ms — inside the ±5 ms run noise plus box warmth after the build); Lighthouse/TTI overlap the bands seen all week. The delta sits on a code path this diff does not touch (drawer-width edit → preview piece list is unchanged code; the added per-row work is one object lookup). Parity +1.0pp (F10 ❌→🟡); labels job extended with contents. Bundle delta: index chunk 164,485 → 165,966 B (+0.9%).
+
 ## 2026-10-17, PR #114 (drawer measurement guidance, F42)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`). An earlier branch run executed while the trunk build was still compiling and showed inflated numbers; it was discarded as contaminated and re-run clean.

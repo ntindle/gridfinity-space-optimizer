@@ -4,6 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
+import BinContentsInput from "./BinContentsInput";
 import type { LayoutItem } from "@/types";
 
 const layout: LayoutItem[] = [
@@ -48,6 +49,8 @@ const renderPreview = (useMm = false) =>
       layout={layout}
       drawerSize={{ width: 15, height: 10 }}
       useMm={useMm}
+      binContents={{}}
+      onBinContentsChange={() => {}}
     />
   );
 
@@ -142,6 +145,8 @@ describe("GridfinityVisualPreview piece selection", () => {
         layout={[layout[0]]}
         drawerSize={{ width: 15, height: 10 }}
         useMm={false}
+        binContents={{}}
+        onBinContentsChange={() => {}}
       />
     );
     expect(screen.queryByText("Piece details")).not.toBeInTheDocument();
@@ -161,11 +166,130 @@ describe("GridfinityVisualPreview piece selection", () => {
         layout={layout}
         drawerSize={{ width: 15, height: 10 }}
         useMm={true}
+        binContents={{}}
+        onBinContentsChange={() => {}}
       />
     );
     expect(screen.getByText("Piece details")).toBeInTheDocument();
     expect(
       screen.getByText(/252 mm × 21 mm \(9\.92.*× 0\.83.*\)/)
     ).toBeInTheDocument();
+  });
+});
+
+describe("GridfinityVisualPreview bin contents", () => {
+  const renderWithContents = (
+    binContents: Record<string, string>,
+    onBinContentsChange: (contents: Record<string, string>) => void = () => {}
+  ) =>
+    render(
+      <GridfinityVisualPreview
+        layout={layout}
+        drawerSize={{ width: 15, height: 10 }}
+        useMm={false}
+        binContents={binContents}
+        onBinContentsChange={onBinContentsChange}
+      />
+    );
+
+  const selectBaseplates = () => {
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Baseplate 3 × 2 — 2 in this drawer/i,
+      })
+    );
+  };
+
+  it("shows a contents input in the details panel for the selected group", () => {
+    renderWithContents({});
+    selectBaseplates();
+    const input = screen.getByLabelText("Contents");
+    expect(input).toBeInTheDocument();
+    expect(input).toHaveAttribute("placeholder", "e.g. M3 screws");
+    expect(input).toHaveValue("");
+  });
+
+  it("commits the edited contents keyed by group on blur", () => {
+    const seen: Record<string, string>[] = [];
+    renderWithContents({}, (next) => seen.push(next));
+    selectBaseplates();
+    const input = screen.getByLabelText("Contents");
+    fireEvent.change(input, { target: { value: "M3 screws" } });
+    expect(seen).toHaveLength(0);
+    fireEvent.blur(input);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual({ "baseplate:3x2": "M3 screws" });
+  });
+
+  it("keeps spaces while typing multi-word contents", () => {
+    const seen: Record<string, string>[] = [];
+    renderWithContents({}, (next) => seen.push(next));
+    selectBaseplates();
+    const input = screen.getByLabelText("Contents") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "M3 " } });
+    fireEvent.change(input, { target: { value: "M3 screws" } });
+    expect(input.value).toBe("M3 screws");
+    fireEvent.blur(input);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual({ "baseplate:3x2": "M3 screws" });
+  });
+
+  it("does not commit when the draft is unchanged on blur", () => {
+    const seen: Record<string, string>[] = [];
+    renderWithContents({ "baseplate:3x2": "M3 screws" }, (next) =>
+      seen.push(next)
+    );
+    selectBaseplates();
+    fireEvent.blur(screen.getByLabelText("Contents"));
+    expect(seen).toHaveLength(0);
+  });
+
+  it("removes the group key when the input is cleared", () => {
+    const seen: Record<string, string>[] = [];
+    renderWithContents({ "baseplate:3x2": "M3 screws" }, (next) =>
+      seen.push(next)
+    );
+    selectBaseplates();
+    expect(screen.getByLabelText("Contents")).toHaveValue("M3 screws");
+    const input = screen.getByLabelText("Contents");
+    fireEvent.change(input, { target: { value: "   " } });
+    fireEvent.blur(input);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual({});
+  });
+
+  it("shows the contents in the pieces list row", () => {
+    renderWithContents({ "baseplate:3x2": "M3 screws" });
+    expect(
+      screen.getByRole("button", {
+        name: /Baseplate 3 × 2 — 2 in this drawer · M3 screws/i,
+      })
+    ).toBeInTheDocument();
+  });
+});
+
+describe("BinContentsInput", () => {
+  it("syncs the draft when the committed value changes externally", () => {
+    const { rerender } = render(
+      <BinContentsInput value="" pieceCount={2} onCommit={() => {}} />
+    );
+    const input = screen.getByLabelText("Contents") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "draft text" } });
+    expect(input.value).toBe("draft text");
+    rerender(
+      <BinContentsInput value="external" pieceCount={2} onCommit={() => {}} />
+    );
+    expect(input.value).toBe("external");
+  });
+
+  it("describes how many pieces the contents apply to", () => {
+    const { rerender } = render(
+      <BinContentsInput value="" pieceCount={3} onCommit={() => {}} />
+    );
+    expect(
+      screen.getByText(/Applies to all 3 identical pieces\./)
+    ).toBeInTheDocument();
+    rerender(<BinContentsInput value="" pieceCount={1} onCommit={() => {}} />);
+    expect(screen.getByText(/Applies to this piece\./)).toBeInTheDocument();
   });
 });

@@ -7,6 +7,7 @@ import DrawerOptions from "./GridfinityCalculator/DrawerOptions";
 import GridfinityResults from "./GridfinityResults";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
 import BinLabels from "./BinLabels";
+import { pruneBinContents } from "@/utils/binContents";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useGridfinityCalculation } from "@/hooks/useGridfinityCalculation";
 import { useLegacyMigration } from "@/hooks/useLegacyMigration";
@@ -28,6 +29,13 @@ const GridfinityCalculator: React.FC = () => {
     preferUniformBaseplates: settings.preferUniformBaseplates,
     numDrawers: settings.numDrawers,
   });
+
+  useEffect(() => {
+    const pruned = pruneBinContents(settings.binContents, layout);
+    if (Object.keys(pruned).length !== Object.keys(settings.binContents).length) {
+      settings.setBinContents(pruned);
+    }
+  }, [layout]); // eslint-disable-line react-hooks/exhaustive-deps
   
   useEffect(() => {
     const legacySettings = loadUserSettings();
@@ -150,6 +158,8 @@ const GridfinityCalculator: React.FC = () => {
               layout={layout}
               drawerSize={settings.drawerSize}
               useMm={settings.useMm}
+              binContents={settings.binContents}
+              onBinContentsChange={settings.setBinContents}
             />
           )}
           {layout && layout.length > 0 && (
@@ -157,6 +167,7 @@ const GridfinityCalculator: React.FC = () => {
               layout={layout}
               useMm={settings.useMm}
               numDrawers={settings.numDrawers}
+              binContents={settings.binContents}
             />
           )}
         </>

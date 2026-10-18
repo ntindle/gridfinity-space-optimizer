@@ -23,7 +23,10 @@ export interface GridfinitySettings {
   
   customPrinterSize: PrinterSize;
   setCustomPrinterSize: (size: PrinterSize) => void;
-  
+
+  binContents: Record<string, string>;
+  setBinContents: (contents: Record<string, string>) => void;
+
   resetSettings: () => void;
 }
 
@@ -68,6 +71,11 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     { x: 200, y: 200, z: 200 }
   );
 
+  const [binContents, setBinContents] = usePersistedState<Record<string, string>>(
+    'gridfinity_binContents',
+    {}
+  );
+
   const handleUseHalfSizeChange = (value: boolean) => {
     setUseHalfSize(value);
     if (value) setPreferHalfSize(false);
@@ -87,6 +95,7 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     setNumDrawers(1);
     setUseMm(false);
     setCustomPrinterSize({ x: 200, y: 200, z: 200 });
+    setBinContents({});
   };
 
   return {
@@ -111,7 +120,10 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     
     customPrinterSize,
     setCustomPrinterSize,
-    
+
+    binContents,
+    setBinContents,
+
     resetSettings,
   };
 };
