@@ -1,0 +1,31 @@
+# CVE-2026-93687 (braces <= 3.0.3, HIGH, CWE-674 uncontrolled recursion):
+# deeply nested brace patterns under the character limit exhaust the call
+# stack in braces' recursive AST walkers (lib/parse.js, lib/compile.js,
+# lib/expand.js), terminating the Node.js process with an uncaught
+# RangeError (DoS). Published 2026-09-18, updated 2026-10-14. No fixed
+# version exists as of 2026-10-18 (braces 3.0.3 is the latest release;
+# upstream issue micromatch/braces#70 is open).
+#
+# Dependency chain in this repo (verified with `npm ls braces`):
+#   tailwindcss@3.4.17 (devDependency) -> chokidar@3.6.0 -> braces@3.0.3
+#   tailwindcss@3.4.17 (devDependency) -> micromatch@4.0.8 -> braces@3.0.3
+#
+# Why this is accepted as not exploitable in this project:
+# - braces runs only at build/dev time on the developer or CI machine
+#   (tailwindcss PostCSS plugin during `npm run build`, chokidar file
+#   watching during `npm run dev`). Its only inputs are tailwind.config.js
+#   content globs and watched file paths, all developer-controlled repo
+#   source. Exploitation requires feeding a crafted deeply-nested brace
+#   pattern to a braces API, which would require repo write access --
+#   at which point the attacker already owns the build.
+# - No web-app user input (drawer dimensions, printer sizes, share URLs,
+#   labels) ever reaches braces, micromatch, or chokidar: nothing in
+#   src/, scripts/, or eslint-rules/ imports them.
+# - braces is absent from the production bundle served by
+#   gridfinitylayout.com (verified 2026-10-18: `npm run build` then grepped
+#   dist/assets/*.js -- zero matches for braces or its internals).
+#
+# Re-evaluate this exception if: a fixed braces version is published,
+# tailwindcss is upgraded past 3.x (changing the chain), or braces becomes
+# reachable from untrusted input.
+CVE-2026-93687
