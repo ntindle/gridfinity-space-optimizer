@@ -18,13 +18,24 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-label', '@radix-ui/react-slot'],
-          'math-vendor': ['mathjs'],
-        }
+        advancedChunks: {
+          groups: [
+            {
+              name: 'react-vendor',
+              test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/,
+            },
+            {
+              name: 'ui-vendor',
+              test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
+            },
+            {
+              name: 'math-vendor',
+              test: /[\\/]node_modules[\\/]mathjs[\\/]/,
+            },
+          ],
+        },
       }
     },
     sourcemap: true,
