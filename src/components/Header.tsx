@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Github, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
+import { GithubIcon } from "@/components/icons";
 
 const Header = () => {
   return (
@@ -20,7 +21,7 @@ const Header = () => {
               )
             }
           >
-            <Github className="mr-2 h-5 w-5" />
+            <GithubIcon className="mr-2 h-5 w-5" />
             GitHub
           </Button>
           <Button
