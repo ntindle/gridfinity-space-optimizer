@@ -5,12 +5,14 @@ import {
   groupPreviewPieces,
   previewPieceKey,
 } from "@/utils/previewPieceDetails";
+import { getBinContents } from "@/utils/binContents";
 import type { LayoutItem } from "@/types/gridfinity";
 
 interface BinLabelsProps {
   layout: LayoutItem[];
   useMm: boolean;
   numDrawers: number;
+  binContents: Record<string, string>;
 }
 
 type LabelStyle = "paper" | "cullenect" | "pred-slot";
@@ -48,7 +50,12 @@ const LABEL_STYLES: LabelStyleSpec[] = [
 const styleSpec = (style: LabelStyle): LabelStyleSpec =>
   LABEL_STYLES.find((candidate) => candidate.id === style) ?? LABEL_STYLES[0];
 
-const BinLabels: React.FC<BinLabelsProps> = ({ layout, useMm, numDrawers }) => {
+const BinLabels: React.FC<BinLabelsProps> = ({
+  layout,
+  useMm,
+  numDrawers,
+  binContents,
+}) => {
   const [style, setStyle] = useState<LabelStyle>("paper");
   const spec = styleSpec(style);
 
@@ -83,6 +90,10 @@ const BinLabels: React.FC<BinLabelsProps> = ({ layout, useMm, numDrawers }) => {
   }
 
   const handlePrint = () => {
+    document.body.classList.remove(PRINT_BODY_CLASS);
+    LABEL_STYLES.forEach((candidate) =>
+      document.body.classList.remove(candidate.printClass)
+    );
     document.body.classList.add(PRINT_BODY_CLASS, spec.printClass);
     if (typeof window.print === "function") {
       window.print();
@@ -93,6 +104,7 @@ const BinLabels: React.FC<BinLabelsProps> = ({ layout, useMm, numDrawers }) => {
   groups.forEach((group) => {
     const details = getPreviewPieceDetails(group.item, layout);
     const total = unitMath.multiply(group.count, numDrawers);
+    const contents = getBinContents(binContents, group.item);
     const physical = useMm
       ? `${details.widthMm} mm × ${details.heightMm} mm`
       : `${details.widthIn}″ × ${details.heightIn}″`;
@@ -104,11 +116,13 @@ const BinLabels: React.FC<BinLabelsProps> = ({ layout, useMm, numDrawers }) => {
             key={key}
             className="bin-label-card flex w-48 h-14 flex-col justify-center overflow-hidden border border-black bg-white px-2 text-black"
           >
-            <div className="text-base font-bold leading-none">
-              {details.gridLabel}
+            <div className="text-base font-bold leading-none truncate">
+              {contents || details.gridLabel}
             </div>
             <div className="truncate text-[10px] leading-tight">
-              {details.typeLabel}
+              {contents
+                ? `${details.gridLabel} · ${details.typeLabel}`
+                : details.typeLabel}
             </div>
           </div>
         );
@@ -122,6 +136,9 @@ const BinLabels: React.FC<BinLabelsProps> = ({ layout, useMm, numDrawers }) => {
             <div className="text-base font-bold leading-none">
               {details.gridLabel}
             </div>
+            {contents ? (
+              <div className="truncate text-sm font-semibold">{contents}</div>
+            ) : null}
             <div className="truncate text-sm">{details.typeLabel}</div>
             <div className="shrink-0 text-xs">{physical}</div>
           </div>
@@ -136,6 +153,9 @@ const BinLabels: React.FC<BinLabelsProps> = ({ layout, useMm, numDrawers }) => {
               {details.gridLabel}
             </div>
             <div className="mt-1 text-sm">{details.typeLabel}</div>
+            {contents ? (
+              <div className="mt-1 text-sm font-semibold">{contents}</div>
+            ) : null}
             <div className="text-xs">{physical}</div>
           </div>
         );
@@ -156,8 +176,9 @@ const BinLabels: React.FC<BinLabelsProps> = ({ layout, useMm, numDrawers }) => {
         </button>
       </div>
       <p className="text-sm text-gray-600 mb-2">
-        One label per bin. Print the sheet, cut the labels out, and stick one on
-        each bin.
+        One label per bin. Select a piece in the preview above to name what
+        goes inside — it prints on the labels. Print the sheet, cut the labels
+        out, and stick one on each bin.
       </p>
       <div
         className="mb-2 flex flex-wrap gap-2"

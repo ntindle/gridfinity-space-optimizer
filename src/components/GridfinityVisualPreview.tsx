@@ -5,18 +5,24 @@ import {
   groupPreviewPieces,
   previewPieceKey,
 } from "@/utils/previewPieceDetails";
+import { getBinContents, setBinContentsForItem } from "@/utils/binContents";
+import BinContentsInput from "./BinContentsInput";
 import type { LayoutItem, DrawerSize } from "@/types";
 
 interface GridfinityVisualPreviewProps {
   layout: LayoutItem[];
   drawerSize: DrawerSize;
   useMm: boolean;
+  binContents: Record<string, string>;
+  onBinContentsChange: (contents: Record<string, string>) => void;
 }
 
 const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
   layout,
   drawerSize,
   useMm,
+  binContents,
+  onBinContentsChange,
 }) => {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [prevLayout, setPrevLayout] = useState(layout);
@@ -83,6 +89,7 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
             const key = previewPieceKey(group.item);
             const details = getPreviewPieceDetails(group.item, layout);
             const selected = selectedKey === key;
+            const contents = getBinContents(binContents, group.item);
             return (
               <li key={key}>
                 <button
@@ -92,7 +99,7 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
                   className="w-full min-h-12 px-4 py-3 text-left border rounded-lg"
                 >
                   {details.typeLabel} {details.gridLabel} — {group.count} in
-                  this drawer
+                  this drawer{contents ? ` · ${contents}` : ""}
                 </button>
               </li>
             );
@@ -131,6 +138,15 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
             <dt className="text-gray-600">Identical pieces</dt>
             <dd>{selectedDetails.identicalCount} in this drawer</dd>
           </dl>
+          <BinContentsInput
+            value={getBinContents(binContents, selectedGroup.item)}
+            pieceCount={selectedGroup.count}
+            onCommit={(draft) =>
+              onBinContentsChange(
+                setBinContentsForItem(binContents, selectedGroup.item, draft)
+              )
+            }
+          />
         </div>
       )}
     </div>
