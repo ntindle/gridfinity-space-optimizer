@@ -5,7 +5,7 @@ import {
   groupPreviewPieces,
   previewPieceKey,
 } from "@/utils/previewPieceDetails";
-import { getBinContents } from "@/utils/binContents";
+import { getBinContentsForBin } from "@/utils/binContents";
 import type { LayoutItem } from "@/types/gridfinity";
 
 interface BinLabelsProps {
@@ -104,12 +104,17 @@ const BinLabels: React.FC<BinLabelsProps> = ({
   groups.forEach((group) => {
     const details = getPreviewPieceDetails(group.item, layout);
     const total = unitMath.multiply(group.count, numDrawers);
-    const contents = getBinContents(binContents, group.item);
+    const groupKey = previewPieceKey(group.item);
     const physical = useMm
       ? `${details.widthMm} mm × ${details.heightMm} mm`
       : `${details.widthIn}″ × ${details.heightIn}″`;
     for (let index = 0; index < total; index += 1) {
       const key = `${previewPieceKey(group.item)}-${index}`;
+      const contents = getBinContentsForBin(
+        binContents,
+        groupKey,
+        unitMath.mod(index, group.count)
+      );
       if (style === "cullenect") {
         cards.push(
           <div
@@ -177,8 +182,9 @@ const BinLabels: React.FC<BinLabelsProps> = ({
       </div>
       <p className="text-sm text-gray-600 mb-2">
         One label per bin. Select a piece in the preview above to name what
-        goes inside — it prints on the labels. Print the sheet, cut the labels
-        out, and stick one on each bin.
+        goes inside — or name each bin individually — it prints on the
+        labels. Print the sheet, cut the labels out, and stick one on each
+        bin.
       </p>
       <div
         className="mb-2 flex flex-wrap gap-2"

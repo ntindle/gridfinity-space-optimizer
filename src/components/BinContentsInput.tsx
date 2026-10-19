@@ -6,12 +6,16 @@ interface BinContentsInputProps {
   value: string;
   pieceCount: number;
   onCommit: (value: string) => void;
+  inputId?: string;
+  label?: string;
 }
 
 const BinContentsInput: React.FC<BinContentsInputProps> = ({
   value,
   pieceCount,
   onCommit,
+  inputId = "bin-contents-input",
+  label = "Contents",
 }) => {
   const [draft, setDraft] = useState(value);
   const [prevValue, setPrevValue] = useState(value);
@@ -23,9 +27,9 @@ const BinContentsInput: React.FC<BinContentsInputProps> = ({
 
   return (
     <div className="mt-3">
-      <Label htmlFor="bin-contents-input">Contents</Label>
+      <Label htmlFor={inputId}>{label}</Label>
       <Input
-        id="bin-contents-input"
+        id={inputId}
         type="text"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}

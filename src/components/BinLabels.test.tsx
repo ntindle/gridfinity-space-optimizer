@@ -202,6 +202,36 @@ describe("BinLabels", () => {
     expect(screen.getByText("3 × 2 · Half-size bin")).toBeInTheDocument();
   });
 
+  it("prints a per-bin override on its card and the group contents elsewhere", () => {
+    render(
+      <BinLabels
+        layout={layout}
+        useMm={true}
+        numDrawers={1}
+        binContents={{
+          "baseplate:6x6": "plates",
+          "baseplate:6x6#1": "special plates",
+        }}
+      />
+    );
+    expect(screen.getByText("special plates")).toBeInTheDocument();
+    expect(screen.getAllByText("plates")).toHaveLength(1);
+  });
+
+  it("wraps the per-bin index across duplicate drawers", () => {
+    render(
+      <BinLabels
+        layout={layout}
+        useMm={true}
+        numDrawers={2}
+        binContents={{ "baseplate:6x6#0": "drawer bin one" }}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Cullenect 36.4/ }));
+    expect(screen.getAllByText("drawer bin one")).toHaveLength(2);
+    expect(screen.getAllByText("6 × 6")).toHaveLength(2);
+  });
+
   it("clears a stale style class before marking the body for printing", () => {
     const printSpy = vi.fn();
     Object.defineProperty(window, "print", {

@@ -4,6 +4,10 @@
 import { describe, it, expect } from "vitest";
 import {
   getBinContents,
+  getBinContentsForBin,
+  hasPerBinContents,
+  perBinContentsKey,
+  setBinContentsForBin,
   setBinContentsForItem,
   pruneBinContents,
 } from "./binContents";
@@ -73,5 +77,66 @@ describe("binContents", () => {
       "baseplate:3x2": "M3 screws",
     });
     expect(pruneBinContents({}, [baseplate])).toEqual({});
+  });
+});
+
+describe("binContents per-bin overrides", () => {
+  it("builds a per-bin key from the group key and bin index", () => {
+    expect(perBinContentsKey("baseplate:3x2", 0)).toBe("baseplate:3x2#0");
+    expect(perBinContentsKey("baseplate:3x2", 7)).toBe("baseplate:3x2#7");
+  });
+
+  it("prefers the per-bin value and falls back to the group value", () => {
+    const contents = {
+      "baseplate:3x2": "M3 screws",
+      "baseplate:3x2#1": "M4 screws",
+    };
+    expect(getBinContentsForBin(contents, "baseplate:3x2", 0)).toBe(
+      "M3 screws"
+    );
+    expect(getBinContentsForBin(contents, "baseplate:3x2", 1)).toBe(
+      "M4 screws"
+    );
+    expect(getBinContentsForBin(contents, "baseplate:3x2", 2)).toBe(
+      "M3 screws"
+    );
+    expect(getBinContentsForBin({}, "baseplate:3x2", 0)).toBe("");
+  });
+
+  it("sets and clears per-bin values without touching the group value", () => {
+    const before = { "baseplate:3x2": "M3 screws" };
+    const next = setBinContentsForBin(before, "baseplate:3x2", 1, "M4 screws");
+    expect(next).toEqual({
+      "baseplate:3x2": "M3 screws",
+      "baseplate:3x2#1": "M4 screws",
+    });
+    expect(before).toEqual({ "baseplate:3x2": "M3 screws" });
+    expect(setBinContentsForBin(next, "baseplate:3x2", 1, "   ")).toEqual({
+      "baseplate:3x2": "M3 screws",
+    });
+  });
+
+  it("detects per-bin overrides for a group key", () => {
+    expect(hasPerBinContents({ "baseplate:3x2#0": "M4 screws" }, "baseplate:3x2")).toBe(
+      true
+    );
+    expect(hasPerBinContents({ "baseplate:3x2": "M3 screws" }, "baseplate:3x2")).toBe(
+      false
+    );
+    expect(hasPerBinContents({}, "baseplate:3x2")).toBe(false);
+  });
+
+  it("prunes per-bin keys whose bin index is out of range or whose group is gone", () => {
+    const contents = {
+      "baseplate:3x2": "M3 screws",
+      "baseplate:3x2#0": "M4 screws",
+      "baseplate:3x2#1": "M5 screws",
+      "baseplate:3x2#9": "stale",
+      "half-size:2x2#0": "stale",
+    };
+    expect(pruneBinContents(contents, [baseplate, spacer])).toEqual({
+      "baseplate:3x2": "M3 screws",
+      "baseplate:3x2#0": "M4 screws",
+    });
   });
 });

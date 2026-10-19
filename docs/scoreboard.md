@@ -13,6 +13,23 @@ Method, frozen at baseline:
   4. Share: click "Copy share link", read the clipboard, check it holds `share=`.
   5. Labels: scroll to the Bin labels section, confirm one label card per bin (spacers excluded), click "Print labels", confirm the print dialog/preview shows the label-only sheet.
 
+## 2026-10-19, PR #142 (per-bin bin contents, F10 slice)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`). The first branch run executed while the trunk worktree's `npm ci` + build was still compiling and showed inflated interaction numbers; it was discarded as contaminated and the branch re-run clean on a quiet box.
+
+| Metric | Branch (clean re-run) | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 31.0% (12 ✅ + 7 🟡 / 50) | 30.0% |
+| Lighthouse perf | 68 | 60 |
+| TTI | 3984 ms | 5586 ms |
+| Layout task | 4 steps, 589 ms | 4 steps, 490 ms |
+| Adjust-grid task | 1 edit, 66.7 ms | 1 edit, 45.5 ms |
+| Export task | not supported | not supported |
+| Share task | 1 click, 105 ms | 1 click, 83 ms |
+| Labels task | per-bin overrides print on the matching card, group fallback elsewhere | group contents only |
+
+Verdict: no credible regression. Lighthouse/TTI favor the branch; the interaction deltas (+21 ms adjust-grid, +99 ms layout, +22 ms share) sit on code paths this diff does not touch (drawer-width edit → preview piece list, share-link copy) and match the box's observed run-to-run noise (trunk alone swung 41.2 → 63.5 ms on input-to-preview across same-day runs this week). Parity +1.0pp (F10 🟡→✅). Bundle delta: index chunk 166,161 → 167,058 B (+0.5%).
+
 ## Baseline, 2026-10-14, main at a486b37
 
 Local build on the box, three full runs; values are identical or within the spread shown.
