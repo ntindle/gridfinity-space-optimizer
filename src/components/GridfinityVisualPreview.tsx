@@ -1,11 +1,18 @@
 import React, { useMemo, useState } from "react";
 import { getColor, INCH_TO_MM } from "@/utils/gridfinityUtils";
+import { unitMath } from "@/services/unitMath";
 import {
   getPreviewPieceDetails,
   groupPreviewPieces,
   previewPieceKey,
 } from "@/utils/previewPieceDetails";
-import { getBinContents, setBinContentsForItem } from "@/utils/binContents";
+import {
+  getBinContents,
+  getBinContentsForBin,
+  hasPerBinContents,
+  setBinContentsForBin,
+  setBinContentsForItem,
+} from "@/utils/binContents";
 import BinContentsInput from "./BinContentsInput";
 import type { LayoutItem, DrawerSize } from "@/types";
 
@@ -39,6 +46,9 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
   const selectedDetails = selectedGroup
     ? getPreviewPieceDetails(selectedGroup.item, layout)
     : null;
+  const selectedMembers = selectedGroup
+    ? layout.filter((item) => previewPieceKey(item) === selectedKey)
+    : [];
 
   return (
     <div className="w-full">
@@ -90,6 +100,15 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
             const details = getPreviewPieceDetails(group.item, layout);
             const selected = selectedKey === key;
             const contents = getBinContents(binContents, group.item);
+            const varies = hasPerBinContents(binContents, key);
+            let rowSuffix = "";
+            if (contents) {
+              rowSuffix = varies
+                ? ` · ${contents} (varies by bin)`
+                : ` · ${contents}`;
+            } else if (varies) {
+              rowSuffix = " · varies by bin";
+            }
             return (
               <li key={key}>
                 <button
@@ -99,7 +118,7 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
                   className="w-full min-h-12 px-4 py-3 text-left border rounded-lg"
                 >
                   {details.typeLabel} {details.gridLabel} — {group.count} in
-                  this drawer{contents ? ` · ${contents}` : ""}
+                  this drawer{rowSuffix}
                 </button>
               </li>
             );
@@ -147,6 +166,38 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
               )
             }
           />
+          {selectedGroup.count > 1 && selectedKey !== null && (
+            <details className="mt-4">
+              <summary className="cursor-pointer min-h-12 py-3 text-sm font-medium">
+                Name each bin individually ({selectedGroup.count} bins)
+              </summary>
+              <div className="mt-1 space-y-4">
+                {selectedMembers.map((item, index) => (
+                  <BinContentsInput
+                    key={`${selectedKey}#${index}`}
+                    inputId={`bin-contents-bin-${index}`}
+                    label={`Bin ${unitMath.add(index, 1)} · column ${unitMath.round(item.x, 2)}, row ${unitMath.round(item.y, 2)}`}
+                    value={getBinContentsForBin(
+                      binContents,
+                      selectedKey,
+                      index
+                    )}
+                    pieceCount={1}
+                    onCommit={(draft) =>
+                      onBinContentsChange(
+                        setBinContentsForBin(
+                          binContents,
+                          selectedKey,
+                          index,
+                          draft
+                        )
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            </details>
+          )}
         </div>
       )}
     </div>

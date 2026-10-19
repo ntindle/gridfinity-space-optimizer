@@ -268,6 +268,128 @@ describe("GridfinityVisualPreview bin contents", () => {
   });
 });
 
+describe("GridfinityVisualPreview per-bin contents", () => {
+  const renderWithContents = (
+    binContents: Record<string, string>,
+    onBinContentsChange: (contents: Record<string, string>) => void = () => {}
+  ) =>
+    render(
+      <GridfinityVisualPreview
+        layout={layout}
+        drawerSize={{ width: 15, height: 10 }}
+        useMm={false}
+        binContents={binContents}
+        onBinContentsChange={onBinContentsChange}
+      />
+    );
+
+  const selectBaseplates = () => {
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Baseplate 3 × 2 — 2 in this drawer/i,
+      })
+    );
+  };
+
+  const openPerBinSection = () => {
+    fireEvent.click(
+      screen.getByText("Name each bin individually (2 bins)")
+    );
+  };
+
+  it("lists one input per bin with its position when a group has several pieces", () => {
+    renderWithContents({});
+    selectBaseplates();
+    openPerBinSection();
+    expect(
+      screen.getByLabelText("Bin 1 · column 0, row 0")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Bin 2 · column 3, row 0")
+    ).toBeInTheDocument();
+  });
+
+  it("hides the per-bin section for a group with a single piece", () => {
+    renderWithContents({});
+    fireEvent.click(
+      screen.getByRole("button", { name: /Spacer 6 × 0.5 — 1 in this drawer/i })
+    );
+    expect(
+      screen.queryByText(/Name each bin individually/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the effective contents in each per-bin input", () => {
+    renderWithContents({
+      "baseplate:3x2": "M3 screws",
+      "baseplate:3x2#1": "M4 screws",
+    });
+    selectBaseplates();
+    openPerBinSection();
+    expect(screen.getByLabelText("Bin 1 · column 0, row 0")).toHaveValue(
+      "M3 screws"
+    );
+    expect(screen.getByLabelText("Bin 2 · column 3, row 0")).toHaveValue(
+      "M4 screws"
+    );
+  });
+
+  it("commits a per-bin override on blur without touching the group value", () => {
+    const seen: Record<string, string>[] = [];
+    renderWithContents({ "baseplate:3x2": "M3 screws" }, (next) =>
+      seen.push(next)
+    );
+    selectBaseplates();
+    openPerBinSection();
+    const input = screen.getByLabelText("Bin 1 · column 0, row 0");
+    fireEvent.change(input, { target: { value: "M4 screws" } });
+    expect(seen).toHaveLength(0);
+    fireEvent.blur(input);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual({
+      "baseplate:3x2": "M3 screws",
+      "baseplate:3x2#0": "M4 screws",
+    });
+  });
+
+  it("clearing a per-bin input reverts the bin to the group contents", () => {
+    const seen: Record<string, string>[] = [];
+    renderWithContents(
+      { "baseplate:3x2": "M3 screws", "baseplate:3x2#0": "M4 screws" },
+      (next) => seen.push(next)
+    );
+    selectBaseplates();
+    openPerBinSection();
+    const input = screen.getByLabelText("Bin 1 · column 0, row 0");
+    expect(input).toHaveValue("M4 screws");
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.blur(input);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual({ "baseplate:3x2": "M3 screws" });
+  });
+
+  it("marks the pieces list row when bins vary", () => {
+    renderWithContents({
+      "baseplate:3x2": "M3 screws",
+      "baseplate:3x2#0": "M4 screws",
+    });
+    expect(
+      screen.getByRole("button", {
+        name: /Baseplate 3 × 2 — 2 in this drawer · M3 screws \(varies by bin\)/i,
+      })
+    ).toBeInTheDocument();
+  });
+
+  it("marks the pieces list row when only per-bin contents exist", () => {
+    renderWithContents({ "baseplate:3x2#1": "M4 screws" });
+    expect(
+      screen.getByRole("button", {
+        name: /Baseplate 3 × 2 — 2 in this drawer · varies by bin/i,
+      })
+    ).toBeInTheDocument();
+  });
+});
+
 describe("BinContentsInput", () => {
   it("syncs the draft when the committed value changes externally", () => {
     const { rerender } = render(
