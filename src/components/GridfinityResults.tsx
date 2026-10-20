@@ -28,7 +28,7 @@ const GridfinityResults: React.FC<GridfinityResultsProps> = ({
   const totalSpacers = multiplyQuantities(spacers);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-tour="results">
       <h4 className="text-xl font-semibold">
         Results for {numDrawers} drawer{numDrawers > 1 ? "s" : ""}
       </h4>

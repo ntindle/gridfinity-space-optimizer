@@ -359,4 +359,31 @@ describe('GridfinityCalculator', () => {
       screen.getByRole('button', { name: /print labels/i })
     ).toBeInTheDocument();
   });
+
+  it('should render exactly one element for each guided-tour anchor id', async () => {
+    renderWithProviders(<GridfinityCalculator />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Results for \d+ drawer/)).toBeInTheDocument();
+    });
+
+    for (const id of ['drawer', 'printer', 'bins', 'results', 'share']) {
+      expect(document.querySelectorAll(`[data-tour="${id}"]`).length).toBe(1);
+    }
+  });
+
+  it('should open the guided tour when Take the tour is clicked', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<GridfinityCalculator />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Results for \d+ drawer/)).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Take the tour' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Measure your drawer')).toBeInTheDocument();
+    expect(screen.getByText('Step 1 of 5')).toBeInTheDocument();
+  });
 });
