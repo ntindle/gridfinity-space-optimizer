@@ -30,6 +30,23 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression. Lighthouse/TTI favor the branch; the interaction deltas (+21 ms adjust-grid, +99 ms layout, +22 ms share) sit on code paths this diff does not touch (drawer-width edit → preview piece list, share-link copy) and match the box's observed run-to-run noise (trunk alone swung 41.2 → 63.5 ms on input-to-preview across same-day runs this week). Parity +1.0pp (F10 🟡→✅). Bundle delta: index chunk 166,161 → 167,058 B (+0.5%).
 
+## 2026-10-20, PR #TBD (guided first-run tour, F43 slice)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`).
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 32.0% (13 ✅ + 6 🟡 / 50) | 31.0% |
+| Lighthouse perf | 89 | 75 |
+| TTI | 3087 ms | 3562 ms |
+| Input-to-preview (median) | 49.8 ms | 59.8 ms |
+| Layout task | 4 steps, 488 ms | 4 steps, 522 ms |
+| Adjust-grid task | 1 edit, 49.8 ms | 1 edit, 59.8 ms |
+| Export task | not supported | not supported |
+| Share task | 1 click, 75 ms | 1 click, 110 ms |
+
+Verdict: no regression — branch is at or above trunk on every speed metric (the deltas sit on code paths this diff barely touches; the tour renders only on demand). Parity +1.0pp (F43 🟡→✅); Job 6 onboarding extended with a 5-step guided tour. Bundle delta: index chunk 167,058 → 171,136 B (+2.4%).
+
 ## Baseline, 2026-10-14, main at a486b37
 
 Local build on the box, three full runs; values are identical or within the spread shown.

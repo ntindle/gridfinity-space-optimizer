@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import DrawerDimensions from "./GridfinityCalculator/DrawerDimensions";
 import PrinterSettings from "./GridfinityCalculator/PrinterSettings";
 import BinOptions from "./GridfinityCalculator/BinOptions";
@@ -14,9 +15,13 @@ import { useLegacyMigration } from "@/hooks/useLegacyMigration";
 import { saveUserSettings, loadUserSettings } from "@/lib/utils";
 import { parseShareParam } from "@/utils/shareLayout";
 import ShareLayoutButton from "@/components/GridfinityCalculator/ShareLayoutButton";
+import GuidedTour from "@/components/GuidedTour";
 
 const GridfinityCalculator: React.FC = () => {
   useLegacyMigration();
+
+  const [tourOpen, setTourOpen] = useState(false);
+  const closeTour = useCallback(() => setTourOpen(false), []);
   
   const settings = useSettings();
   
@@ -89,6 +94,12 @@ const GridfinityCalculator: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-sm text-muted-foreground">New here?</span>
+        <Button variant="outline" size="sm" onClick={() => setTourOpen(true)}>
+          Take the tour
+        </Button>
+      </div>
       <div
         className="grid gap-6 max-w-full"
         style={{
@@ -97,7 +108,7 @@ const GridfinityCalculator: React.FC = () => {
           gridAutoRows: "1fr",
         }}
       >
-        <Card>
+        <Card data-tour="drawer">
           <CardContent>
             <DrawerDimensions
               drawerSize={settings.drawerSize}
@@ -108,7 +119,7 @@ const GridfinityCalculator: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tour="printer">
           <CardContent>
             <PrinterSettings
               selectedPrinter={settings.selectedPrinter}
@@ -120,7 +131,7 @@ const GridfinityCalculator: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tour="bins">
           <CardContent>
             <BinOptions
               useHalfSize={settings.useHalfSize}
@@ -172,6 +183,7 @@ const GridfinityCalculator: React.FC = () => {
           )}
         </>
       )}
+      <GuidedTour open={tourOpen} onClose={closeTour} />
     </div>
   );
 };

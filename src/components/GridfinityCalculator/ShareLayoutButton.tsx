@@ -79,7 +79,7 @@ const ShareLayoutButton: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2" data-tour="share">
       <Button
         type="button"
         variant="outline"
