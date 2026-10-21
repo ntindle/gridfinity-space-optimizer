@@ -13,6 +13,23 @@ Method, frozen at baseline:
   4. Share: click "Copy share link", read the clipboard, check it holds `share=`.
   5. Labels: scroll to the Bin labels section, confirm one label card per bin (spacers excluded), click "Print labels", confirm the print dialog/preview shows the label-only sheet.
 
+## 2026-10-21, PR #TBD (mobile-UX second slice, F45)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`).
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 33.0% (14 ✅ + 5 🟡 / 50) | 32.0% |
+| Lighthouse perf | 58 | 57 |
+| TTI | 5986 ms | 6267 ms |
+| Input-to-preview (median) | 113.5 ms | 123.1 ms |
+| Layout task | 4 steps, 798 ms | 4 steps, 912 ms |
+| Adjust-grid task | 1 edit, 113.5 ms | 1 edit, 123.1 ms |
+| Export task | not supported | not supported |
+| Share task | 1 click, 232 ms | 1 click, 232 ms |
+
+Verdict: no regression — branch is at or above trunk on every speed metric (both runs show the same box-level slowness vs the 2026-10-20 baselines; the deltas sit on code paths this diff does not touch — drawer-width edit to preview piece list is unchanged code, the new work is a disclosure wrapper plus a sticky bar). Parity +1.0pp (F45 🟡→✅); Job 7 mobile pass completed with collapsible input sections, a sticky results bar, and 44px inputs on small screens. Bundle delta: index chunk 171,226 → 172,873 B (+1.0%).
+
 ## 2026-10-19, PR #142 (per-bin bin contents, F10 slice)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`). The first branch run executed while the trunk worktree's `npm ci` + build was still compiling and showed inflated interaction numbers; it was discarded as contaminated and the branch re-run clean on a quiet box.

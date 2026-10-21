@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import DrawerDimensions from "./GridfinityCalculator/DrawerDimensions";
 import PrinterSettings from "./GridfinityCalculator/PrinterSettings";
@@ -16,6 +15,8 @@ import { saveUserSettings, loadUserSettings } from "@/lib/utils";
 import { parseShareParam } from "@/utils/shareLayout";
 import ShareLayoutButton from "@/components/GridfinityCalculator/ShareLayoutButton";
 import GuidedTour from "@/components/GuidedTour";
+import CollapsibleCard from "@/components/CollapsibleCard";
+import MobileResultsBar from "@/components/MobileResultsBar";
 
 const GridfinityCalculator: React.FC = () => {
   useLegacyMigration();
@@ -101,58 +102,52 @@ const GridfinityCalculator: React.FC = () => {
         </Button>
       </div>
       <div
-        className="grid gap-6 max-w-full"
+        className="grid gap-6 max-w-full max-md:[&_input]:h-11"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
           gridAutoRows: "1fr",
         }}
       >
-        <Card data-tour="drawer">
-          <CardContent>
-            <DrawerDimensions
-              drawerSize={settings.drawerSize}
-              setDrawerSize={settings.setDrawerSize}
-              useMm={settings.useMm}
-              setUseMm={settings.setUseMm}
-            />
-          </CardContent>
-        </Card>
+        <CollapsibleCard title="Drawer Dimensions" tourId="drawer">
+          <DrawerDimensions
+            drawerSize={settings.drawerSize}
+            setDrawerSize={settings.setDrawerSize}
+            useMm={settings.useMm}
+            setUseMm={settings.setUseMm}
+          />
+        </CollapsibleCard>
 
-        <Card data-tour="printer">
-          <CardContent>
-            <PrinterSettings
-              selectedPrinter={settings.selectedPrinter}
-              setSelectedPrinter={settings.setSelectedPrinter}
-              printerSize={printerSize}
-              setPrinterSize={settings.setCustomPrinterSize}
-              useMm={settings.useMm}
-            />
-          </CardContent>
-        </Card>
+        <CollapsibleCard title="Printer Settings" defaultOpen={false} tourId="printer">
+          <PrinterSettings
+            selectedPrinter={settings.selectedPrinter}
+            setSelectedPrinter={settings.setSelectedPrinter}
+            printerSize={printerSize}
+            setPrinterSize={settings.setCustomPrinterSize}
+            useMm={settings.useMm}
+          />
+        </CollapsibleCard>
 
-        <Card data-tour="bins">
-          <CardContent>
-            <BinOptions
-              useHalfSize={settings.useHalfSize}
-              setUseHalfSize={settings.setUseHalfSize}
-              preferHalfSize={settings.preferHalfSize}
-              setPreferHalfSize={settings.setPreferHalfSize}
-              preferUniformBaseplates={settings.preferUniformBaseplates}
-              setPreferUniformBaseplates={settings.setPreferUniformBaseplates}
-            />
-          </CardContent>
-        </Card>
+        <CollapsibleCard title="Bin Options" defaultOpen={false} tourId="bins">
+          <BinOptions
+            useHalfSize={settings.useHalfSize}
+            setUseHalfSize={settings.setUseHalfSize}
+            preferHalfSize={settings.preferHalfSize}
+            setPreferHalfSize={settings.setPreferHalfSize}
+            preferUniformBaseplates={settings.preferUniformBaseplates}
+            setPreferUniformBaseplates={settings.setPreferUniformBaseplates}
+          />
+        </CollapsibleCard>
 
-        <Card>
-          <CardContent>
-            <DrawerOptions
-              numDrawers={settings.numDrawers}
-              setNumDrawers={settings.setNumDrawers}
-            />
-          </CardContent>
-        </Card>
+        <CollapsibleCard title="Drawer Options" defaultOpen={false}>
+          <DrawerOptions
+            numDrawers={settings.numDrawers}
+            setNumDrawers={settings.setNumDrawers}
+          />
+        </CollapsibleCard>
       </div>
+
+      {result && <MobileResultsBar result={result} />}
 
       <ShareLayoutButton />
 

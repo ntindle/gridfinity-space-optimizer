@@ -23,7 +23,6 @@ const DrawerOptions = ({ numDrawers, setNumDrawers }) => {
 
   return (
     <div className="p-4 space-y-2">
-      <h3 className="text-lg font-semibold">Drawer Options</h3>
       <div className="flex items-center space-x-4">
         <Label htmlFor="numDrawers" className="flex-1">
           Number of Duplicate Drawers

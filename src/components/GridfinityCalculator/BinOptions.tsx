@@ -12,7 +12,6 @@ const BinOptions = ({
 }) => {
   return (
     <div className="space-y-6 p-4">
-      <h3 className="text-lg font-semibold">Bin Options</h3>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label htmlFor="use-half-size" className="flex-1">

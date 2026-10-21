@@ -38,10 +38,11 @@ describe('GridfinityCalculator', () => {
   it('should render all main sections', () => {
     renderWithProviders(<GridfinityCalculator />);
     
-    expect(screen.getByText('Drawer Dimensions')).toBeInTheDocument();
-    expect(screen.getByText('Printer Settings')).toBeInTheDocument();
-    expect(screen.getByText('Bin Options')).toBeInTheDocument();
-    expect(screen.getByText('Drawer Options')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Drawer Dimensions' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Printer Settings' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Bin Options' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Drawer Options' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Drawer Dimensions' })).toBeInTheDocument();
   });
 
   it('should load saved settings on mount', () => {
@@ -165,7 +166,7 @@ describe('GridfinityCalculator', () => {
     await userEvent.clear(widthInput);
     await userEvent.type(widthInput, '0');
     
-    expect(screen.getByText('Drawer Dimensions')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Drawer Dimensions' })).toBeInTheDocument();
   });
 
   it('should recalculate when dimensions change', async () => {

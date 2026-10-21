@@ -89,8 +89,7 @@ const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm, setUseMm }) => {
 
   return (
     <div className="w-full max-w-sm space-y-6 p-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Drawer Dimensions</h3>
+      <div className="flex justify-end items-center">
         <div className="flex items-center space-x-2">
           <Label htmlFor="unit-toggle">Inches</Label>
           <Switch id="unit-toggle" checked={useMm} onCheckedChange={handleUnitToggle} />

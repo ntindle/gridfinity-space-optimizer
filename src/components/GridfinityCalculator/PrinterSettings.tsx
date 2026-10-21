@@ -58,7 +58,6 @@ const PrinterSettings = ({
 
   return (
     <div className="space-y-6 p-4">
-      <h3 className="text-lg font-semibold">Printer Settings</h3>
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="printerModel">Printer Model</Label>
