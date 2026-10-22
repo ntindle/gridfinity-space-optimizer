@@ -144,6 +144,10 @@ Uses Shadcn/ui components (`src/components/ui/`) - pre-built accessible componen
 4. **Printer Profiles**: Predefined printer sizes in `src/lib/utils.ts` as `printerSizes` object
 5. **Layout Visualization**: Real-time preview updates using calculated pixel coordinates
 
+## Building New Features
+
+Read `docs/wireframes/README.md` before adding UI. It shows the slots where new UI may go (S1–S6), the rules every feature follows, and a wireframe for each feature still to build (print and export, bins, drawer shape, layout editor, 3D preview, projects). Build from the frame, and update its Status line and `docs/feature-map.md` when the feature ships.
+
 ## Development Notes
 
 - **Testing**: Vitest test framework with React Testing Library
