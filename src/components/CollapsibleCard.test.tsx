@@ -72,4 +72,14 @@ describe('CollapsibleCard', () => {
       container.querySelector('[data-tour="drawer"]')
     ).toBeInTheDocument();
   });
+
+  it('gives the mobile toggle an explicit focus-visible ring', () => {
+    render(
+      <CollapsibleCard title="Drawer Dimensions">
+        <p>card body</p>
+      </CollapsibleCard>
+    );
+    const toggle = screen.getByRole('button', { name: 'Drawer Dimensions' });
+    expect(toggle.className).toContain('focus-visible:ring-2');
+  });
 });

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 
 interface TourStep {
@@ -72,6 +73,11 @@ const GuidedTour: React.FC<GuidedTourProps> = ({ open, onClose }) => {
   const displayIndex = Math.min(resolvedIndex, STEPS.length - 1);
   const step = STEPS[displayIndex];
   const isLastStep = displayIndex === STEPS.length - 1;
+  const visibleSteps = STEPS.filter((candidate) => findAnchor(candidate.id));
+  const visiblePosition = Math.max(
+    1,
+    visibleSteps.findIndex((candidate) => candidate.id === step.id) + 1
+  );
 
   const updateCardPosition = useCallback(() => {
     const anchor = findAnchor(STEPS[displayIndex].id);
@@ -114,6 +120,15 @@ const GuidedTour: React.FC<GuidedTourProps> = ({ open, onClose }) => {
     if (!open) return;
     const anchor = findAnchor(STEPS[displayIndex].id);
     if (!anchor) return;
+    const section = anchor.closest("section[data-tour]");
+    const toggle = section?.querySelector<HTMLButtonElement>(
+      'button[aria-expanded="false"]'
+    );
+    if (toggle && window.getComputedStyle(toggle).display !== "none") {
+      flushSync(() => {
+        toggle.click();
+      });
+    }
     if (typeof anchor.scrollIntoView === "function") {
       anchor.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
@@ -153,7 +168,32 @@ const GuidedTour: React.FC<GuidedTourProps> = ({ open, onClose }) => {
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const card = cardRef.current;
+      if (!card) return;
+      const focusable = Array.from(
+        card.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (
+        event.shiftKey &&
+        (active === first || active === card || !card.contains(active))
+      ) {
+        last.focus();
+        event.preventDefault();
+      } else if (!event.shiftKey && active === last) {
+        first.focus();
+        event.preventDefault();
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -179,7 +219,7 @@ const GuidedTour: React.FC<GuidedTourProps> = ({ open, onClose }) => {
         style={{ top: cardPosition.top, left: cardPosition.left }}
       >
         <p className="text-xs font-medium text-muted-foreground">
-          Step {displayIndex + 1} of {STEPS.length}
+          Step {visiblePosition} of {visibleSteps.length}
         </p>
         <div aria-live="polite">
           <h2 id="guided-tour-title" className="mt-1 text-lg font-semibold">
@@ -203,7 +243,7 @@ const GuidedTour: React.FC<GuidedTourProps> = ({ open, onClose }) => {
           <button
             type="button"
             onClick={onClose}
-            className="ml-auto min-h-[44px] px-3 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            className="ml-auto min-h-[44px] px-3 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             Skip tour
           </button>

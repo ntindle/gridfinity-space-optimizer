@@ -29,12 +29,12 @@ const GridfinityResults: React.FC<GridfinityResultsProps> = ({
 
   return (
     <div className="space-y-4" id="calculator-results" data-tour="results">
-      <h4 className="text-xl font-semibold">
+      <h3 className="text-xl font-semibold">
         Results for {numDrawers} drawer{numDrawers > 1 ? "s" : ""}
-      </h4>
+      </h3>
       {!useHalfSize && Object.keys(totalBaseplates).length > 0 && (
         <div>
-          <h5 className="text-lg font-medium">Baseplates:</h5>
+          <h4 className="text-lg font-medium">Baseplates:</h4>
           <ul className="list-disc list-inside pl-4">
             {Object.entries(totalBaseplates).map(([size, count]) => (
               <li key={size} className="text-gray-700">
@@ -46,7 +46,7 @@ const GridfinityResults: React.FC<GridfinityResultsProps> = ({
       )}
       {(useHalfSize || preferHalfSize) && totalHalfSizeBins && Object.keys(totalHalfSizeBins).length > 0 && (
         <div>
-          <h5 className="text-lg font-medium">Half-size Bins:</h5>
+          <h4 className="text-lg font-medium">Half-size Bins:</h4>
           <ul className="list-disc list-inside pl-4">
             {Object.entries(totalHalfSizeBins).map(([size, count]) => (
               <li key={size} className="text-gray-700">
@@ -58,7 +58,7 @@ const GridfinityResults: React.FC<GridfinityResultsProps> = ({
       )}
       {Object.keys(totalSpacers).length > 0 && (
         <div>
-          <h5 className="text-lg font-medium">Spacers:</h5>
+          <h4 className="text-lg font-medium">Spacers:</h4>
           <ul className="list-disc list-inside pl-4">
             {Object.entries(totalSpacers).map(([size, count]) => (
               <li key={size} className="text-gray-700">

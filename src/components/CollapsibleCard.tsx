@@ -26,7 +26,7 @@ const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
-        className="mb-2 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-lg border bg-card px-4 py-2 text-left shadow-xs md:hidden"
+        className="mb-2 flex min-h-[48px] w-full items-center justify-between gap-3 rounded-lg border bg-card px-4 py-2 text-left shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:hidden"
       >
         <span className="text-lg font-semibold">{title}</span>
         <ChevronDown

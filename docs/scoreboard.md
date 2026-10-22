@@ -13,7 +13,24 @@ Method, frozen at baseline:
   4. Share: click "Copy share link", read the clipboard, check it holds `share=`.
   5. Labels: scroll to the Bin labels section, confirm one label card per bin (spacers excluded), click "Print labels", confirm the print dialog/preview shows the label-only sheet.
 
-## 2026-10-21, PR #TBD (mobile-UX second slice, F45)
+## 2026-10-22, PR #145 (accessibility completion, F46)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`).
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 34.0% (15 ✅ + 4 🟡 / 50) | 33.0% |
+| Lighthouse perf | 89 | 89 |
+| TTI | 2986 ms | 3088 ms |
+| Input-to-preview (median) | 41.8 ms | 41.0 ms |
+| Layout task | 4 steps, 431 ms | 4 steps, 434 ms |
+| Adjust-grid task | 1 edit, 41.8 ms | 1 edit, 41.0 ms |
+| Export task | not supported | not supported |
+| Share task | 1 click, 81 ms | 1 click, 75 ms |
+
+Verdict: no regression — branch matches trunk on every speed metric (Lighthouse identical at 89; TTI, layout, adjust-grid, and share deltas all within run noise; the diff touches disclosure wrappers, dialog focus handling, and static content, not the drawer-width-edit → preview path). Parity +1.0pp (F46 🟡→✅); Job 7 accessibility completed with a published statement plus the accumulated a11y fixes (tour focus trap, visible-step renumbering, auto-expand of collapsed sections, explicit focus-visible rings, screen-reader label-sheet summary, selected-piece styling, heading outline fix). Bundle delta: index chunk 172,873 → 176,926 B (+2.3%).
+
+## 2026-10-21, PR #144 (mobile-UX second slice, F45)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`).
 
@@ -47,7 +64,7 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression. Lighthouse/TTI favor the branch; the interaction deltas (+21 ms adjust-grid, +99 ms layout, +22 ms share) sit on code paths this diff does not touch (drawer-width edit → preview piece list, share-link copy) and match the box's observed run-to-run noise (trunk alone swung 41.2 → 63.5 ms on input-to-preview across same-day runs this week). Parity +1.0pp (F10 🟡→✅). Bundle delta: index chunk 166,161 → 167,058 B (+0.5%).
 
-## 2026-10-20, PR #TBD (guided first-run tour, F43 slice)
+## 2026-10-20, PR #143 (guided first-run tour, F43 slice)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`).
 

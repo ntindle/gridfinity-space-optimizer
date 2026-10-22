@@ -56,6 +56,14 @@ const Footer = () => {
           © {new Date().getFullYear()} Gridfinity Calculator. Licensed under
           MIT.
         </p>
+        <p className="mt-2 text-sm">
+          <a
+            href="#accessibility"
+            className="text-gray-300 underline underline-offset-4 hover:text-white focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800"
+          >
+            Accessibility statement
+          </a>
+        </p>
       </div>
     </footer>
   );

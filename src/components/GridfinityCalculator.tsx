@@ -147,7 +147,13 @@ const GridfinityCalculator: React.FC = () => {
         </CollapsibleCard>
       </div>
 
-      {result && <MobileResultsBar result={result} />}
+      {result && (
+        <MobileResultsBar
+          result={result}
+          useHalfSize={settings.useHalfSize}
+          preferHalfSize={settings.preferHalfSize}
+        />
+      )}
 
       <ShareLayoutButton />
 

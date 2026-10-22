@@ -118,6 +118,36 @@ describe("GridfinityVisualPreview piece selection", () => {
     expect(row).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("gives the selected row a distinct selected style", () => {
+    renderPreview();
+    const row = screen.getByRole("button", {
+      name: /Baseplate 3 × 2 — 2 in this drawer/i,
+    });
+    const unselected = screen.getByRole("button", {
+      name: /Spacer 6 × 0\.5 — 1 in this drawer/i,
+    });
+    expect(row.className).not.toContain("border-primary");
+
+    fireEvent.click(row);
+    expect(row).toHaveAttribute("aria-pressed", "true");
+    expect(row.className).toContain("border-primary");
+    expect(unselected.className).not.toContain("border-primary");
+  });
+
+  it("hides the pieces section when the layout has no pieces", () => {
+    render(
+      <GridfinityVisualPreview
+        layout={[]}
+        drawerSize={{ width: 15, height: 10 }}
+        useMm={false}
+        binContents={{}}
+        onBinContentsChange={() => {}}
+      />
+    );
+    expect(screen.getByText("Visual Preview")).toBeInTheDocument();
+    expect(screen.queryByText("Pieces in this drawer")).not.toBeInTheDocument();
+  });
+
   it("clears the selection via the Clear selection button", () => {
     renderPreview();
     fireEvent.click(
