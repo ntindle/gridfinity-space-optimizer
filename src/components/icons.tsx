@@ -21,4 +21,22 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 
-export { GithubIcon };
+function LogoMark({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      className={cn(className)}
+      aria-hidden="true"
+    >
+      <rect x="2" y="2" width="20" height="20" rx="5" fill="currentColor" />
+      <rect x="5" y="5" width="6.5" height="6.5" rx="1.5" fill="var(--brand)" />
+      <rect x="12.5" y="5" width="6.5" height="6.5" rx="1.5" fill="var(--background)" opacity="0.92" />
+      <rect x="5" y="12.5" width="6.5" height="6.5" rx="1.5" fill="var(--background)" opacity="0.92" />
+      <rect x="12.5" y="12.5" width="6.5" height="6.5" rx="1.5" fill="var(--background)" opacity="0.92" />
+    </svg>
+  );
+}
+
+export { GithubIcon, LogoMark };

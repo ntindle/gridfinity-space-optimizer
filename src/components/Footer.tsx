@@ -1,69 +1,50 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { Heart, FileText } from "lucide-react";
-import { GithubIcon } from "@/components/icons";
+import { LogoMark } from "@/components/icons";
+
+const LINKS = [
+  { label: "GitHub", href: "https://github.com/ntindle/gridfinity-space-optimizer" },
+  { label: "Donate", href: "https://github.com/sponsors/ntindle" },
+  {
+    label: "License",
+    href: "https://github.com/ntindle/gridfinity-space-optimizer/blob/main/LICENSE",
+  },
+];
+
+const linkClass =
+  "rounded-sm underline decoration-transparent underline-offset-4 transition-colors duration-150 hover:text-foreground hover:decoration-current focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring";
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-800 text-white py-12">
-      <div className="mx-auto w-full max-w-[1400px] px-4 text-center">
-        <h3 className="text-2xl font-semibold mb-4">Gridfinity Calculator</h3>
-        <p className="text-gray-300 mb-8">
-          An open-source project to help you design custom Gridfinity layouts.
+    <footer className="border-t border-border/70 pb-[env(safe-area-inset-bottom)]">
+      <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 px-4 py-8 text-[13px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <p className="flex items-center gap-2">
+          <LogoMark className="size-4 text-foreground" />
+          <span>
+            © {new Date().getFullYear()} Gridfinity Layout · Open source under
+            MIT
+          </span>
         </p>
-        <div className="flex flex-col sm:flex-row justify-center sm:space-x-4 space-y-4 sm:space-y-0 mb-8">
-          <Button
-            variant="secondary"
-            size="lg"
-            className="text-lg px-6 py-4 w-full sm:w-auto"
-            onClick={() =>
-              window.open(
-                "https://github.com/ntindle/gridfinity-space-optimizer",
-                "_blank"
-              )
-            }
-          >
-            <GithubIcon className="mr-2 h-5 w-5" />
-            GitHub
-          </Button>
-          <Button
-            variant="secondary"
-            size="lg"
-            className="text-lg px-6 py-4 w-full sm:w-auto"
-            onClick={() =>
-              window.open("https://github.com/sponsors/ntindle", "_blank")
-            }
-          >
-            <Heart className="mr-2 h-5 w-5" />
-            Donate
-          </Button>
-          <Button
-            variant="secondary"
-            size="lg"
-            className="text-lg px-6 py-4 w-full sm:w-auto"
-            onClick={() =>
-              window.open(
-                "https://github.com/ntindle/gridfinity-space-optimizer/blob/main/LICENSE",
-                "_blank"
-              )
-            }
-          >
-            <FileText className="mr-2 h-5 w-5" />
-            License
-          </Button>
-        </div>
-        <p className="text-sm text-gray-400">
-          © {new Date().getFullYear()} Gridfinity Calculator. Licensed under
-          MIT.
-        </p>
-        <p className="mt-2 text-sm">
-          <a
-            href="#accessibility"
-            className="text-gray-300 underline underline-offset-4 hover:text-white focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800"
-          >
-            Accessibility statement
-          </a>
-        </p>
+        <nav aria-label="Footer">
+          <ul className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            {LINKS.map((link) => (
+              <li key={link.label}>
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={linkClass}
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+            <li>
+              <a href="#accessibility" className={linkClass}>
+                Accessibility statement
+              </a>
+            </li>
+          </ul>
+        </nav>
       </div>
     </footer>
   );

@@ -9,7 +9,6 @@ import {
   perBinContentsKey,
   setBinContentsForBin,
   setBinContentsForItem,
-  pruneBinContents,
 } from "./binContents";
 import type { LayoutItem } from "@/types";
 
@@ -68,16 +67,6 @@ describe("binContents", () => {
     });
   });
 
-  it("prunes keys whose groups are gone from the layout", () => {
-    const contents = {
-      "baseplate:3x2": "M3 screws",
-      "half-size:2x2": "stale",
-    };
-    expect(pruneBinContents(contents, [baseplate, spacer])).toEqual({
-      "baseplate:3x2": "M3 screws",
-    });
-    expect(pruneBinContents({}, [baseplate])).toEqual({});
-  });
 });
 
 describe("binContents per-bin overrides", () => {
@@ -126,17 +115,14 @@ describe("binContents per-bin overrides", () => {
     expect(hasPerBinContents({}, "baseplate:3x2")).toBe(false);
   });
 
-  it("prunes per-bin keys whose bin index is out of range or whose group is gone", () => {
+  it("only counts per-bin names for bins the group has right now", () => {
     const contents = {
       "baseplate:3x2": "M3 screws",
-      "baseplate:3x2#0": "M4 screws",
-      "baseplate:3x2#1": "M5 screws",
-      "baseplate:3x2#9": "stale",
-      "half-size:2x2#0": "stale",
+      "baseplate:3x2#9": "kept for later",
     };
-    expect(pruneBinContents(contents, [baseplate, spacer])).toEqual({
-      "baseplate:3x2": "M3 screws",
-      "baseplate:3x2#0": "M4 screws",
-    });
+    expect(hasPerBinContents(contents, "baseplate:3x2", 2)).toBe(false);
+    expect(hasPerBinContents(contents, "baseplate:3x2", 10)).toBe(true);
+    expect(hasPerBinContents(contents, "baseplate:3x2")).toBe(true);
+    expect(hasPerBinContents({ "baseplate:3x20#0": "other group" }, "baseplate:3x2")).toBe(false);
   });
 });

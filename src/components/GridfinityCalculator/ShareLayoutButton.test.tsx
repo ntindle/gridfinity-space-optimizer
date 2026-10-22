@@ -48,7 +48,7 @@ describe('ShareLayoutButton', () => {
       numDrawers: 1,
       useMm: false,
     });
-    expect(screen.getByText('Link copied!')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/link copied/i);
   });
 
   it('shows an error state when copying fails', async () => {

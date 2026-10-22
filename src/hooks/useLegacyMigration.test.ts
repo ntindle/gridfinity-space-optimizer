@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useLegacyMigration } from './useLegacyMigration';
+import { useGridfinitySettings } from './useGridfinitySettings';
 import { renderHook } from '@testing-library/react';
 
 const store: Record<string, string> = {};
@@ -65,5 +66,53 @@ describe('useLegacyMigration', () => {
     store['gridfinitySettings'] = JSON.stringify({ numDrawers: 3 });
     renderHook(() => useLegacyMigration());
     expect(store['gridfinity_numDrawers']).toBeUndefined();
+  });
+});
+
+describe('legacy settings reach the settings provider', () => {
+  beforeEach(() => {
+    for (const key of Object.keys(store)) {
+      delete store[key];
+    }
+    global.localStorage = {
+      getItem: vi.fn((key: string) => storageValue(key)),
+      setItem: vi.fn((key: string, value: string) => {
+        store[key] = value;
+      }),
+      removeItem: vi.fn((key: string) => {
+        delete store[key];
+      }),
+      clear: vi.fn(),
+      length: 0,
+      key: vi.fn(() => null),
+    } as unknown as Storage;
+  });
+
+  it('migrates before the per-key settings are read, so the old values win over defaults', () => {
+    store['gridfinitySettings'] = JSON.stringify({
+      drawerSize: { width: 30, height: 20 },
+      selectedPrinter: 'Prusa MK4',
+      useHalfSize: true,
+      numDrawers: 4,
+      useMm: true,
+    });
+
+    const { result } = renderHook(() => useGridfinitySettings());
+
+    expect(result.current.drawerSize).toEqual({ width: 30, height: 20 });
+    expect(result.current.selectedPrinter).toBe('Prusa MK4');
+    expect(result.current.useHalfSize).toBe(true);
+    expect(result.current.numDrawers).toBe(4);
+    expect(result.current.useMm).toBe(true);
+    expect(store['gridfinity_drawerSize']).toBe(JSON.stringify({ width: 30, height: 20 }));
+  });
+
+  it('falls back to defaults when a stored setting is null', () => {
+    store['gridfinity_migration_v1'] = 'true';
+    store['gridfinity_drawerSize'] = 'null';
+
+    const { result } = renderHook(() => useGridfinitySettings());
+
+    expect(result.current.drawerSize).toEqual({ width: 22.5, height: 16.5 });
   });
 });

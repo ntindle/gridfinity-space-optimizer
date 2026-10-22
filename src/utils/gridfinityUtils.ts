@@ -21,7 +21,8 @@ const BASEPLATE_VARIETY_PENALTY = 15;
 export const splitSpacerIfNeeded = (
   spacer: LayoutItem, 
   maxWidth: number, 
-  maxHeight: number
+  maxHeight: number,
+  gridSize: number = FULL_GRID_SIZE
 ): LayoutItem[] => {
   const spacers: LayoutItem[] = [];
   const fullWidthParts = unitMath.floor(unitMath.divide(spacer.pixelWidth, maxWidth));
@@ -32,7 +33,7 @@ export const splitSpacerIfNeeded = (
   for (let i = 0; i < fullWidthParts; i++) {
     for (let j = 0; j < fullHeightParts; j++) {
       spacers.push(
-        createSpacer(spacer, unitMath.multiply(i, maxWidth), unitMath.multiply(j, maxHeight), maxWidth, maxHeight)
+        createSpacer(spacer, unitMath.multiply(i, maxWidth), unitMath.multiply(j, maxHeight), maxWidth, maxHeight, gridSize)
       );
     }
   }
@@ -45,7 +46,8 @@ export const splitSpacerIfNeeded = (
           unitMath.multiply(fullWidthParts, maxWidth),
           unitMath.multiply(j, maxHeight),
           remainderWidth,
-          maxHeight
+          maxHeight,
+          gridSize
         )
       );
     }
@@ -59,7 +61,8 @@ export const splitSpacerIfNeeded = (
           unitMath.multiply(i, maxWidth),
           unitMath.multiply(fullHeightParts, maxHeight),
           maxWidth,
-          remainderHeight
+          remainderHeight,
+          gridSize
         )
       );
     }
@@ -72,7 +75,8 @@ export const splitSpacerIfNeeded = (
         unitMath.multiply(fullWidthParts, maxWidth),
         unitMath.multiply(fullHeightParts, maxHeight),
         remainderWidth,
-        remainderHeight
+        remainderHeight,
+        gridSize
       )
     );
   }
@@ -85,15 +89,18 @@ const createSpacer = (
   offsetX: number, 
   offsetY: number, 
   width: number, 
-  height: number
+  height: number,
+  gridSize: number = FULL_GRID_SIZE
 ): LayoutItem => ({
   ...originalSpacer,
+  x: unitMath.add(originalSpacer.x, unitMath.divide(offsetX, gridSize)),
+  y: unitMath.add(originalSpacer.y, unitMath.divide(offsetY, gridSize)),
   pixelX: unitMath.add(originalSpacer.pixelX, offsetX),
   pixelY: unitMath.add(originalSpacer.pixelY, offsetY),
   pixelWidth: width,
   pixelHeight: height,
-  width: unitMath.round(unitMath.divide(width, FULL_GRID_SIZE), 2),
-  height: unitMath.round(unitMath.divide(height, FULL_GRID_SIZE), 2),
+  width: unitMath.round(unitMath.divide(width, gridSize), 2),
+  height: unitMath.round(unitMath.divide(height, gridSize), 2),
 });
 
 export const fillSpacerWithHalfSizeBins = (spacer: LayoutItem): {
@@ -124,7 +131,7 @@ export const fillSpacerWithHalfSizeBins = (spacer: LayoutItem): {
       )
     );
   }
-  if (remainderHeight > 0) {
+  if (remainderHeight > 0 && halfBinsX > 0) {
     remainingSpacers.push(
       createSpacer(
         spacer,
@@ -375,6 +382,15 @@ export const calculateGrids = (
   const maxPrintSizeX = unitMath.multiply(unitMath.floor(unitMath.divide(effectiveX, gridSize)), gridSize);
   const maxPrintSizeY = unitMath.multiply(unitMath.floor(unitMath.divide(effectiveY, gridSize)), gridSize);
 
+  if (maxPrintSizeX < gridSize || maxPrintSizeY < gridSize) {
+    return {
+      baseplates: {},
+      spacers: {},
+      halfSizeBins: {},
+      layout: [],
+    };
+  }
+
   const baseplates: string[] = [];
   let newLayout: LayoutItem[] = [];
   const remainingWidth = unitMath.subtract(drawerWidth, unitMath.multiply(gridCountX, gridSize));
@@ -419,7 +435,7 @@ export const calculateGrids = (
     }
   }
   
-  if (!useSmartAllocation && (!preferUniformBaseplates || useHalfSize)) {
+  if (!useSmartAllocation) {
     for (let y = 0; y < gridCountY; y += unitMath.divide(maxPrintSizeY, gridSize)) {
       for (let x = 0; x < gridCountX; x += unitMath.divide(maxPrintSizeX, gridSize)) {
         const width = unitMath.min(unitMath.divide(maxPrintSizeX, gridSize), unitMath.subtract(gridCountX, x));
@@ -462,7 +478,8 @@ export const calculateGrids = (
           pixelHeight: unitMath.multiply(gridCountY, gridSize),
         },
         maxPrintSizeX,
-        maxPrintSizeY
+        maxPrintSizeY,
+        gridSize
       )
     );
   }
@@ -482,7 +499,8 @@ export const calculateGrids = (
           pixelHeight: remainingHeight,
         },
         maxPrintSizeX,
-        maxPrintSizeY
+        maxPrintSizeY,
+        gridSize
       )
     );
   }
@@ -502,7 +520,8 @@ export const calculateGrids = (
           pixelHeight: remainingHeight,
         },
         maxPrintSizeX,
-        maxPrintSizeY
+        maxPrintSizeY,
+        gridSize
       )
     );
   }

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { scrollBehavior } from "@/utils/motion";
 
 interface TourStep {
   id: string;
@@ -13,11 +14,18 @@ interface GuidedTourProps {
   onClose: () => void;
 }
 
+interface Spotlight {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
 const STEPS: TourStep[] = [
   {
     id: "drawer",
     title: "Measure your drawer",
-    body: "Enter the inside width and height of your drawer. The measuring guide beside the inputs shows how to measure.",
+    body: "Enter the inside width and depth of your drawer. The guide under the inputs shows how to measure.",
   },
   {
     id: "printer",
@@ -32,7 +40,7 @@ const STEPS: TourStep[] = [
   {
     id: "results",
     title: "Read the layout",
-    body: "The preview shows every piece. Select a piece for its details, position, and contents.",
+    body: "The drawing shows every piece to scale. Select a piece for its details, position, and contents.",
   },
   {
     id: "share",
@@ -42,12 +50,13 @@ const STEPS: TourStep[] = [
 ];
 
 const VIEWPORT_MARGIN = 12;
-const ANCHOR_GAP = 8;
-const HIGHLIGHT_COLOR = "#2563eb";
+const ANCHOR_GAP = 12;
+const SPOTLIGHT_PADDING = 6;
 
 const GuidedTour: React.FC<GuidedTourProps> = ({ open, onClose }) => {
   const [stepIndex, setStepIndex] = useState(0);
   const [cardPosition, setCardPosition] = useState({ top: VIEWPORT_MARGIN, left: VIEWPORT_MARGIN });
+  const [spotlight, setSpotlight] = useState<Spotlight | null>(null);
   const [wasOpen, setWasOpen] = useState(open);
   const cardRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -84,14 +93,26 @@ const GuidedTour: React.FC<GuidedTourProps> = ({ open, onClose }) => {
     const card = cardRef.current;
     if (!anchor || !card) return;
     const anchorRect = anchor.getBoundingClientRect();
+    setSpotlight({
+      top: anchorRect.top - SPOTLIGHT_PADDING,
+      left: anchorRect.left - SPOTLIGHT_PADDING,
+      width: anchorRect.width + SPOTLIGHT_PADDING * 2,
+      height: anchorRect.height + SPOTLIGHT_PADDING * 2,
+    });
     const fitsBelow =
       anchorRect.bottom + ANCHOR_GAP + card.offsetHeight <= window.innerHeight - VIEWPORT_MARGIN;
-    const top = fitsBelow
-      ? anchorRect.bottom + ANCHOR_GAP
-      : Math.max(VIEWPORT_MARGIN, anchorRect.top - ANCHOR_GAP - card.offsetHeight);
+    const fitsAbove = anchorRect.top - ANCHOR_GAP - card.offsetHeight >= VIEWPORT_MARGIN;
+    let top: number;
+    if (fitsBelow) {
+      top = anchorRect.bottom + ANCHOR_GAP;
+    } else if (fitsAbove) {
+      top = anchorRect.top - ANCHOR_GAP - card.offsetHeight;
+    } else {
+      top = window.innerHeight - VIEWPORT_MARGIN - card.offsetHeight;
+    }
     const maxLeft = Math.max(VIEWPORT_MARGIN, window.innerWidth - card.offsetWidth - VIEWPORT_MARGIN);
     const left = Math.min(Math.max(VIEWPORT_MARGIN, anchorRect.left), maxLeft);
-    setCardPosition({ top, left });
+    setCardPosition({ top: Math.max(VIEWPORT_MARGIN, top), left });
   }, [findAnchor, displayIndex]);
 
   const goBack = () => {
@@ -122,25 +143,20 @@ const GuidedTour: React.FC<GuidedTourProps> = ({ open, onClose }) => {
     if (!anchor) return;
     const section = anchor.closest("section[data-tour]");
     const toggle = section?.querySelector<HTMLButtonElement>(
-      'button[aria-expanded="false"]'
+      'button[data-section-toggle][aria-expanded="false"]'
     );
-    if (toggle && window.getComputedStyle(toggle).display !== "none") {
-      flushSync(() => {
-        toggle.click();
-      });
-    }
-    if (typeof anchor.scrollIntoView === "function") {
-      anchor.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }
-    const previousOutline = anchor.style.outline;
-    const previousOutlineOffset = anchor.style.outlineOffset;
-    anchor.style.outline = `3px solid ${HIGHLIGHT_COLOR}`;
-    anchor.style.outlineOffset = "4px";
-    updateCardPosition();
-    return () => {
-      anchor.style.outline = previousOutline;
-      anchor.style.outlineOffset = previousOutlineOffset;
+    const reveal = () => {
+      if (typeof anchor.scrollIntoView === "function") {
+        anchor.scrollIntoView({ block: "center", behavior: scrollBehavior() });
+      }
+      updateCardPosition();
     };
+    if (toggle && window.getComputedStyle(toggle).display !== "none") {
+      toggle.click();
+      const frame = requestAnimationFrame(reveal);
+      return () => cancelAnimationFrame(frame);
+    }
+    reveal();
   }, [open, displayIndex, findAnchor, updateCardPosition]);
 
   useEffect(() => {
@@ -204,46 +220,70 @@ const GuidedTour: React.FC<GuidedTourProps> = ({ open, onClose }) => {
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-black/50"
+        className={cn(
+          "fixed inset-0 z-40 duration-200 ease-out animate-in fade-in-0",
+          !spotlight && "bg-stone-950/45"
+        )}
         onClick={onClose}
         aria-hidden="true"
         data-testid="guided-tour-backdrop"
       />
+      {spotlight ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed z-40 rounded-xl shadow-[0_0_0_2px_var(--brand),0_0_0_9999px_rgb(12_10_9/0.45)] duration-200 ease-out animate-in fade-in-0"
+          style={spotlight}
+        />
+      ) : null}
       <div
         ref={cardRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="guided-tour-title"
         tabIndex={-1}
-        className="fixed z-50 w-80 max-w-[calc(100vw-24px)] rounded-lg border border-border bg-card p-4 shadow-xl outline-none"
+        className="fixed z-50 w-80 max-w-[calc(100vw-24px)] rounded-xl bg-popover p-4 text-popover-foreground shadow-pop outline-none duration-200 ease-out animate-in fade-in-0 zoom-in-[0.97] motion-reduce:zoom-in-100"
         style={{ top: cardPosition.top, left: cardPosition.left }}
       >
-        <p className="text-xs font-medium text-muted-foreground">
-          Step {visiblePosition} of {visibleSteps.length}
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-medium text-muted-foreground tabular-nums">
+            Step {visiblePosition} of {visibleSteps.length}
+          </p>
+          <div className="flex gap-1" aria-hidden="true">
+            {visibleSteps.map((candidate) => (
+              <span
+                key={candidate.id}
+                className={cn(
+                  "h-1.5 rounded-full transition-[width,background-color] duration-200 ease-out",
+                  candidate.id === step.id ? "w-4 bg-brand" : "w-1.5 bg-border"
+                )}
+              />
+            ))}
+          </div>
+        </div>
         <div aria-live="polite">
-          <h2 id="guided-tour-title" className="mt-1 text-lg font-semibold">
+          <h2 id="guided-tour-title" className="mt-2 text-base font-semibold tracking-[-0.01em]">
             {step.title}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">{step.body}</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
         </div>
         <div className="mt-4 flex items-center gap-2">
           <Button
             type="button"
             variant="outline"
+            size="sm"
             onClick={goBack}
             disabled={displayIndex === 0}
-            className="min-h-[44px]"
+            className="min-h-11 md:min-h-8"
           >
             Back
           </Button>
-          <Button type="button" onClick={goNext} className="min-h-[44px]">
+          <Button type="button" size="sm" onClick={goNext} className="min-h-11 md:min-h-8">
             {isLastStep ? "Done" : "Next"}
           </Button>
           <button
             type="button"
             onClick={onClose}
-            className="ml-auto min-h-[44px] px-3 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="ml-auto min-h-11 rounded-md px-2 text-[13px] text-muted-foreground underline decoration-transparent underline-offset-4 transition-colors duration-150 hover:text-foreground hover:decoration-current focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring md:min-h-8"
           >
             Skip tour
           </button>

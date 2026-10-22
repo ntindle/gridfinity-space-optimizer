@@ -192,12 +192,11 @@ export const testFixtures: Record<string, TestFixture> = {
         '0.84mm x 126.00mm': 1,
         '0.84mm x 0.84mm': 1,
         '126.00mm x 0.84mm': 1,
-        '0.84mm x 127.00mm': 1,
       },
       halfSizeBins: {
       },
       hasHalfSizeBins: false,
-      layoutCount: 5,
+      layoutCount: 4,
     },
   },
 

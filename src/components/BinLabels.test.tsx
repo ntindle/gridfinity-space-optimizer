@@ -293,3 +293,51 @@ describe("BinLabels", () => {
     );
   });
 });
+
+describe("BinLabels printing and limits", () => {
+  it("prints bin-width labels wider than a portrait page in landscape", () => {
+    const print = vi.spyOn(window, "print").mockImplementation(() => {});
+    render(<BinLabels layout={layout} useMm={true} numDrawers={1} binContents={{}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Bin-width slot/ }));
+    fireEvent.click(screen.getByRole("button", { name: /print labels/i }));
+
+    expect(print).toHaveBeenCalled();
+    expect(document.getElementById("bin-label-landscape")?.textContent).toBe(
+      "@page { size: landscape; }"
+    );
+
+    window.dispatchEvent(new Event("afterprint"));
+    expect(document.getElementById("bin-label-landscape")).toBeNull();
+    print.mockRestore();
+  });
+
+  it("keeps portrait for paper cards", () => {
+    const print = vi.spyOn(window, "print").mockImplementation(() => {});
+    render(<BinLabels layout={layout} useMm={true} numDrawers={1} binContents={{}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /print labels/i }));
+
+    expect(print).toHaveBeenCalled();
+    expect(document.getElementById("bin-label-landscape")).toBeNull();
+    print.mockRestore();
+  });
+
+  it("caps the sheet at 2,000 labels and says so", () => {
+    const { container } = render(
+      <BinLabels layout={layout} useMm={true} numDrawers={1000} binContents={{}} />
+    );
+    expect(container.querySelectorAll(".bin-label-card")).toHaveLength(2000);
+    expect(screen.getByText(/shows the first 2,000 of 3,000 labels/)).toBeInTheDocument();
+    expect(screen.getByText(/^3,000 labels|3000 labels/)).toBeInTheDocument();
+  });
+
+  it("remembers the chosen label style", () => {
+    render(<BinLabels layout={layout} useMm={true} numDrawers={1} binContents={{}} />);
+    fireEvent.click(screen.getByRole("button", { name: /Cullenect 36.4/ }));
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      "gridfinity_labelStyle",
+      JSON.stringify("cullenect")
+    );
+  });
+});

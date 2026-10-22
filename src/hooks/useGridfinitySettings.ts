@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { usePersistedState } from './usePersistedState';
+import { migrateLegacySettings } from './useLegacyMigration';
 import type { DrawerSize, PrinterSize } from '@/types';
 
 export interface GridfinitySettings {
@@ -31,6 +33,8 @@ export interface GridfinitySettings {
 }
 
 export const useGridfinitySettings = (): GridfinitySettings => {
+  useState(migrateLegacySettings);
+
   const [drawerSize, setDrawerSize] = usePersistedState<DrawerSize>(
     'gridfinity_drawerSize',
     { width: 22.5, height: 16.5 }

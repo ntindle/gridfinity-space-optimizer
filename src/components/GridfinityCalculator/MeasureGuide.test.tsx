@@ -37,6 +37,6 @@ describe('MeasureGuide', () => {
     render(<MeasureGuide />);
     fireEvent.click(screen.getByText('How to measure your drawer', { selector: 'summary' }));
     expect(screen.getByText(/between the inner walls/i)).toBeInTheDocument();
-    expect(screen.getByText(/Inches\/mm toggle/i)).toBeInTheDocument();
+    expect(screen.getByText(/in\/mm toggle/i)).toBeInTheDocument();
   });
 });

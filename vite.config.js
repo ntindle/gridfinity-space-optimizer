@@ -3,6 +3,26 @@ import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
+const preloadLatinFont = () => ({
+  name: "preload-latin-font",
+  transformIndexHtml: {
+    order: "post",
+    handler(html, ctx) {
+      const font = Object.keys(ctx.bundle ?? {}).find((file) =>
+        /inter-latin-wght-normal-[\w-]+\.woff2$/.test(file)
+      );
+      if (!font) return html;
+      return [
+        {
+          tag: "link",
+          attrs: { rel: "preload", href: `/${font}`, as: "font", type: "font/woff2", crossorigin: "" },
+          injectTo: "head",
+        },
+      ];
+    },
+  },
+});
+
 export default defineConfig({
   server: {
     host: "::",
@@ -11,7 +31,7 @@ export default defineConfig({
       'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
     }
   },
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), preloadLatinFont()],
   resolve: {
     alias: {
       "@": path.resolve(process.cwd(), "./src"),

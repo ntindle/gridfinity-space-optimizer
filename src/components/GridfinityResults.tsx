@@ -1,73 +1,60 @@
 import React from "react";
 import type { CalculationResultWithDrawers } from "@/hooks/useGridfinityCalculation";
+import { countResult, summaryParts } from "@/utils/resultSummary";
+import { formatDrawerSize } from "@/utils/format";
+import type { DrawerSize } from "@/types";
 
 interface GridfinityResultsProps {
   result: CalculationResultWithDrawers;
   useMm: boolean;
   useHalfSize?: boolean;
   preferHalfSize?: boolean;
+  drawerSize?: DrawerSize;
+  action?: React.ReactNode;
 }
 
-const GridfinityResults: React.FC<GridfinityResultsProps> = ({ 
-  result, 
-  useHalfSize, 
-  preferHalfSize 
+const GridfinityResults: React.FC<GridfinityResultsProps> = ({
+  result,
+  useMm,
+  useHalfSize,
+  preferHalfSize,
+  drawerSize,
+  action,
 }) => {
-  const { baseplates, halfSizeBins, spacers, numDrawers } = result;
-
-  const multiplyQuantities = (obj: Record<string, number>): Record<string, number> => {
-    return Object.fromEntries(
-      Object.entries(obj).map(([key, value]) => [key, value * numDrawers])
-    );
-  };
-
-  const totalBaseplates = multiplyQuantities(baseplates);
-  const totalHalfSizeBins = halfSizeBins
-    ? multiplyQuantities(halfSizeBins)
-    : null;
-  const totalSpacers = multiplyQuantities(spacers);
+  const { numDrawers } = result;
+  const counts = countResult(result, useHalfSize, preferHalfSize);
+  const parts = summaryParts(counts, "half-size bin");
+  const onlySpacers =
+    counts.baseplates === 0 && counts.bins === 0 && counts.spacers > 0;
 
   return (
-    <div className="space-y-4" id="calculator-results" data-tour="results">
-      <h3 className="text-xl font-semibold">
-        Results for {numDrawers} drawer{numDrawers > 1 ? "s" : ""}
-      </h3>
-      {!useHalfSize && Object.keys(totalBaseplates).length > 0 && (
-        <div>
-          <h4 className="text-lg font-medium">Baseplates:</h4>
-          <ul className="list-disc list-inside pl-4">
-            {Object.entries(totalBaseplates).map(([size, count]) => (
-              <li key={size} className="text-gray-700">
-                {count} {size} baseplate(s)
-              </li>
-            ))}
-          </ul>
+    <div id="calculator-results" className="scroll-mt-6">
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h2 className="text-[13px] font-medium text-muted-foreground">
+            Results for {numDrawers} drawer{numDrawers > 1 ? "s" : ""}
+            {drawerSize ? " · " : null}
+            {drawerSize ? (
+              <span className="tabular-nums">
+                {formatDrawerSize(drawerSize, useMm)}
+              </span>
+            ) : null}
+          </h2>
+          <p
+            className="mt-1 text-xl font-semibold tracking-[-0.02em] tabular-nums text-balance sm:text-2xl"
+            aria-live="polite"
+          >
+            {parts.length > 0 ? parts.join(" · ") : "Nothing to print yet"}
+          </p>
         </div>
-      )}
-      {(useHalfSize || preferHalfSize) && totalHalfSizeBins && Object.keys(totalHalfSizeBins).length > 0 && (
-        <div>
-          <h4 className="text-lg font-medium">Half-size Bins:</h4>
-          <ul className="list-disc list-inside pl-4">
-            {Object.entries(totalHalfSizeBins).map(([size, count]) => (
-              <li key={size} className="text-gray-700">
-                {count} {size} half-size bin(s)
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {Object.keys(totalSpacers).length > 0 && (
-        <div>
-          <h4 className="text-lg font-medium">Spacers:</h4>
-          <ul className="list-disc list-inside pl-4">
-            {Object.entries(totalSpacers).map(([size, count]) => (
-              <li key={size} className="text-gray-700">
-                {count} spacer(s): {size}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+        {action}
+      </div>
+      {onlySpacers ? (
+        <p className="mt-3 rounded-md bg-muted px-3 py-2 text-[13px] text-muted-foreground">
+          This drawer is smaller than one grid cell, so the whole floor is a
+          spacer.
+        </p>
+      ) : null}
     </div>
   );
 };

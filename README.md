@@ -10,11 +10,14 @@ This project is a web-based calculator for designing custom Gridfinity layouts, 
 
 ## Features
 
-- Easy-to-use calculator interface
-- Customizable grid dimensions
-- Real-time visual preview
-- Shareable layout links (export for printing is not built yet; see docs/backlog.md)
-- Support for various 3D printer sizes
+- Drawer size to a fitted layout: baseplates on the 42 mm grid, plus spacers for the leftover edge
+- Baseplates split to fit your printer's bed, including custom printers with exclusion zones
+- Half-size (21 mm) bins, either for the whole drawer or to fill gaps
+- A to-scale drawing of the drawer and a parts list with totals for several identical drawers
+- Name what goes in each bin and print labels in three styles
+- Shareable layout links; settings are saved in the browser
+- Works on phones, follows the system light or dark mode, keyboard and screen-reader friendly
+- Exporting printable models (STL/3MF) is not built yet; see docs/backlog.md
 
 ## Getting Started
 

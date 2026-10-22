@@ -1,8 +1,17 @@
-import React from "react";
+import React, { useId } from "react";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
-const BinOptions = ({
+interface BinOptionsProps {
+  useHalfSize: boolean;
+  setUseHalfSize: (value: boolean) => void;
+  preferHalfSize: boolean;
+  setPreferHalfSize: (value: boolean) => void;
+  preferUniformBaseplates: boolean;
+  setPreferUniformBaseplates: (value: boolean) => void;
+}
+
+const BinOptions: React.FC<BinOptionsProps> = ({
   useHalfSize,
   setUseHalfSize,
   preferHalfSize,
@@ -11,45 +20,88 @@ const BinOptions = ({
   setPreferUniformBaseplates,
 }) => {
   return (
-    <div className="space-y-6 p-4">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="use-half-size" className="flex-1">
-            Use only half-size bins (21x21mm)
-          </Label>
-          <Switch
-            id="use-half-size"
-            checked={useHalfSize}
-            onCheckedChange={(checked) => {
-              setUseHalfSize(checked);
-              if (checked) setPreferHalfSize(false);
-            }}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <Label htmlFor="prefer-half-size" className="flex-1">
-            Prefer half-size bins for spacers
-          </Label>
-          <Switch
-            id="prefer-half-size"
-            checked={preferHalfSize}
-            onCheckedChange={(checked) => {
-              setPreferHalfSize(checked);
-              if (checked) setUseHalfSize(false);
-            }}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <Label htmlFor="prefer-uniform-baseplates" className="flex-1">
-            Prefer uniform baseplate sizes
-          </Label>
-          <Switch
-            id="prefer-uniform-baseplates"
-            checked={preferUniformBaseplates}
-            onCheckedChange={setPreferUniformBaseplates}
-          />
-        </div>
+    <div className="-my-1 divide-y divide-border/70">
+      <OptionRow
+        id="use-half-size"
+        title="Half-size bins only"
+        description="Lay out on a 21 × 21 mm grid instead of 42 × 42 mm."
+        checked={useHalfSize}
+        onCheckedChange={(checked) => {
+          setUseHalfSize(checked);
+          if (checked) setPreferHalfSize(false);
+        }}
+      />
+      <OptionRow
+        id="prefer-half-size"
+        title="Fill gaps with half-size bins"
+        description="Where a spacer would go, use 21 mm bins that fit."
+        checked={preferHalfSize}
+        onCheckedChange={(checked) => {
+          setPreferHalfSize(checked);
+          if (checked) setUseHalfSize(false);
+        }}
+      />
+      <OptionRow
+        id="prefer-uniform-baseplates"
+        title="Uniform baseplates"
+        description={
+          useHalfSize
+            ? "Not used with half-size bins only."
+            : "Prefer fewer different baseplate sizes."
+        }
+        checked={preferUniformBaseplates && !useHalfSize}
+        disabled={useHalfSize}
+        onCheckedChange={setPreferUniformBaseplates}
+      />
+    </div>
+  );
+};
+
+interface OptionRowProps {
+  id: string;
+  title: string;
+  description: string;
+  checked: boolean;
+  disabled?: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}
+
+const OptionRow: React.FC<OptionRowProps> = ({
+  id,
+  title,
+  description,
+  checked,
+  disabled,
+  onCheckedChange,
+}) => {
+  const descriptionId = useId();
+  return (
+    <div className="relative flex items-start justify-between gap-4 py-2.5">
+      <div className="min-w-0">
+        <label
+          htmlFor={id}
+          className={cn(
+            "text-sm font-medium after:absolute after:inset-0 after:content-['']",
+            disabled ? "text-muted-foreground" : "cursor-pointer"
+          )}
+        >
+          {title}
+        </label>
+        <p
+          id={descriptionId}
+          className="mt-0.5 text-[13px] leading-snug text-muted-foreground"
+        >
+          {description}
+        </p>
       </div>
+      <Switch
+        id={id}
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onCheckedChange}
+        aria-describedby={descriptionId}
+        className="relative z-10 mt-0.5"
+      />
     </div>
   );
 };

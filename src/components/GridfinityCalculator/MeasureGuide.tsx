@@ -1,4 +1,5 @@
 import React from "react";
+import { ChevronRight } from "lucide-react";
 
 interface GuideStep {
   title: string;
@@ -24,18 +25,22 @@ const GUIDE_STEPS: GuideStep[] = [
   },
   {
     title: "Enter in the units you measured",
-    body: "The Inches/mm toggle converts for you, so enter the number exactly as the tape reads it instead of converting by hand.",
+    body: "The in/mm toggle converts for you, so enter the number exactly as the tape reads it instead of converting by hand.",
   },
 ];
 
 const MeasureGuide: React.FC = () => (
-  <details className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
-    <summary className="cursor-pointer select-none font-medium text-foreground">
+  <details className="group text-sm">
+    <summary className="-mx-1 inline-flex min-h-8 cursor-pointer list-none items-center gap-1 rounded-md px-1 font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 [&::-webkit-details-marker]:hidden">
+      <ChevronRight
+        aria-hidden="true"
+        className="size-4 transition-transform duration-200 ease-out group-open:rotate-90 motion-reduce:transition-none"
+      />
       How to measure your drawer
     </summary>
-    <ol className="mt-2 list-decimal space-y-2 pl-5 text-muted-foreground">
+    <ol className="mt-2 list-decimal space-y-2.5 rounded-lg bg-muted/60 py-3 pl-8 pr-3 text-[13px] leading-relaxed text-muted-foreground marker:font-medium marker:text-foreground">
       {GUIDE_STEPS.map((step) => (
-        <li key={step.title}>
+        <li key={step.title} className="pl-1">
           <span className="font-medium text-foreground">{step.title}</span>
           {": "}
           {step.body}

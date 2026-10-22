@@ -85,20 +85,25 @@ The app follows a standard React SPA pattern with component-based architecture:
 ### Key Components
 
 1. **GridfinityCalculator** (`src/components/GridfinityCalculator.tsx`)
-   - Central component managing drawer dimensions, printer settings, and bin options
-   - Coordinates child components and manages calculation state
-   - Persists user preferences to localStorage
+   - The whole tool: intro and settings in a sticky left column (`lg`), results on the right
+   - Settings are three `CollapsibleCard` sections (Drawer, Printer, Bins); on phones they collapse and show their current value
+   - Shows an empty state when there is no layout (no drawer size, or a printer bed too small for one cell)
 
 2. **Calculator Subsections** (`src/components/GridfinityCalculator/`)
-   - `DrawerDimensions.tsx` - Input for drawer size (inches/mm conversion)
-   - `PrinterSettings.tsx` - 3D printer selection with predefined build volumes
-   - `BinOptions.tsx` - Toggle for half-size bin preferences
-   - `DrawerOptions.tsx` - Number of identical drawers
-   - `CustomPrinterDialog.tsx` - Dialog for entering custom printer dimensions
+   - `DrawerDimensions.tsx` - Width and depth inputs; commit on blur or Enter, accept a comma decimal, max 200 in (the share-link limit). The in/mm toggle is a `SegmentedControl` rendered by the calculator.
+   - `DrawerOptions.tsx` - Identical-drawers stepper, clamped to 1–100 (the share-link limit)
+   - `PrinterSettings.tsx` - Printer picker (cmdk) plus the largest piece the bed fits
+   - `BinOptions.tsx` - Half-size and uniform-baseplate switches with descriptions
+   - `CustomPrinterDialog.tsx` - Custom bed size and exclusion zones; reloads the printer in use each time it opens
+   - `MeasureGuide.tsx`, `ShareLayoutButton.tsx`
 
 3. **Results Display**
-   - `GridfinityResults.tsx` - Shows calculated bin quantities
-   - `GridfinityVisualPreview.tsx` - Visual layout representation
+   - `GridfinityResults.tsx` - Header: "Results for N drawers", totals to print, share action
+   - `GridfinityVisualPreview.tsx` - To-scale drawing (42/21 mm cells, hatched spacers, dimension lines) plus the parts list with inline piece details and bin contents. The drawing is `aria-hidden`; the parts list is its accessible equivalent.
+   - `BinLabels.tsx` - Label sheet in three styles; capped at 2,000 labels; bin-width labels print landscape when wider than a portrait page
+   - `MobileResultsBar.tsx` - Sticky summary bar on phones, placed at the end of the settings column so it only sticks while editing
+
+4. **Page shell**: `Header.tsx`, `About.tsx` (what Gridfinity is + how it works), `AccessibilityStatement.tsx`, `Footer.tsx`, `ErrorBoundary.tsx` (recovery screen that can reset saved settings)
 
 ### Core Logic
 
@@ -122,14 +127,19 @@ Uses Shadcn/ui components (`src/components/ui/`) - pre-built accessible componen
 
 ### Styling Approach
 
-- Tailwind CSS for utility classes
-- Custom responsive grid layouts using inline styles for precise control
-- Component-specific CSS modules where needed
+- Tailwind CSS v4 utilities; design tokens live in `src/index.css` (`@theme inline` + `:root`)
+- Palette: warm stone neutrals with one accent, `--brand` (orange). Brand marks selection, focus, and "on" states; primary actions stay near-black.
+- Light and dark follow `prefers-color-scheme` (the `dark:` variant is a media query). Use tokens (`bg-card`, `text-muted-foreground`, …), never raw grays, so both themes work. The label sheet stays white: it is paper.
+- Type: Inter Variable, self-declared in `index.css` with `font-display: optional`; `vite.config.js` preloads the Latin file. Use `tabular-nums` for numbers, `×` for dimensions, sentence case for labels.
+- Motion: strong curves `ease-out` / `ease-in-out` / `ease-drawer` (overridden in `@theme`), 150–250 ms, transform and opacity only, `active:scale-[0.97]` on pressables, `motion-reduce:` fallbacks. Popovers scale from their trigger; modals stay centered.
+- Touch: 44 px targets via `pointer-coarse:` variants; inputs are 16 px on touch so iOS does not zoom.
+- Drawing styles (`.piece-*`, container queries for labels) are in the `@layer components` block of `index.css`.
+- The repo lints out comments in TS/TSX (`local/no-comments`).
 
 ## Important Patterns
 
 1. **Settings Persistence**: User preferences are automatically saved to localStorage on every change
-2. **Responsive Design**: Grid layouts use `repeat(auto-fit, minmax(300px, 1fr))` for adaptive columns
+2. **Responsive Design**: One column on phones (collapsible settings + sticky results bar), two settings columns at `md`, sidebar + results at `lg`
 3. **Dimension Handling**: All internal calculations use millimeters; UI supports inch/mm toggle
 4. **Printer Profiles**: Predefined printer sizes in `src/lib/utils.ts` as `printerSizes` object
 5. **Layout Visualization**: Real-time preview updates using calculated pixel coordinates
@@ -139,7 +149,7 @@ Uses Shadcn/ui components (`src/components/ui/`) - pre-built accessible componen
 - **Testing**: Vitest test framework with React Testing Library
   - Run tests: `npm test`
   - Update snapshots: `npx vitest --run -u`
-  - 187 tests currently passing
+  - ~415 tests currently passing (run with `--dir src` if a `.claude/worktrees/` checkout exists, or Vitest also picks up its copies)
 - ESLint configured for TypeScript/TSX and JavaScript/JSX with max warnings set to 0
 - Development server runs on port 8080 (configured in vite.config.js)
 - Uses Vite's hot module replacement for rapid development
