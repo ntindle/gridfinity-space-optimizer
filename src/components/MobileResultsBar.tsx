@@ -5,6 +5,8 @@ import type { CalculationResultWithDrawers } from "@/hooks/useGridfinityCalculat
 
 interface MobileResultsBarProps {
   result: CalculationResultWithDrawers;
+  useHalfSize?: boolean;
+  preferHalfSize?: boolean;
 }
 
 const totalFor = (groups: Record<string, number>): number =>
@@ -13,7 +15,11 @@ const totalFor = (groups: Record<string, number>): number =>
     0
   );
 
-const MobileResultsBar: React.FC<MobileResultsBarProps> = ({ result }) => {
+const MobileResultsBar: React.FC<MobileResultsBarProps> = ({
+  result,
+  useHalfSize,
+  preferHalfSize,
+}) => {
   const { baseplates, halfSizeBins, spacers, numDrawers } = result;
 
   const scaled = (groups: Record<string, number>): number =>
@@ -21,13 +27,13 @@ const MobileResultsBar: React.FC<MobileResultsBarProps> = ({ result }) => {
 
   const parts: string[] = [];
   const baseplateCount = scaled(baseplates);
-  if (baseplateCount > 0) {
+  if (!useHalfSize && baseplateCount > 0) {
     parts.push(
       `${baseplateCount} baseplate${baseplateCount === 1 ? "" : "s"}`
     );
   }
   const binCount = scaled(halfSizeBins ?? {});
-  if (binCount > 0) {
+  if ((useHalfSize || preferHalfSize) && binCount > 0) {
     parts.push(`${binCount} bin${binCount === 1 ? "" : "s"}`);
   }
   const spacerCount = scaled(spacers);

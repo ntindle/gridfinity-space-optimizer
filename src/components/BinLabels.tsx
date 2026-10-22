@@ -175,7 +175,7 @@ const BinLabels: React.FC<BinLabelsProps> = ({
         <button
           type="button"
           onClick={handlePrint}
-          className="min-h-12 px-4 py-3 text-sm border rounded-lg"
+          className="min-h-12 px-4 py-3 text-sm border rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           Print labels
         </button>
@@ -197,7 +197,7 @@ const BinLabels: React.FC<BinLabelsProps> = ({
             type="button"
             aria-pressed={style === candidate.id}
             onClick={() => setStyle(candidate.id)}
-            className={`min-h-12 px-4 py-3 text-sm border rounded-lg ${
+            className={`min-h-12 px-4 py-3 text-sm border rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
               style === candidate.id
                 ? "bg-gray-900 text-white border-gray-900"
                 : "bg-white text-gray-900"
@@ -208,7 +208,16 @@ const BinLabels: React.FC<BinLabelsProps> = ({
         ))}
       </div>
       <p className="text-sm text-gray-600 mb-2">{spec.description}</p>
-      <div className="bin-label-sheet flex flex-wrap gap-2">{cards}</div>
+      <div
+        className="bin-label-sheet flex flex-wrap gap-2"
+        aria-hidden="true"
+      >
+        {cards}
+      </div>
+      <p className="sr-only">
+        {groups.length} label group{groups.length === 1 ? "" : "s"} on the
+        print sheet, one label per bin.
+      </p>
     </div>
   );
 };

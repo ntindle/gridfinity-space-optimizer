@@ -90,6 +90,18 @@ describe("BinLabels", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("hides the on-screen label sheet from screen readers and summarizes it", () => {
+    const { container } = render(
+      <BinLabels layout={layout} useMm={true} numDrawers={1} binContents={{}} />
+    );
+    const sheet = container.querySelector(".bin-label-sheet");
+    expect(sheet).not.toBeNull();
+    expect(sheet?.getAttribute("aria-hidden")).toBe("true");
+    expect(
+      screen.getByText(/label group.*on the print sheet/i)
+    ).toBeInTheDocument();
+  });
+
   it("print button marks the body for label-only printing and cleans up after print", () => {
     const printSpy = vi.fn();
     Object.defineProperty(window, "print", {

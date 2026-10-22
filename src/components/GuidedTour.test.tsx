@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GuidedTour from './GuidedTour';
+import CollapsibleCard from './CollapsibleCard';
 
 const ALL_ANCHORS = ['drawer', 'printer', 'bins', 'results', 'share'];
 
@@ -108,7 +109,7 @@ describe('GuidedTour', () => {
 
     await user.click(screen.getByRole('button', { name: 'Next' }));
     expect(screen.getByText('Read the layout')).toBeInTheDocument();
-    expect(screen.getByText('Step 4 of 5')).toBeInTheDocument();
+    expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
   });
 
   it('skips backward over a missing anchor when going back', async () => {
@@ -123,7 +124,60 @@ describe('GuidedTour', () => {
 
     await user.click(screen.getByRole('button', { name: 'Back' }));
     expect(screen.getByText('Tune the bins')).toBeInTheDocument();
-    expect(screen.getByText('Step 3 of 5')).toBeInTheDocument();
+    expect(screen.getByText('Step 3 of 4')).toBeInTheDocument();
+  });
+
+  it('traps Tab focus inside the dialog', async () => {
+    const user = userEvent.setup();
+    renderAnchors();
+    render(<GuidedTour open onClose={vi.fn()} />);
+
+    const next = screen.getByRole('button', { name: 'Next' });
+    const skip = screen.getByRole('button', { name: 'Skip tour' });
+
+    skip.focus();
+    await user.tab();
+    expect(next).toHaveFocus();
+
+    await user.tab({ shift: true });
+    expect(skip).toHaveFocus();
+  });
+
+  it('wraps Shift+Tab from the dialog container to the last button', async () => {
+    const user = userEvent.setup();
+    renderAnchors();
+    render(<GuidedTour open onClose={vi.fn()} />);
+
+    const dialog = screen.getByRole('dialog');
+    const skip = screen.getByRole('button', { name: 'Skip tour' });
+    expect(dialog).toHaveFocus();
+
+    await user.tab({ shift: true });
+    expect(skip).toHaveFocus();
+  });
+
+  it('expands a collapsed card when its tour step becomes active', async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <div data-tour="drawer">anchor drawer</div>
+        <CollapsibleCard
+          title="Printer Settings"
+          defaultOpen={false}
+          tourId="printer"
+        >
+          <p>printer body</p>
+        </CollapsibleCard>
+      </>
+    );
+    render(<GuidedTour open onClose={vi.fn()} />);
+
+    const toggle = screen.getByRole('button', { name: 'Printer Settings' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByText('Pick your printer')).toBeInTheDocument();
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('calls onClose when no anchors remain', () => {

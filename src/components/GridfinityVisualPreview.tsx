@@ -92,39 +92,45 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
           ))}
         </div>
       </div>
-      <div className="mt-4">
-        <h4 className="text-base font-semibold">Pieces in this drawer</h4>
-        <ul className="mt-2 space-y-2">
-          {groups.map((group) => {
-            const key = previewPieceKey(group.item);
-            const details = getPreviewPieceDetails(group.item, layout);
-            const selected = selectedKey === key;
-            const contents = getBinContents(binContents, group.item);
-            const varies = hasPerBinContents(binContents, key);
-            let rowSuffix = "";
-            if (contents) {
-              rowSuffix = varies
-                ? ` · ${contents} (varies by bin)`
-                : ` · ${contents}`;
-            } else if (varies) {
-              rowSuffix = " · varies by bin";
-            }
-            return (
-              <li key={key}>
-                <button
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setSelectedKey(selected ? null : key)}
-                  className="w-full min-h-12 px-4 py-3 text-left border rounded-lg"
-                >
-                  {details.typeLabel} {details.gridLabel} — {group.count} in
-                  this drawer{rowSuffix}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+      {groups.length > 0 && (
+        <div className="mt-4">
+          <h4 className="text-base font-semibold">Pieces in this drawer</h4>
+          <ul className="mt-2 space-y-2">
+            {groups.map((group) => {
+              const key = previewPieceKey(group.item);
+              const details = getPreviewPieceDetails(group.item, layout);
+              const selected = selectedKey === key;
+              const contents = getBinContents(binContents, group.item);
+              const varies = hasPerBinContents(binContents, key);
+              let rowSuffix = "";
+              if (contents) {
+                rowSuffix = varies
+                  ? ` · ${contents} (varies by bin)`
+                  : ` · ${contents}`;
+              } else if (varies) {
+                rowSuffix = " · varies by bin";
+              }
+              return (
+                <li key={key}>
+                  <button
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setSelectedKey(selected ? null : key)}
+                    className={`w-full min-h-12 px-4 py-3 text-left border rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                      selected
+                        ? "border-primary bg-accent font-medium"
+                        : "bg-card"
+                    }`}
+                  >
+                    {details.typeLabel} {details.gridLabel} — {group.count} in
+                    this drawer{rowSuffix}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
       {selectedDetails && selectedGroup && (
         <div className="mt-4 rounded-lg border p-4">
           <div className="flex items-center justify-between gap-4">
@@ -132,7 +138,7 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
             <button
               type="button"
               onClick={() => setSelectedKey(null)}
-              className="min-h-12 px-4 py-3 text-sm border rounded-lg"
+              className="min-h-12 px-4 py-3 text-sm border rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               Clear selection
             </button>
