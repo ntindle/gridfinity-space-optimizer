@@ -1,7 +1,12 @@
-import { useState } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import { usePersistedState } from './usePersistedState';
 import { migrateLegacySettings } from './useLegacyMigration';
-import type { DrawerSize, PrinterSize } from '@/types';
+import { sanitizeBins } from '@/utils/bins';
+import type { Bin, DrawerSize, PrinterSize } from '@/types';
+
+const binStorage = {
+  deserialize: (value: string): Bin[] => sanitizeBins(JSON.parse(value)),
+};
 
 export interface GridfinitySettings {
   drawerSize: DrawerSize;
@@ -26,8 +31,8 @@ export interface GridfinitySettings {
   customPrinterSize: PrinterSize;
   setCustomPrinterSize: (size: PrinterSize) => void;
 
-  binContents: Record<string, string>;
-  setBinContents: (contents: Record<string, string>) => void;
+  bins: Bin[];
+  setBins: Dispatch<SetStateAction<Bin[]>>;
 
   resetSettings: () => void;
 }
@@ -75,10 +80,7 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     { x: 200, y: 200, z: 200 }
   );
 
-  const [binContents, setBinContents] = usePersistedState<Record<string, string>>(
-    'gridfinity_binContents',
-    {}
-  );
+  const [bins, setBins] = usePersistedState<Bin[]>('gridfinity_bins', [], binStorage);
 
   const handleUseHalfSizeChange = (value: boolean) => {
     setUseHalfSize(value);
@@ -99,7 +101,7 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     setNumDrawers(1);
     setUseMm(false);
     setCustomPrinterSize({ x: 200, y: 200, z: 200 });
-    setBinContents({});
+    setBins([]);
   };
 
   return {
@@ -125,8 +127,8 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     customPrinterSize,
     setCustomPrinterSize,
 
-    binContents,
-    setBinContents,
+    bins,
+    setBins,
 
     resetSettings,
   };

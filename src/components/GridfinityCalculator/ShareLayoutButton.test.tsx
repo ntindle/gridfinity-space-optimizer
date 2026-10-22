@@ -26,6 +26,28 @@ describe('ShareLayoutButton', () => {
     });
   });
 
+  it('puts the placed bins in the share link', async () => {
+    const stored = JSON.stringify([
+      { id: 'a', x: 42, y: 0, width: 84, depth: 42, height: 6, label: 'Screws' },
+    ]);
+    vi.mocked(localStorage.getItem).mockImplementation((key: string) =>
+      key === 'gridfinity_bins' ? stored : null,
+    );
+    renderWithProviders();
+
+    fireEvent.click(screen.getByRole('button', { name: /copy share link/i }));
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledTimes(1);
+    });
+    const copied = writeText.mock.calls[0][0] as string;
+    const decoded = decodeShareSettings(new URL(copied).searchParams.get('share'));
+    expect(decoded?.bins).toEqual([
+      { id: 'shared-1', x: 42, y: 0, width: 84, depth: 42, height: 6, label: 'Screws' },
+    ]);
+    vi.mocked(localStorage.getItem).mockReset();
+  });
+
   it('copies a share link containing the current settings and shows confirmation', async () => {
     renderWithProviders();
 
@@ -47,6 +69,7 @@ describe('ShareLayoutButton', () => {
       preferUniformBaseplates: false,
       numDrawers: 1,
       useMm: false,
+      bins: [],
     });
     expect(screen.getByRole('status')).toHaveTextContent(/link copied/i);
   });

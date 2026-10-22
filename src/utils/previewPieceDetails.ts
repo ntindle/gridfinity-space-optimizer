@@ -1,5 +1,9 @@
 import { unitMath } from "@/services/unitMath";
+import { FULL_GRID_SIZE, HALF_GRID_SIZE } from "@/utils/gridfinityUtils";
 import type { LayoutItem } from "@/types";
+
+const formatGridNumber = (value: number): string =>
+  String(unitMath.round(value, 2));
 
 export interface PreviewPieceDetails {
   typeLabel: string;
@@ -15,8 +19,20 @@ export interface PreviewPieceDetails {
 
 const TYPE_LABELS: Record<LayoutItem["type"], string> = {
   baseplate: "Baseplate",
-  "half-size": "Half-size bin",
+  "half-size": "Half-size baseplate",
   spacer: "Spacer",
+};
+
+export const previewCellSize = (item: LayoutItem): number =>
+  item.type === "half-size" ? HALF_GRID_SIZE : FULL_GRID_SIZE;
+
+const gridLabelFor = (item: LayoutItem): string => {
+  if (item.type !== "half-size") {
+    return `${formatGridNumber(item.width)} × ${formatGridNumber(item.height)}`;
+  }
+  return `${formatGridNumber(unitMath.divide(item.pixelWidth, HALF_GRID_SIZE))} × ${formatGridNumber(
+    unitMath.divide(item.pixelHeight, HALF_GRID_SIZE)
+  )}`;
 };
 
 export const previewPieceKey = (item: LayoutItem): string =>
@@ -40,8 +56,6 @@ export const groupPreviewPieces = (layout: LayoutItem[]): PreviewPieceGroup[] =>
   }
   return [...groups.values()];
 };
-const formatGridNumber = (value: number): string =>
-  String(unitMath.round(value, 2));
 
 export const getPreviewPieceDetails = (
   item: LayoutItem,
@@ -51,7 +65,7 @@ export const getPreviewPieceDetails = (
   const heightMm = unitMath.round(item.pixelHeight, 1);
   return {
     typeLabel: TYPE_LABELS[item.type],
-    gridLabel: `${formatGridNumber(item.width)} × ${formatGridNumber(item.height)}`,
+    gridLabel: gridLabelFor(item),
     widthMm,
     heightMm,
     widthIn: unitMath.round(unitMath.convert(item.pixelWidth, "mm", "inch"), 2),

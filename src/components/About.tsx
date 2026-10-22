@@ -12,12 +12,12 @@ const STEPS = [
     body: "Baseplates larger than your print bed are split into pieces that fit, including any bed exclusion zones.",
   },
   {
-    title: "Print the parts list",
-    body: "Baseplates cover the 42 mm grid. Spacers fill the leftover edge so the grid can't slide around.",
+    title: "Lay out your bins",
+    body: "Draw bins on the grid, then size them, set their height, and name what goes in each. Baseplates and spacers fill the floor underneath.",
   },
   {
-    title: "Label your bins",
-    body: "Name what goes in each bin and print a sheet of labels in the style your bins use.",
+    title: "Download and print",
+    body: "One zip has every bin, baseplate, and spacer as STL files, plus 3MF plates laid out for your printer. Print the labels from the page.",
   },
 ];
 

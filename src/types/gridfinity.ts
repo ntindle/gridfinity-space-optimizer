@@ -28,6 +28,22 @@ export interface LayoutItem {
   pixelHeight: number;
 }
 
+export interface Bin {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  depth: number;
+  height: number;
+  label: string;
+}
+
+export interface GridCell {
+  x: number;
+  y: number;
+  size: number;
+}
+
 export interface GridfinityResult {
   baseplates: Record<string, number>;
   spacers: Record<string, number>;

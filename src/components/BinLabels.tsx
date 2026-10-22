@@ -1,24 +1,18 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect } from "react";
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { unitMath } from "@/services/unitMath";
-import {
-  getPreviewPieceDetails,
-  groupPreviewPieces,
-  previewPieceKey,
-} from "@/utils/previewPieceDetails";
-import { getBinContentsForBin } from "@/utils/binContents";
-import { pluralize } from "@/utils/format";
+import { binOuterSize, binSizeLabel } from "@/utils/bins";
+import { formatSize, pluralize } from "@/utils/format";
 import { usePersistedState } from "@/hooks/usePersistedState";
-import type { LayoutItem } from "@/types/gridfinity";
+import type { Bin } from "@/types";
 
 interface BinLabelsProps {
-  layout: LayoutItem[];
+  bins: Bin[];
   useMm: boolean;
   numDrawers: number;
-  binContents: Record<string, string>;
 }
 
 type LabelStyle = "paper" | "cullenect" | "pred-slot";
@@ -34,14 +28,6 @@ const PRINT_BODY_CLASS = "print-bin-labels";
 const LANDSCAPE_STYLE_ID = "bin-label-landscape";
 const PORTRAIT_PRINT_WIDTH_MM = 180;
 const MAX_LABELS = 2000;
-
-const clearPrintState = () => {
-  document.body.classList.remove(PRINT_BODY_CLASS);
-  LABEL_STYLES.forEach((candidate) =>
-    document.body.classList.remove(candidate.printClass)
-  );
-  document.getElementById(LANDSCAPE_STYLE_ID)?.remove();
-};
 
 const LABEL_STYLES: LabelStyleSpec[] = [
   {
@@ -64,25 +50,14 @@ const LABEL_STYLES: LabelStyleSpec[] = [
   },
 ];
 
-const BinLabels: React.FC<BinLabelsProps> = ({
-  layout,
-  useMm,
-  numDrawers,
-  binContents,
-}) => {
-  const [storedStyle, setStyle] = usePersistedState<LabelStyle>(
-    "gridfinity_labelStyle",
-    "paper"
-  );
+const clearPrintState = () => {
+  document.body.classList.remove(PRINT_BODY_CLASS);
+  LABEL_STYLES.forEach((candidate) => document.body.classList.remove(candidate.printClass));
+  document.getElementById(LANDSCAPE_STYLE_ID)?.remove();
+};
 
-  const groups = useMemo(
-    () =>
-      groupPreviewPieces(layout).filter(
-        (group) =>
-          group.item.type === "baseplate" || group.item.type === "half-size"
-      ),
-    [layout]
-  );
+const BinLabels: React.FC<BinLabelsProps> = ({ bins, useMm, numDrawers }) => {
+  const [storedStyle, setStyle] = usePersistedState<LabelStyle>("gridfinity_labelStyle", "paper");
 
   useEffect(() => {
     window.addEventListener("afterprint", clearPrintState);
@@ -92,18 +67,23 @@ const BinLabels: React.FC<BinLabelsProps> = ({
     };
   }, []);
 
-  if (groups.length === 0) {
-    return null;
+  const spec = LABEL_STYLES.find((candidate) => candidate.id === storedStyle) ?? LABEL_STYLES[0];
+  const style = spec.id;
+  const totalLabels = unitMath.multiply(bins.length, numDrawers);
+
+  if (bins.length === 0) {
+    return (
+      <Card className="p-5 sm:p-6">
+        <h2 className="text-base font-semibold tracking-[-0.01em]">Bin labels</h2>
+        <p className="mt-1 max-w-[65ch] text-sm text-muted-foreground">
+          Add bins to the drawer and a label for each one shows up here, ready to print.
+        </p>
+      </Card>
+    );
   }
 
-  const spec =
-    LABEL_STYLES.find((candidate) => candidate.id === storedStyle) ??
-    LABEL_STYLES[0];
-  const style = spec.id;
-
-  const widestLabelMm = groups.reduce(
-    (widest, group) =>
-      unitMath.max(widest, getPreviewPieceDetails(group.item, layout).widthMm),
+  const widestLabelMm = bins.reduce(
+    (widest, bin) => unitMath.max(widest, binOuterSize(bin).width),
     0
   );
 
@@ -121,42 +101,24 @@ const BinLabels: React.FC<BinLabelsProps> = ({
     }
   };
 
-  const totalLabels = groups.reduce(
-    (sum, group) => unitMath.add(sum, unitMath.multiply(group.count, numDrawers)),
-    0
-  );
-
   const cards: React.ReactNode[] = [];
-  groups.forEach((group) => {
-    const details = getPreviewPieceDetails(group.item, layout);
-    const total = unitMath.min(
-      unitMath.multiply(group.count, numDrawers),
-      unitMath.subtract(MAX_LABELS, cards.length)
-    );
-    const groupKey = previewPieceKey(group.item);
-    const physical = useMm
-      ? `${details.widthMm} mm × ${details.heightMm} mm`
-      : `${details.widthIn}″ × ${details.heightIn}″`;
-    for (let index = 0; index < total; index += 1) {
-      const key = `${previewPieceKey(group.item)}-${index}`;
-      const contents = getBinContentsForBin(
-        binContents,
-        groupKey,
-        unitMath.mod(index, group.count)
-      );
+  for (let copy = 0; copy < numDrawers && cards.length < MAX_LABELS; copy += 1) {
+    for (const bin of bins) {
+      if (cards.length >= MAX_LABELS) break;
+      const key = `${bin.id}-${copy}`;
+      const size = binSizeLabel(bin);
+      const kind = `${size} · ${bin.height}u`;
+      const outer = binOuterSize(bin);
+      const physical = formatSize(outer.width, outer.depth, useMm);
       if (style === "cullenect") {
         cards.push(
           <div
             key={key}
-            className="bin-label-card flex w-48 h-14 flex-col justify-center overflow-hidden border border-black bg-white px-2 text-black"
+            className="bin-label-card flex h-14 w-48 flex-col justify-center overflow-hidden border border-black bg-white px-2 text-black"
           >
-            <div className="text-base font-bold leading-none truncate">
-              {contents || details.gridLabel}
-            </div>
+            <div className="truncate text-base font-bold leading-none">{bin.label || size}</div>
             <div className="truncate text-[10px] leading-tight">
-              {contents
-                ? `${details.gridLabel} · ${details.typeLabel}`
-                : details.typeLabel}
+              {bin.label ? `Bin ${kind}` : `${bin.height}u bin`}
             </div>
           </div>
         );
@@ -164,55 +126,37 @@ const BinLabels: React.FC<BinLabelsProps> = ({
         cards.push(
           <div
             key={key}
-            style={{ "--label-w": `${details.widthMm}mm` } as React.CSSProperties}
+            style={{ "--label-w": `${outer.width}mm` } as React.CSSProperties}
             className="bin-label-card @container flex h-12 w-(--label-w) max-w-full items-center justify-between gap-2 border border-black bg-white px-2 text-black"
           >
-            <div className="shrink-0 whitespace-nowrap text-base font-bold leading-none">
-              {details.gridLabel}
-            </div>
-            {contents ? (
-              <div className="min-w-0 truncate text-sm font-semibold">{contents}</div>
-            ) : null}
-            <div className="hidden min-w-0 truncate text-sm @min-[12rem]:block">
-              {details.typeLabel}
-            </div>
-            <div className="hidden shrink-0 text-xs @min-[18rem]:block">{physical}</div>
+            <div className="min-w-0 truncate text-base font-bold leading-none">{bin.label || size}</div>
+            <div className="hidden shrink-0 text-xs @min-[9rem]:block">{kind}</div>
           </div>
         );
       } else {
         cards.push(
           <div
             key={key}
-            className="bin-label-card flex w-40 min-h-20 flex-col justify-center border border-black bg-white p-2 text-black"
+            className="bin-label-card flex min-h-20 w-40 flex-col justify-center border border-black bg-white p-2 text-black"
           >
-            <div className="text-2xl font-bold leading-none">
-              {details.gridLabel}
-            </div>
-            <div className="mt-1 text-sm">{details.typeLabel}</div>
-            {contents ? (
-              <div className="mt-1 break-words text-sm font-semibold">
-                {contents}
-              </div>
-            ) : null}
+            <div className="break-words text-xl font-bold leading-tight">{bin.label || size}</div>
+            <div className="mt-1 text-sm">{bin.label ? `Bin ${kind}` : `${bin.height}u bin`}</div>
             <div className="text-xs">{physical}</div>
           </div>
         );
       }
     }
-  });
+  }
 
   return (
     <Card className="p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 max-w-[65ch]">
-          <h2 className="text-base font-semibold tracking-[-0.01em]">
-            Bin labels
-          </h2>
+          <h2 className="text-base font-semibold tracking-[-0.01em]">Bin labels</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {pluralize(totalLabels, "label")}, one for every bin. Name what
-            goes inside a part in the parts list, or name each bin
-            individually, and it prints here. Print the sheet, cut the labels
-            out, and stick one on each bin.
+            {pluralize(totalLabels, "label")}, one for every bin. Select a bin in the drawing and
+            name what goes in it, and the name prints here. Print the sheet, cut the labels out, and
+            stick one on each bin.
           </p>
         </div>
         <Button type="button" onClick={handlePrint}>
@@ -221,11 +165,7 @@ const BinLabels: React.FC<BinLabelsProps> = ({
         </Button>
       </div>
 
-      <div
-        className="mt-5 grid gap-2 sm:grid-cols-3"
-        role="group"
-        aria-label="Label style"
-      >
+      <div className="mt-5 grid gap-2 sm:grid-cols-3" role="group" aria-label="Label style">
         {LABEL_STYLES.map((candidate) => {
           const selected = style === candidate.id;
           return (
@@ -256,9 +196,7 @@ const BinLabels: React.FC<BinLabelsProps> = ({
                 />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-medium">
-                  {candidate.name}
-                </span>{" "}
+                <span className="block text-sm font-medium">{candidate.name}</span>{" "}
                 <span className="mt-0.5 block text-[13px] leading-snug text-muted-foreground">
                   {candidate.description}
                 </span>
@@ -281,8 +219,7 @@ const BinLabels: React.FC<BinLabelsProps> = ({
         </div>
       </div>
       <p className="sr-only">
-        {groups.length} label group{groups.length === 1 ? "" : "s"} on the
-        print sheet, one label per bin.
+        {pluralize(unitMath.min(totalLabels, MAX_LABELS), "label")} on the print sheet, one per bin.
       </p>
     </Card>
   );

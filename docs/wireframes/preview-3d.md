@@ -20,7 +20,7 @@ A `[2D | 3D]` `SegmentedControl` at the left of the drawing toolbar (S3, shared 
 │           /___________________/__/             click: select, same as 2D   │
 │                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘
-Baseplate · Half-size bin · Spacer · Bin   (legend unchanged)
+Bin · Baseplate · Half-size baseplate · Spacer   (legend unchanged)
 ```
 
 - Lazy-load `three` and `@react-three/fiber` with `React.lazy` so the main bundle does not grow. Show the 2D drawing until the 3D chunk is ready. No spinner unless loading takes longer than 300 ms.

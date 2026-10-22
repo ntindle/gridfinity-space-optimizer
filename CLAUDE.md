@@ -86,21 +86,23 @@ The app follows a standard React SPA pattern with component-based architecture:
 
 1. **GridfinityCalculator** (`src/components/GridfinityCalculator.tsx`)
    - The whole tool: intro and settings in a sticky left column (`lg`), results on the right
-   - Settings are three `CollapsibleCard` sections (Drawer, Printer, Bins); on phones they collapse and show their current value
+   - Settings are three `CollapsibleCard` sections (Drawer, Printer, Grid); on phones they collapse and show their current value
    - Shows an empty state when there is no layout (no drawer size, or a printer bed too small for one cell)
 
 2. **Calculator Subsections** (`src/components/GridfinityCalculator/`)
    - `DrawerDimensions.tsx` - Width and depth inputs; commit on blur or Enter, accept a comma decimal, max 200 in (the share-link limit). The in/mm toggle is a `SegmentedControl` rendered by the calculator.
    - `DrawerOptions.tsx` - Identical-drawers stepper, clamped to 1–100 (the share-link limit)
    - `PrinterSettings.tsx` - Printer picker (cmdk) plus the largest piece the bed fits
-   - `BinOptions.tsx` - Half-size and uniform-baseplate switches with descriptions
+   - `BinOptions.tsx` - Grid switches (half-size grid, half-size gap baseplates, uniform baseplates) with descriptions
    - `CustomPrinterDialog.tsx` - Custom bed size and exclusion zones; reloads the printer in use each time it opens
    - `MeasureGuide.tsx`, `ShareLayoutButton.tsx`
+   - `DownloadButton.tsx` - "Download files": one zip with every bin, baseplate, and spacer as STL plus 3MF plates; loads `src/utils/export/` with `import()`
 
 3. **Results Display**
-   - `GridfinityResults.tsx` - Header: "Results for N drawers", totals to print, share action
-   - `GridfinityVisualPreview.tsx` - To-scale drawing (42/21 mm cells, hatched spacers, dimension lines) plus the parts list with inline piece details and bin contents. The drawing is `aria-hidden`; the parts list is its accessible equivalent.
-   - `BinLabels.tsx` - Label sheet in three styles; capped at 2,000 labels; bin-width labels print landscape when wider than a portrait page
+   - `GridfinityResults.tsx` - Header: "Results for N drawers", totals to print (bins first), download and share actions
+   - `GridfinityVisualPreview.tsx` - To-scale drawing (42/21 mm cells, hatched spacers, dimension lines) that is also the bin editor: drag to draw a bin, drag to move, corner to resize, arrows/Shift+arrows/Delete, undo/redo (`useBinHistory`). Baseplates and spacers in it are `aria-hidden`; bins are buttons. Below it, the parts list (bins first, then baseplates and spacers) with inline piece details.
+   - `BinToolbar.tsx` (Add bin, Fill, undo/redo, clear), `BinDetails.tsx` (the selected bin's size, height, contents, duplicate, delete), `Stepper.tsx`
+   - `BinLabels.tsx` - One label per placed bin per drawer, in three styles; capped at 2,000 labels; bin-width labels print landscape when wider than a portrait page
    - `MobileResultsBar.tsx` - Sticky summary bar on phones, placed at the end of the settings column so it only sticks while editing
 
 4. **Page shell**: `Header.tsx`, `About.tsx` (what Gridfinity is + how it works), `AccessibilityStatement.tsx`, `Footer.tsx`, `ErrorBoundary.tsx` (recovery screen that can reset saved settings)
@@ -120,6 +122,14 @@ The app follows a standard React SPA pattern with component-based architecture:
   - Spacer generation for non-standard dimensions (now works with half-size bins too!)
   - Half-size bin optimization when enabled
   - Layout splitting for items exceeding print bed size
+
+**Bins** (`src/utils/bins.ts`)
+- A bin is placed by the user: `{ id, x, y, width, depth, height, label }`, millimetres in the drawing (multiples of 21) and Gridfinity height units (7 mm). Stored in `gridfinity_bins` and in share links (payload v2).
+- `gridCells` lists the baseplate cells under the layout; a bin must be tiled by cells of one size and not overlap another bin. Bins that stop fitting after a settings change are flagged (`binIssues`), never deleted, and are left out of labels and downloads.
+
+**Plate packing** (`src/utils/printPlan.ts`): `planPlates` packs parts onto the usable bed (minus exclusion zones) with 3 mm gaps, centers each plate, and merges identical plates into `copies`.
+
+**Export** (`src/utils/export/`): spec baseplate, spacer, and bin meshes (`gridfinityMesh.ts`, `binMesh.ts`, constants from kennetek's gridfinity-rebuilt-openscad), binary STL (`stl.ts`), core 3MF (`threeMf.ts`), deterministic zips (`zip.ts`, fflate), and the bundle with its README (`exportFiles.ts`). Every mesh must stay closed and outward-facing; the tests check each edge and the analytic volume.
 
 ### UI Component System
 
@@ -153,7 +163,7 @@ Read `docs/wireframes/README.md` before adding UI. It shows the slots where new 
 - **Testing**: Vitest test framework with React Testing Library
   - Run tests: `npm test`
   - Update snapshots: `npx vitest --run -u`
-  - ~415 tests currently passing (run with `--dir src` if a `.claude/worktrees/` checkout exists, or Vitest also picks up its copies)
+  - ~480 tests currently passing (run with `--dir src` if a `.claude/worktrees/` checkout exists, or Vitest also picks up its copies)
 - ESLint configured for TypeScript/TSX and JavaScript/JSX with max warnings set to 0
 - Development server runs on port 8080 (configured in vite.config.js)
 - Uses Vite's hot module replacement for rapid development
@@ -170,6 +180,7 @@ Read `docs/wireframes/README.md` before adding UI. It shows the slots where new 
 - `usePersistedState` - Generic hook for localStorage persistence
 - `useLegacyMigration` - Handles migration from old localStorage format
 - `useCustomPrinter` - Manages custom printer dimensions
+- `useBinHistory` - Undo/redo for bin edits (last 50 steps, in memory)
 - `use-toast` - Toast notification system
 
 ## Current Refactor Status
@@ -206,6 +217,8 @@ const total = unitMath.add(width, height);
 const area = unitMath.multiply(width, height);
 const half = unitMath.divide(value, 2);
 ```
+
+**The one exception:** mesh geometry in `src/utils/export/` uses native float math. Its output is float32 STL and 3MF, it builds tens of thousands of vertices, and `unitMath` would be far too slow there. Layout, bin placement, and plate packing (`bins.ts`, `printPlan.ts`) still use `unitMath`.
 
 ### ⚠️ Always test with half-size bins enabled
 - There was a long-standing bug where spacers weren't generated with half-size bins

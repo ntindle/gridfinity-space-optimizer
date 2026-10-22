@@ -23,8 +23,8 @@ const BinOptions: React.FC<BinOptionsProps> = ({
     <div className="-my-1 divide-y divide-border/70">
       <OptionRow
         id="use-half-size"
-        title="Half-size bins only"
-        description="Lay out on a 21 × 21 mm grid instead of 42 × 42 mm."
+        title="Half-size grid"
+        description="Lay out on a 21 × 21 mm grid instead of 42 × 42 mm. Bins get 21 mm feet."
         checked={useHalfSize}
         onCheckedChange={(checked) => {
           setUseHalfSize(checked);
@@ -33,8 +33,8 @@ const BinOptions: React.FC<BinOptionsProps> = ({
       />
       <OptionRow
         id="prefer-half-size"
-        title="Fill gaps with half-size bins"
-        description="Where a spacer would go, use 21 mm bins that fit."
+        title="Fill gaps with half-size baseplates"
+        description="Where a spacer would go, use 21 mm baseplate strips that half-size bins fit in."
         checked={preferHalfSize}
         onCheckedChange={(checked) => {
           setPreferHalfSize(checked);
@@ -46,7 +46,7 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         title="Uniform baseplates"
         description={
           useHalfSize
-            ? "Not used with half-size bins only."
+            ? "Not used with a half-size grid."
             : "Prefer fewer different baseplate sizes."
         }
         checked={preferUniformBaseplates && !useHalfSize}

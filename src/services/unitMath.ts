@@ -65,6 +65,10 @@ export const unitMath = {
   
   max: (a: number, b: number): number => {
     return math.number(math.max(math.bignumber(a), math.bignumber(b)));
+  },
+
+  sqrt: (value: number): number => {
+    return math.number(math.sqrt(math.bignumber(value)) as BigNumber);
   }
 } as const;
 

@@ -12,12 +12,13 @@ This project is a web-based calculator for designing custom Gridfinity layouts, 
 
 - Drawer size to a fitted layout: baseplates on the 42 mm grid, plus spacers for the leftover edge
 - Baseplates split to fit your printer's bed, including custom printers with exclusion zones
-- Half-size (21 mm) bins, either for the whole drawer or to fill gaps
-- A to-scale drawing of the drawer and a parts list with totals for several identical drawers
-- Name what goes in each bin and print labels in three styles
-- Shareable layout links; settings are saved in the browser
+- A half-size (21 mm) grid, for the whole drawer or just to fill the gaps at the walls
+- Lay out your bins on a to-scale drawing of the drawer: draw, move, and resize them, set each one's height and contents, with keyboard controls and undo
+- Download everything in one zip: every bin, baseplate, and spacer as STL, plus 3MF plates laid out for your printer, with a README of what to print and how many
+- Gridfinity-spec geometry: open-frame baseplates, bins with the standard base and stacking lip
+- Print a label for every bin in three styles
+- Shareable layout links that include your bins; settings are saved in the browser
 - Works on phones, follows the system light or dark mode, keyboard and screen-reader friendly
-- Exporting printable models (STL/3MF) is not built yet; see docs/backlog.md
 
 ## Getting Started
 

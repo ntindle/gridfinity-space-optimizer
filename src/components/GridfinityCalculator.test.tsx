@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { Mock } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GridfinityCalculator from './GridfinityCalculator';
 import { SettingsProvider } from '../contexts/SettingsContext';
@@ -48,7 +48,7 @@ describe('GridfinityCalculator', () => {
     
     expect(screen.getByRole('heading', { name: 'Drawer' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Printer' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Bins' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Grid' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Drawer' })).toBeInTheDocument();
     expect(screen.getByLabelText(/identical drawers/i)).toBeInTheDocument();
   });
@@ -93,7 +93,7 @@ describe('GridfinityCalculator', () => {
     
     await waitFor(() => {
       expect(screen.getByText(/Results for \d+ drawer/)).toBeInTheDocument();
-      expect(screen.getByText('Parts list')).toBeInTheDocument();
+      expect(screen.getByText('Parts to print')).toBeInTheDocument();
     });
   });
 
@@ -129,10 +129,10 @@ describe('GridfinityCalculator', () => {
     });
   });
 
-  it('should handle half-size bin options', async () => {
+  it('should handle the half-size grid option', async () => {
     renderWithProviders(<GridfinityCalculator />);
     
-    const halfSizeCheckbox = screen.getByLabelText('Half-size bins only');
+    const halfSizeCheckbox = screen.getByLabelText('Half-size grid');
     
     await userEvent.click(halfSizeCheckbox);
     
@@ -202,6 +202,7 @@ describe('GridfinityCalculator', () => {
       preferUniformBaseplates: false,
       numDrawers: 2,
       useMm: false,
+      bins: [],
     });
     window.history.pushState(null, '', `/?share=${shared}`);
     try {
@@ -244,6 +245,7 @@ describe('GridfinityCalculator', () => {
       preferUniformBaseplates: true,
       numDrawers: 2,
       useMm: true,
+      bins: [],
     });
     window.history.pushState(null, '', `/?share=${shared}`);
     try {
@@ -281,6 +283,7 @@ describe('GridfinityCalculator', () => {
       preferUniformBaseplates: false,
       numDrawers: 1,
       useMm: false,
+      bins: [],
     });
     window.history.pushState(null, '', `/?share=${shared}`);
     try {
@@ -317,6 +320,7 @@ describe('GridfinityCalculator', () => {
         preferUniformBaseplates: false,
         numDrawers: 1,
         useMm: false,
+        bins: [],
       });
       window.history.pushState(null, '', `/?share=${shared}`);
       try {
@@ -340,7 +344,7 @@ describe('GridfinityCalculator', () => {
     }
   });
 
-  it('should show the half-size bins results section when useHalfSize is on', async () => {
+  it('lists half-size grid pieces as half-size baseplates', async () => {
     vi.mocked(loadUserSettings).mockReturnValue({
       drawerSize: { width: 15, height: 12 },
       selectedPrinter: 'Bambu Lab A1',
@@ -351,20 +355,23 @@ describe('GridfinityCalculator', () => {
     });
     renderWithProviders(<GridfinityCalculator />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/\d+ half-size bins?/)).toBeInTheDocument();
-    });
+    expect(
+      (await screen.findAllByRole('button', { name: /^Half-size baseplate \d+ × \d+ —/ })).length
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^\d+ baseplates · \d+ spacers?$/).length).toBeGreaterThan(0);
   });
 
-  it('should render the bin labels section once the layout is calculated', async () => {
+  it('makes a label for each bin you add', async () => {
+    const user = userEvent.setup();
     renderWithProviders(<GridfinityCalculator />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Bin labels')).toBeInTheDocument();
-    });
-    expect(
-      screen.getByRole('button', { name: /print labels/i })
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Add bins to the drawer/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /print labels/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Add bin' }));
+
+    expect(await screen.findByRole('button', { name: /print labels/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/^1 bin · \d+ baseplates/).length).toBeGreaterThan(0);
   });
 
   it('should render exactly one element for each guided-tour anchor id', async () => {
@@ -374,7 +381,7 @@ describe('GridfinityCalculator', () => {
       expect(screen.getByText(/Results for \d+ drawer/)).toBeInTheDocument();
     });
 
-    for (const id of ['drawer', 'printer', 'bins', 'results', 'share']) {
+    for (const id of ['drawer', 'printer', 'grid', 'results', 'download']) {
       expect(document.querySelectorAll(`[data-tour="${id}"]`).length).toBe(1);
     }
   });
@@ -394,26 +401,73 @@ describe('GridfinityCalculator', () => {
     expect(screen.getByText('Step 1 of 5')).toBeInTheDocument();
   });
 
-  it('keeps bin names when the layout changes and comes back', async () => {
+  it('keeps placed bins through layout changes and flags the ones that stop fitting', async () => {
     const user = userEvent.setup();
     renderWithProviders(<GridfinityCalculator />);
 
-    const row = await screen.findByRole('button', { name: /^Baseplate 5 × 5 — 2 in this drawer/ });
-    await user.click(row);
+    await user.click(await screen.findByRole('button', { name: 'Add bin' }));
     await user.type(screen.getByLabelText('Contents'), 'Screws');
     await user.tab();
-    expect(
-      await screen.findByRole('button', { name: /^Baseplate 5 × 5 — 2 in this drawer · Screws/ })
-    ).toBeInTheDocument();
+    const placed = () =>
+      within(screen.getByRole('group', { name: 'Bins in the drawer' })).getAllByRole('button');
+    expect(placed()[0]).toHaveAccessibleName('Bin 1 × 1, 3 units tall, Screws');
 
-    await user.click(screen.getByLabelText('Half-size bins only'));
-    expect(screen.queryByRole('button', { name: /^Baseplate 5 × 5/ })).not.toBeInTheDocument();
-    await user.click(screen.getByLabelText('Half-size bins only'));
+    await user.click(screen.getByLabelText('Half-size grid'));
+    expect(placed()[0]).toHaveAccessibleName('Bin 1 × 1, 3 units tall, Screws');
+    await user.click(screen.getByLabelText('Half-size grid'));
 
-    expect(
-      await screen.findByRole('button', { name: /^Baseplate 5 × 5 — 2 in this drawer · Screws/ })
-    ).toBeInTheDocument();
-  });
+    placed()[0].focus();
+    for (let step = 0; step < 4; step += 1) {
+      await user.keyboard('{ArrowRight}');
+    }
+    await user.clear(widthInput());
+    await user.type(widthInput(), '6');
+    await user.tab();
+
+    await waitFor(() => {
+      expect(placed()[0]).toHaveAccessibleName('Bin 1 × 1, 3 units tall, Screws, needs attention');
+    });
+    expect(screen.queryByText(/^1 bin/)).not.toBeInTheDocument();
+  }, 15_000);
+
+  it('downloads every part in one zip', async () => {
+    const user = userEvent.setup();
+    const createObjectURL = vi.fn(() => 'blob:print-files');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL }));
+    const saved: string[] = [];
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        saved.push(this.download);
+      });
+    try {
+      renderWithProviders(<GridfinityCalculator />);
+      await user.clear(widthInput());
+      await user.type(widthInput(), '8');
+      await user.clear(depthInput());
+      await user.type(depthInput(), '4');
+      await user.tab();
+      await user.click(await screen.findByRole('button', { name: 'Add bin' }));
+      await user.click(screen.getByRole('button', { name: /^Download files/ }));
+
+      await waitFor(
+        () => {
+          expect(saved).toEqual(['gridfinity-8x4in.zip']);
+        },
+        { timeout: 15_000 },
+      );
+      const blob = (createObjectURL.mock.calls[0] as unknown as [Blob])[0];
+      expect(blob.type).toBe('application/zip');
+      expect(blob.size).toBeGreaterThan(1000);
+      expect(toast.success).toHaveBeenCalledWith(
+        'Downloaded gridfinity-8x4in.zip',
+        expect.objectContaining({ description: expect.stringMatching(/STL files and \d+ prints? as 3MF plates/) }),
+      );
+    } finally {
+      click.mockRestore();
+    }
+  }, 30_000);
 
   it('explains when the printer bed is too small to print a single grid cell', async () => {
     vi.mocked(loadUserSettings).mockReturnValue(null);
@@ -427,6 +481,7 @@ describe('GridfinityCalculator', () => {
       preferUniformBaseplates: false,
       numDrawers: 1,
       useMm: false,
+      bins: [],
     });
     window.history.pushState(null, '', `/?share=${shared}`);
     try {

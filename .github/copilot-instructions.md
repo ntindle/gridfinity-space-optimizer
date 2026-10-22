@@ -125,7 +125,7 @@ npm run build
 - **Calculator Sections**: `src/components/GridfinityCalculator/`
   - `DrawerDimensions.tsx` - Input for drawer size with unit conversion
   - `PrinterSettings.tsx` - 3D printer selection with build volumes
-  - `BinOptions.tsx` - Half-size bin toggles
+  - `BinOptions.tsx` - Grid toggles: half-size grid, half-size gap baseplates, uniform baseplates
   - `DrawerOptions.tsx` - Number of duplicate drawers
   - `CustomPrinterDialog.tsx` - Custom printer dimension input
 - **Results Display**:

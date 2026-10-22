@@ -1,9 +1,17 @@
 import { printerSizes } from '@/lib/utils';
-import type { DrawerSize, PrinterSize } from '@/types';
+import { unitMath } from '@/services/unitMath';
+import { MAX_BIN_HEIGHT, MAX_LABEL_LENGTH, MIN_BIN_HEIGHT } from '@/utils/bins';
+import { HALF_GRID_SIZE } from '@/utils/gridfinityUtils';
+import type { Bin, DrawerSize, PrinterSize } from '@/types';
 
 
 export const SHARE_PARAM = 'share';
 export const CUSTOM_PRINTER_LABEL = 'Custom Printer';
+export const SHARE_VERSION = 2;
+export const MAX_SHARE_PARAM_LENGTH = 16000;
+export const LONG_SHARE_PARAM_LENGTH = 8000;
+const MAX_SHARED_BINS = 1000;
+const MAX_BIN_STEPS = 1000;
 
 export interface ShareableSettings {
   drawerSize: DrawerSize;
@@ -14,6 +22,7 @@ export interface ShareableSettings {
   preferUniformBaseplates: boolean;
   numDrawers: number;
   useMm: boolean;
+  bins: Bin[];
 }
 
 interface SharePayload {
@@ -27,6 +36,7 @@ interface SharePayload {
   ub?: unknown;
   n?: unknown;
   mm?: unknown;
+  b?: unknown;
 }
 
 const isFiniteNumber = (value: unknown): value is number =>
@@ -37,7 +47,7 @@ const isBoolean = (value: unknown): value is boolean =>
 
 export function decodeShareSettings(param: string | null | undefined): ShareableSettings | null {
   if (!param || typeof param !== 'string') return null;
-  if (param.length > 4096) return null;
+  if (param.length > MAX_SHARE_PARAM_LENGTH) return null;
   if (!/^[A-Za-z0-9_-]+$/.test(param)) return null;
 
   const json = base64UrlDecode(param);
@@ -51,7 +61,7 @@ export function decodeShareSettings(param: string | null | undefined): Shareable
   }
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
   const payload = raw as SharePayload;
-  if (payload.v !== 1) return null;
+  if (payload.v !== 1 && payload.v !== SHARE_VERSION) return null;
 
   if (!isFiniteNumber(payload.dw) || payload.dw <= 0 || payload.dw > 200) return null;
   if (!isFiniteNumber(payload.dh) || payload.dh <= 0 || payload.dh > 200) return null;
@@ -82,6 +92,9 @@ export function decodeShareSettings(param: string | null | undefined): Shareable
   const useMm = payload.mm === undefined ? false : payload.mm;
   if (!isBoolean(useMm)) return null;
 
+  const bins = payload.v === 1 ? [] : decodeBins(payload.b);
+  if (bins === null) return null;
+
   return {
     drawerSize: { width: payload.dw, height: payload.dh },
     selectedPrinter: payload.p,
@@ -91,8 +104,44 @@ export function decodeShareSettings(param: string | null | undefined): Shareable
     preferUniformBaseplates,
     numDrawers,
     useMm,
+    bins,
   };
 }
+
+const isStep = (value: unknown, min: number): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= min && value <= MAX_BIN_STEPS;
+
+function decodeBins(raw: unknown): Bin[] | null {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw) || raw.length > MAX_SHARED_BINS) return null;
+  const bins: Bin[] = [];
+  for (const entry of raw) {
+    if (!Array.isArray(entry) || entry.length < 5 || entry.length > 6) return null;
+    const [x, y, width, depth, height, label = ''] = entry as unknown[];
+    if (!isStep(x, 0) || !isStep(y, 0) || !isStep(width, 1) || !isStep(depth, 1)) return null;
+    if (typeof height !== 'number' || !Number.isInteger(height)) return null;
+    if (height < MIN_BIN_HEIGHT || height > MAX_BIN_HEIGHT) return null;
+    if (typeof label !== 'string' || label.length > MAX_LABEL_LENGTH) return null;
+    bins.push({
+      id: `shared-${unitMath.add(bins.length, 1)}`,
+      x: unitMath.multiply(x, HALF_GRID_SIZE),
+      y: unitMath.multiply(y, HALF_GRID_SIZE),
+      width: unitMath.multiply(width, HALF_GRID_SIZE),
+      depth: unitMath.multiply(depth, HALF_GRID_SIZE),
+      height,
+      label,
+    });
+  }
+  return bins;
+}
+
+const encodeBins = (bins: Bin[], withLabels: boolean): unknown[] =>
+  bins.map((bin) => {
+    const steps = [bin.x, bin.y, bin.width, bin.depth].map((value) =>
+      unitMath.round(unitMath.divide(value, HALF_GRID_SIZE), 0)
+    );
+    return withLabels && bin.label ? [...steps, bin.height, bin.label] : [...steps, bin.height];
+  });
 
 function decodeCustomPrinterSize(
   c: unknown,
@@ -126,7 +175,7 @@ export function encodeShareSettings(settings: ShareableSettings): string {
   const useHalfSize = settings.useHalfSize;
   const preferHalfSize = settings.useHalfSize ? false : settings.preferHalfSize;
   const payload: Record<string, unknown> = {
-    v: 1,
+    v: SHARE_VERSION,
     dw: settings.drawerSize.width,
     dh: settings.drawerSize.height,
     p: settings.selectedPrinter,
@@ -138,6 +187,12 @@ export function encodeShareSettings(settings: ShareableSettings): string {
   };
   if (settings.selectedPrinter === CUSTOM_PRINTER_LABEL && settings.customPrinterSize) {
     payload.c = settings.customPrinterSize;
+  }
+  if (settings.bins.length > 0) {
+    payload.b = encodeBins(settings.bins, true);
+    const encoded = base64UrlEncode(JSON.stringify(payload));
+    if (encoded.length <= LONG_SHARE_PARAM_LENGTH) return encoded;
+    payload.b = encodeBins(settings.bins, false);
   }
   return base64UrlEncode(JSON.stringify(payload));
 }

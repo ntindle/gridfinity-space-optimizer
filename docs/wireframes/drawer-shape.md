@@ -6,7 +6,7 @@ The job: fit real drawers, not just clean rectangles, and get to the first layou
 
 ## Where it goes
 
-All inputs live in the existing **Drawer** and **Bins** sections (S1). The drawing gains a "Front"
+All inputs live in the existing **Drawer** and **Grid** sections (S1). The drawing gains a "Front"
 marker and obstacle shapes, but no new toolbar.
 
 ## Desktop
@@ -21,10 +21,10 @@ Drawer                                             [in|mm]
     ▨ Screw boss      at 400, 10 mm · 30 × 30 mm      ⋯
   Identical drawers                            [-] 1 [+]
 
-Bins
-  Grid             [42 mm | Custom]   [ 42   mm]           ← F11, input only when Custom
-  Half-size bins only                                (○ )
-  Fill gaps with half-size bins                      (○ )
+Grid
+  Pitch            [42 mm | Custom]   [ 42   mm]           ← F11, input only when Custom
+  Half-size grid                                     (○ )
+  Fill gaps with half-size baseplates                (○ )
   Uniform baseplates                                 (○ )
   Stretch edge baseplates                            (○ )  ← F21
     Edge baseplates grow to the walls instead of spacers.
@@ -44,7 +44,7 @@ Drawing
 
 ## Phone
 
-The same rows inside the collapsible Drawer and Bins sections. The collapsed Drawer summary becomes
+The same rows inside the collapsible Drawer and Grid sections. The collapsed Drawer summary becomes
 `IKEA Alex · 22.5 × 16.5 in · 2 obstacles`. Obstacle dialogs become `vaul` sheets.
 
 ## Data
