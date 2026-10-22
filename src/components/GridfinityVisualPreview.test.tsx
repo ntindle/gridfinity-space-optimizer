@@ -505,7 +505,7 @@ describe("GridfinityVisualPreview drawing", () => {
       />
     );
     const row = screen.getByRole("button", {
-      name: "Baseplate 3 × 2 — 2 in this drawer, 6 in total",
+      name: /^Baseplate 3 × 2 — 2 in this drawer, 6 in total/,
     });
     expect(row).toHaveTextContent("×6");
     expect(row).toHaveTextContent("2 per drawer");

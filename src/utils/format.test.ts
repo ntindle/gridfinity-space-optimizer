@@ -30,6 +30,7 @@ describe('format', () => {
     expect(pluralize(1, 'label')).toBe('1 label');
     expect(pluralize(0, 'label')).toBe('0 labels');
     expect(pluralize(6, 'label')).toBe('6 labels');
+    expect(pluralize(3000, 'label')).toBe('3,000 labels');
   });
 
   it('parses decimal input with a comma or a dot', () => {
@@ -37,6 +38,10 @@ describe('format', () => {
     expect(parseDecimal(' 22.5 ')).toBe(22.5);
     expect(parseDecimal('400')).toBe(400);
     expect(parseDecimal('22.5 in')).toBe(22.5);
+    expect(parseDecimal('571,5')).toBe(571.5);
+    expect(parseDecimal('0,125')).toBe(0.125);
+    expect(parseDecimal('1,200')).toBe(1200);
+    expect(parseDecimal('1,234.5')).toBe(1234.5);
     expect(parseDecimal('abc')).toBeNaN();
     expect(parseDecimal('')).toBeNaN();
   });

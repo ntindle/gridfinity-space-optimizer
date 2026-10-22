@@ -128,7 +128,7 @@ describe("BinLabels", () => {
     const group = screen.getByRole("group", { name: /label style/i });
     expect(group).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Paper card" })
+      screen.getByRole("button", { name: /^Paper card/ })
     ).toHaveAttribute("aria-pressed", "true");
     expect(
       screen.getByRole("button", { name: /Cullenect 36.4/ })
@@ -329,7 +329,7 @@ describe("BinLabels printing and limits", () => {
     );
     expect(container.querySelectorAll(".bin-label-card")).toHaveLength(2000);
     expect(screen.getByText(/shows the first 2,000 of 3,000 labels/)).toBeInTheDocument();
-    expect(screen.getByText(/^3,000 labels|3000 labels/)).toBeInTheDocument();
+    expect(screen.getByText(/^3,000 labels, one for every bin/)).toBeInTheDocument();
   });
 
   it("remembers the chosen label style", () => {

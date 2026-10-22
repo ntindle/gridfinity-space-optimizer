@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -74,7 +74,6 @@ const BinLabels: React.FC<BinLabelsProps> = ({
     "gridfinity_labelStyle",
     "paper"
   );
-  const optionId = useId();
 
   const groups = useMemo(
     () =>
@@ -234,8 +233,6 @@ const BinLabels: React.FC<BinLabelsProps> = ({
               key={candidate.id}
               type="button"
               aria-pressed={selected}
-              aria-labelledby={`${optionId}-${candidate.id}-name`}
-              aria-describedby={`${optionId}-${candidate.id}-description`}
               onClick={() => setStyle(candidate.id)}
               className={cn(
                 "flex items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-[border-color,background-color,box-shadow,scale] duration-150 ease-out active:scale-[0.98] motion-reduce:active:scale-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background",
@@ -259,16 +256,10 @@ const BinLabels: React.FC<BinLabelsProps> = ({
                 />
               </span>
               <span className="min-w-0">
-                <span
-                  id={`${optionId}-${candidate.id}-name`}
-                  className="block text-sm font-medium"
-                >
+                <span className="block text-sm font-medium">
                   {candidate.name}
-                </span>
-                <span
-                  id={`${optionId}-${candidate.id}-description`}
-                  className="mt-0.5 block text-[13px] leading-snug text-muted-foreground"
-                >
+                </span>{" "}
+                <span className="mt-0.5 block text-[13px] leading-snug text-muted-foreground">
                   {candidate.description}
                 </span>
               </span>
@@ -279,8 +270,8 @@ const BinLabels: React.FC<BinLabelsProps> = ({
 
       {totalLabels > MAX_LABELS ? (
         <p className="mt-5 rounded-md bg-muted px-3 py-2 text-[13px] text-muted-foreground">
-          The sheet shows the first {MAX_LABELS.toLocaleString()} of{" "}
-          {totalLabels.toLocaleString()} labels.
+          The sheet shows the first {MAX_LABELS.toLocaleString("en-US")} of{" "}
+          {totalLabels.toLocaleString("en-US")} labels.
         </p>
       ) : null}
 

@@ -35,7 +35,12 @@ export const pluralize = (
   count: number,
   singular: string,
   plural = `${singular}s`
-): string => `${count} ${count === 1 ? singular : plural}`;
+): string => `${count.toLocaleString("en-US")} ${count === 1 ? singular : plural}`;
 
-export const parseDecimal = (value: string): number =>
-  Number.parseFloat(value.trim().replace(",", "."));
+export const parseDecimal = (value: string): number => {
+  const trimmed = value.trim();
+  if (trimmed.includes(".") || /^[1-9]\d{0,2}(,\d{3})+$/.test(trimmed)) {
+    return Number.parseFloat(trimmed.replace(/,/g, ""));
+  }
+  return Number.parseFloat(trimmed.replace(",", "."));
+};

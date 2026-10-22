@@ -233,7 +233,6 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
                 <button
                   type="button"
                   aria-pressed={selected}
-                  aria-label={`${details.typeLabel} ${details.gridLabel} — ${group.count} in this drawer${rowSuffix}${numDrawers > 1 ? `, ${total} in total` : ""}`}
                   onClick={() => toggle(key)}
                   onPointerEnter={hoverWithMouse(key)}
                   onPointerLeave={hoverWithMouse(null)}
@@ -250,17 +249,25 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium">
                       <span>{details.typeLabel}</span>{" "}
-                      <span className="tabular-nums">{details.gridLabel}</span>
+                      <span className="tabular-nums">{details.gridLabel}</span>{" "}
+                      <span className="sr-only">
+                        {`— ${group.count} in this drawer${rowSuffix}${numDrawers > 1 ? `, ${total} in total` : ""}`}
+                      </span>
                     </span>
                     <span
                       className="block truncate text-[13px] text-muted-foreground tabular-nums"
                       title={note ?? undefined}
                     >
                       {physical}
-                      {note ? <span className="text-foreground/80"> · {note}</span> : null}
+                      {note ? (
+                        <span aria-hidden="true" className="text-foreground/80">
+                          {" "}
+                          · {note}
+                        </span>
+                      ) : null}
                     </span>
                   </span>
-                  <span className="shrink-0 text-right tabular-nums">
+                  <span aria-hidden="true" className="shrink-0 text-right tabular-nums">
                     <span className="block text-sm font-semibold">×{total}</span>
                     {numDrawers > 1 ? (
                       <span className="block text-xs text-muted-foreground">
