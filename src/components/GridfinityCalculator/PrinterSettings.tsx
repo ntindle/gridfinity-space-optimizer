@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Check, ChevronsUpDown, Settings } from "lucide-react";
+import React, { useRef, useState } from "react";
+import { Check, ChevronsUpDown, SlidersHorizontal } from "lucide-react";
 import { cn, printerSizes } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,152 +15,176 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
-import { formatBuildVolume } from "@/services/unitConversion";
+import { unitMath } from "@/services/unitMath";
+import { FULL_GRID_SIZE, HALF_GRID_SIZE } from "@/utils/gridfinityUtils";
+import { formatSize } from "@/utils/format";
+import type { PrinterSize } from "@/types";
 import CustomPrinterDialog from "./CustomPrinterDialog";
 
-const PrinterSettings = ({ 
-  selectedPrinter, 
-  setSelectedPrinter, 
-  printerSize, 
+const CUSTOM_PRINTER = "Custom Printer";
+
+interface PrinterSettingsProps {
+  selectedPrinter: string;
+  setSelectedPrinter: (printer: string) => void;
+  printerSize: PrinterSize;
+  setPrinterSize: (size: PrinterSize) => void;
+  customPrinterSize?: PrinterSize;
+  useMm: boolean;
+  useHalfSize?: boolean;
+}
+
+const largestPiece = (printerSize: PrinterSize, useHalfSize = false) => {
+  const gridSize = useHalfSize ? HALF_GRID_SIZE : FULL_GRID_SIZE;
+  const { left = 0, right = 0, front = 0, back = 0 } = printerSize.exclusionZone ?? {};
+  const usableX = unitMath.subtract(printerSize.x, unitMath.add(left, right));
+  const usableY = unitMath.subtract(printerSize.y, unitMath.add(front, back));
+  return {
+    x: unitMath.max(0, unitMath.floor(unitMath.divide(usableX, gridSize))),
+    y: unitMath.max(0, unitMath.floor(unitMath.divide(usableY, gridSize))),
+  };
+};
+
+const PrinterSettings: React.FC<PrinterSettingsProps> = ({
+  selectedPrinter,
+  setSelectedPrinter,
+  printerSize,
   setPrinterSize,
-  useMm 
+  customPrinterSize,
+  useMm,
+  useHalfSize = false,
 }) => {
   const [open, setOpen] = useState(false);
   const [customDialogOpen, setCustomDialogOpen] = useState(false);
+  const comboboxRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef<HTMLButtonElement | null>(null);
+
+  const openCustomDialog = (from: HTMLButtonElement | null) => {
+    returnFocusRef.current = from;
+    setCustomDialogOpen(true);
+  };
 
   const printers = [
-    ...Object.keys(printerSizes).map((printer) => ({
-      value: printer,
-      label: printer,
-    })),
-    { value: "custom", label: "Custom Printer" },
+    ...Object.keys(printerSizes)
+      .sort((a, b) => a.localeCompare(b))
+      .map((printer) => ({
+        value: printer,
+        label: printer,
+        size: printerSizes[printer],
+      })),
+    { value: "custom", label: CUSTOM_PRINTER, size: null },
   ];
 
-  const handleSelect = (value) => {
+  const handleSelect = (value: string) => {
     if (value === "custom") {
-      setCustomDialogOpen(true);
+      openCustomDialog(comboboxRef.current);
     } else {
       setSelectedPrinter(value);
-      setPrinterSize(printerSizes[value]);
     }
     setOpen(false);
   };
 
-  const handleCustomConfirm = (customDimensions) => {
-    setSelectedPrinter("Custom Printer");
+  const handleCustomConfirm = (customDimensions: PrinterSize) => {
+    setSelectedPrinter(CUSTOM_PRINTER);
     setPrinterSize(customDimensions);
   };
 
-  const getBedSizeDisplay = () => {
-    return formatBuildVolume(printerSize, useMm);
-  };
+  const piece = printerSize ? largestPiece(printerSize, useHalfSize) : null;
+  const hasExclusions = Object.values(printerSize?.exclusionZone ?? {}).some(
+    (value) => Boolean(value)
+  );
 
   return (
-    <div className="space-y-6 p-4">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="printerModel">Printer Model</Label>
-          <div className="flex gap-2">
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className="flex-1 justify-between"
-                >
-                  {selectedPrinter || "Select printer..."}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0">
-                <Command>
-                  <CommandInput placeholder="Search printer..." />
-                  <CommandList>
-                    <CommandEmpty>No printer found.</CommandEmpty>
-                    <CommandGroup>
-                      {printers
-                        .sort((a, b) => {
-                          if (a.value === "custom") return 1;
-                          if (b.value === "custom") return -1;
-                          return a.label.localeCompare(b.label);
-                        })
-                        .map((printer) => (
-                          <CommandItem
-                            key={printer.value}
-                            value={printer.value}
-                            onSelect={() => handleSelect(printer.value)}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedPrinter === printer.label
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            {printer.label}
-                          </CommandItem>
-                        ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            
-            {selectedPrinter === "Custom Printer" && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCustomDialogOpen(true)}
-                title="Edit custom dimensions"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-        
-        {printerSize && (
-          <div className="space-y-2">
-            <div className="text-sm text-muted-foreground">
-              Build Volume: {getBedSizeDisplay()}
-            </div>
-            
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-center">
-                <div 
-                  className="border-2 border-gray-300 bg-white relative"
-                  style={{
-                    width: Math.min(150, Math.max(40, printerSize.x / 2)),
-                    height: Math.min(150, Math.max(40, printerSize.y / 2)),
-                  }}
-                  title={`Build volume: ${getBedSizeDisplay()}`}
-                >
-                  <div 
-                    className="absolute bottom-1 right-1 border-t-2 border-l-2 border-gray-400"
-                    style={{
-                      width: '20%',
-                      height: Math.min(30, Math.max(10, (printerSize.z || printerSize.x) / 10)),
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">
-                    {useMm ? `${printerSize.x}×${printerSize.y}` : 
-                     `${(printerSize.x/25.4).toFixed(1)}×${(printerSize.y/25.4).toFixed(1)}`}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              ref={comboboxRef}
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              aria-label={`Printer: ${selectedPrinter || "none selected"}`}
+              className="min-w-0 flex-1 justify-between px-3 font-normal"
+            >
+              <span className="truncate">
+                {selectedPrinter || "Select printer…"}
+              </span>
+              <ChevronsUpDown className="text-muted-foreground" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="start"
+            className="w-(--radix-popover-trigger-width) min-w-64 p-0"
+          >
+            <Command>
+              <CommandInput placeholder="Search printers…" />
+              <CommandList>
+                <CommandEmpty>No printer found.</CommandEmpty>
+                <CommandGroup>
+                  {printers.map((printer) => (
+                    <CommandItem
+                      key={printer.value}
+                      value={printer.label}
+                      keywords={printer.size ? undefined : ["custom", "own", "other"]}
+                      onSelect={() => handleSelect(printer.value)}
+                    >
+                      <Check
+                        className={cn(
+                          "text-brand",
+                          selectedPrinter === printer.label
+                            ? "opacity-100"
+                            : "opacity-0"
+                        )}
+                      />
+                      <span className="min-w-0 flex-1 truncate">
+                        {printer.label}
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                        {printer.size
+                          ? formatSize(printer.size.x, printer.size.y, useMm)
+                          : "Your own size"}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        {selectedPrinter === CUSTOM_PRINTER && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={(event) => openCustomDialog(event.currentTarget)}
+            aria-label="Edit custom printer size"
+            title="Edit custom printer size"
+          >
+            <SlidersHorizontal />
+          </Button>
         )}
       </div>
+
+      {printerSize && piece && (
+        <p className="text-[13px] text-muted-foreground tabular-nums">
+          {formatSize(printerSize.x, printerSize.y, useMm)} bed
+          {hasExclusions ? " minus exclusion zones" : ""} · pieces up to{" "}
+          <span className="font-medium text-foreground">
+            {piece.x} × {piece.y}
+          </span>
+        </p>
+      )}
 
       <CustomPrinterDialog
         open={customDialogOpen}
         onOpenChange={setCustomDialogOpen}
         onConfirm={handleCustomConfirm}
         useMm={useMm}
+        initialDimensions={customPrinterSize ?? printerSize}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          (returnFocusRef.current ?? comboboxRef.current)?.focus();
+        }}
       />
     </div>
   );

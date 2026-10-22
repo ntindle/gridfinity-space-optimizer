@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
 import BinContentsInput from "./BinContentsInput";
@@ -57,7 +57,7 @@ const renderPreview = (useMm = false) =>
 describe("GridfinityVisualPreview piece selection", () => {
   it("lists one row per distinct piece and shows no details until one is selected", () => {
     renderPreview();
-    expect(screen.getByText("Pieces in this drawer")).toBeInTheDocument();
+    expect(screen.getByText("Parts list")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Baseplate 3 × 2 — 2 in this drawer/i })
     ).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("GridfinityVisualPreview piece selection", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("Piece details")).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Select a piece below to see its size/)
+      screen.getByText(/Select a piece in the drawing or the list/)
     ).toBeInTheDocument();
   });
 
@@ -79,9 +79,9 @@ describe("GridfinityVisualPreview piece selection", () => {
     );
 
     expect(screen.getByText("Piece details")).toBeInTheDocument();
-    expect(screen.getAllByText("Spacer")).toHaveLength(2);
+    expect(screen.getAllByRole("definition")[0]).toHaveTextContent("Spacer");
     expect(
-      screen.getByText(/9\.92.*×.*0\.83.*\(252 mm × 21 mm\)/)
+      screen.getByText(/9\.92 × 0\.83 in \(252 × 21 mm\)/)
     ).toBeInTheDocument();
     expect(screen.getByText("Column 0, row 2")).toBeInTheDocument();
     expect(screen.getByText("1 in this drawer")).toBeInTheDocument();
@@ -96,7 +96,7 @@ describe("GridfinityVisualPreview piece selection", () => {
     );
 
     expect(
-      screen.getByText(/126 mm × 84 mm \(4\.96.*× 3\.31.*\)/)
+      screen.getByText(/126 × 84 mm \(4\.96 × 3\.31 in\)/)
     ).toBeInTheDocument();
     expect(screen.getByText("2 in this drawer")).toBeInTheDocument();
     expect(
@@ -126,12 +126,12 @@ describe("GridfinityVisualPreview piece selection", () => {
     const unselected = screen.getByRole("button", {
       name: /Spacer 6 × 0\.5 — 1 in this drawer/i,
     });
-    expect(row.className).not.toContain("border-primary");
+    expect(row.className).not.toContain("bg-brand-soft");
 
     fireEvent.click(row);
     expect(row).toHaveAttribute("aria-pressed", "true");
-    expect(row.className).toContain("border-primary");
-    expect(unselected.className).not.toContain("border-primary");
+    expect(row.className).toContain("bg-brand-soft");
+    expect(unselected.className).not.toContain("bg-brand-soft");
   });
 
   it("hides the pieces section when the layout has no pieces", () => {
@@ -144,8 +144,8 @@ describe("GridfinityVisualPreview piece selection", () => {
         onBinContentsChange={() => {}}
       />
     );
-    expect(screen.getByText("Visual Preview")).toBeInTheDocument();
-    expect(screen.queryByText("Pieces in this drawer")).not.toBeInTheDocument();
+    expect(screen.getByText(/No pieces fit yet/)).toBeInTheDocument();
+    expect(screen.queryByText("Parts list")).not.toBeInTheDocument();
   });
 
   it("clears the selection via the Clear selection button", () => {
@@ -159,6 +159,9 @@ describe("GridfinityVisualPreview piece selection", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Clear selection/i }));
     expect(screen.queryByText("Piece details")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Baseplate 3 × 2 — 2 in this drawer/i })
+    ).toHaveFocus();
   });
 
   it("clears the selection when the layout changes", () => {
@@ -202,7 +205,7 @@ describe("GridfinityVisualPreview piece selection", () => {
     );
     expect(screen.getByText("Piece details")).toBeInTheDocument();
     expect(
-      screen.getByText(/252 mm × 21 mm \(9\.92.*× 0\.83.*\)/)
+      screen.getByText(/252 × 21 mm \(9\.92 × 0\.83 in\)/)
     ).toBeInTheDocument();
   });
 });
@@ -443,5 +446,97 @@ describe("BinContentsInput", () => {
     ).toBeInTheDocument();
     rerender(<BinContentsInput value="" pieceCount={1} onCommit={() => {}} />);
     expect(screen.getByText(/Applies to this piece\./)).toBeInTheDocument();
+  });
+});
+
+describe("GridfinityVisualPreview drawing", () => {
+  it("selects a piece's group when the piece is clicked in the drawing", () => {
+    const { container } = renderPreview();
+    const slots = container.querySelectorAll(".piece-slot");
+    expect(slots).toHaveLength(3);
+
+    fireEvent.click(slots[1]);
+
+    expect(screen.getByText("Piece details")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Baseplate 3 × 2 — 2 in this drawer/i })
+    ).toHaveAttribute("aria-pressed", "true");
+    const selected = container.querySelectorAll('.piece[data-state="selected"]');
+    expect(selected).toHaveLength(2);
+
+    fireEvent.click(slots[0]);
+    expect(screen.queryByText("Piece details")).not.toBeInTheDocument();
+  });
+
+  it("labels baseplates but not spacers in the drawing", () => {
+    const { container } = renderPreview();
+    const labels = Array.from(container.querySelectorAll(".piece-label")).map(
+      (label) => label.textContent
+    );
+    expect(labels).toEqual(["3×2", "3×2"]);
+  });
+
+  it("annotates the drawer dimensions in the current unit", () => {
+    const { container, rerender } = renderPreview(false);
+    expect(container.textContent).toContain("15 in");
+    expect(container.textContent).toContain("10 in");
+    rerender(
+      <GridfinityVisualPreview
+        layout={layout}
+        drawerSize={{ width: 15, height: 10 }}
+        useMm={true}
+        binContents={{}}
+        onBinContentsChange={() => {}}
+      />
+    );
+    expect(container.textContent).toContain("381 mm");
+    expect(container.textContent).toContain("254 mm");
+  });
+
+  it("shows per-drawer and total quantities for several identical drawers", () => {
+    render(
+      <GridfinityVisualPreview
+        layout={layout}
+        drawerSize={{ width: 15, height: 10 }}
+        useMm={false}
+        numDrawers={3}
+        binContents={{}}
+        onBinContentsChange={() => {}}
+      />
+    );
+    const row = screen.getByRole("button", {
+      name: /^Baseplate 3 × 2 — 2 in this drawer, 6 in total/,
+    });
+    expect(row).toHaveTextContent("×6");
+    expect(row).toHaveTextContent("2 per drawer");
+    expect(screen.getByText("Totals for 3 drawers")).toBeInTheDocument();
+  });
+
+  it("does not offer contents for spacers, which never get a label", () => {
+    renderPreview();
+    fireEvent.click(
+      screen.getByRole("button", { name: /Spacer 6 × 0\.5 — 1 in this drawer/i })
+    );
+    expect(screen.getByText("Piece details")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Contents")).not.toBeInTheDocument();
+    expect(screen.getByText(/don't get a label/)).toBeInTheDocument();
+  });
+
+  it("shows the group name again after a per-bin name is cleared", () => {
+    const onCommit = vi.fn();
+    render(
+      <BinContentsInput
+        value="Screws"
+        pieceCount={1}
+        inputId="bin-contents-bin-0"
+        label="Bin 1"
+        onCommit={onCommit}
+      />
+    );
+    const input = screen.getByLabelText("Bin 1");
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.blur(input);
+    expect(onCommit).toHaveBeenCalledWith("");
+    expect(input).toHaveValue("Screws");
   });
 });

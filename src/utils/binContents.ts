@@ -1,4 +1,4 @@
-import { groupPreviewPieces, previewPieceKey } from "@/utils/previewPieceDetails";
+import { previewPieceKey } from "@/utils/previewPieceDetails";
 import type { LayoutItem } from "@/types";
 
 export const PER_BIN_SEPARATOR = "#";
@@ -55,29 +55,11 @@ export const setBinContentsForBin = (
 
 export const hasPerBinContents = (
   contents: Record<string, string>,
-  groupKey: string
+  groupKey: string,
+  binCount = Infinity
 ): boolean =>
-  Object.keys(contents).some((key) =>
-    key.startsWith(`${groupKey}${PER_BIN_SEPARATOR}`)
-  );
-
-export const pruneBinContents = (
-  contents: Record<string, string>,
-  layout: LayoutItem[]
-): Record<string, string> => {
-  const liveKeys = new Set<string>();
-  for (const group of groupPreviewPieces(layout)) {
-    const groupKey = previewPieceKey(group.item);
-    liveKeys.add(groupKey);
-    for (let index = 0; index < group.count; index += 1) {
-      liveKeys.add(perBinContentsKey(groupKey, index));
-    }
-  }
-  const next: Record<string, string> = {};
-  for (const [key, value] of Object.entries(contents)) {
-    if (liveKeys.has(key)) {
-      next[key] = value;
-    }
-  }
-  return next;
-};
+  Object.keys(contents).some((key) => {
+    if (!key.startsWith(`${groupKey}${PER_BIN_SEPARATOR}`)) return false;
+    const index = Number(key.slice(groupKey.length + PER_BIN_SEPARATOR.length));
+    return Number.isInteger(index) && index >= 0 && index < binCount;
+  });

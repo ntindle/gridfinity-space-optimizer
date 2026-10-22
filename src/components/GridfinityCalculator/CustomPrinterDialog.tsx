@@ -1,5 +1,4 @@
-"use client"
-
+import { useState } from "react"
 import type React from "react"
 import {
   Dialog,
@@ -21,9 +20,69 @@ interface CustomPrinterDialogProps {
   onConfirm?: (dimensions: PrinterSize) => void
   useMm: boolean
   setUseMm?: (useMm: boolean) => void
+  initialDimensions?: PrinterSize
+  onCloseAutoFocus?: (event: Event) => void
 }
 
-const CustomPrinterDialog: React.FC<CustomPrinterDialogProps> = ({ open, onOpenChange, onConfirm, useMm }) => {
+const AXIS_HINTS: Record<"x" | "y" | "z", string> = {
+  x: "Width",
+  y: "Depth",
+  z: "Height",
+}
+
+interface UnitFieldProps {
+  id: string
+  label: React.ReactNode
+  unit: string
+  value: string
+  error?: string | null
+  onChange: (value: string) => void
+  onBlur?: () => void
+}
+
+const UnitField = ({ id, label, unit, value, error, onChange, onBlur }: UnitFieldProps) => (
+  <div className="min-w-0 space-y-1.5">
+    <Label htmlFor={id} className="text-[13px] font-medium text-muted-foreground">
+      {label}
+    </Label>
+    <div className="relative">
+      <Input
+        id={id}
+        type="text"
+        inputMode="decimal"
+        autoComplete="off"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className="pr-10 tabular-nums"
+        placeholder="0"
+        onFocus={(e) => e.target.select()}
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground"
+      >
+        {unit}
+      </span>
+    </div>
+    {error && (
+      <p id={`${id}-error`} className="text-xs text-destructive">
+        {error}
+      </p>
+    )}
+  </div>
+)
+
+const CustomPrinterDialog: React.FC<CustomPrinterDialogProps> = ({
+  open,
+  onOpenChange,
+  onConfirm,
+  useMm,
+  initialDimensions,
+  onCloseAutoFocus,
+}) => {
   const {
     customDimensions,
     inputValues,
@@ -35,7 +94,18 @@ const CustomPrinterDialog: React.FC<CustomPrinterDialogProps> = ({ open, onOpenC
     validateSingleDimension,
     validateAll,
     resetToDefault,
+    loadDimensions,
   } = useCustomPrinter(useMm)
+  const [wasOpen, setWasOpen] = useState(open)
+
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open && initialDimensions) {
+      loadDimensions?.(initialDimensions)
+    }
+  }
+
+  const unit = useMm ? "mm" : "in"
 
   const handleSave = () => {
     if (validateAll()) {
@@ -46,85 +116,87 @@ const CustomPrinterDialog: React.FC<CustomPrinterDialogProps> = ({ open, onOpenC
     }
   }
 
-  const handleInputBlur = (axis: "x" | "y" | "z") => {
-    validateSingleDimension(axis)
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[30rem]" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
-          <DialogTitle>Custom Printer Settings</DialogTitle>
-          <DialogDescription>Configure your custom 3D printer dimensions and exclusion zones.</DialogDescription>
+          <DialogTitle>Custom printer</DialogTitle>
+          <DialogDescription>
+            Enter your print bed size. Exclusion zones shrink the usable area on each side.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-
-
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium">Printer Dimensions</h4>
-            <div className="grid grid-cols-3 gap-4">
+        <form
+          className="space-y-6"
+          onSubmit={(event) => {
+            event.preventDefault()
+            handleSave()
+          }}
+        >
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-semibold">Build volume</legend>
+            <div className="grid grid-cols-3 gap-3">
               {(["x", "y", "z"] as const).map((axis) => (
-                <div key={axis} className="space-y-2">
-                  <Label htmlFor={`custom-${axis}`}>
-                    {axis.toUpperCase()} ({useMm ? "mm" : "in"})
-                  </Label>
-                  <Input
-                    id={`custom-${axis}`}
-                    type="text"
-                    inputMode="decimal"
-                    value={inputValues?.[axis] || ""}
-                    onChange={(e) => handleInputChange(axis, e.target.value)}
-                    onBlur={() => handleInputBlur(axis)}
-                    className={errors?.[axis] ? "border-red-500" : ""}
-                    placeholder="0"
-                    onFocus={(e) => e.target.select()}
-                  />
-                  {errors?.[axis] && <p className="text-sm text-red-500">{errors[axis]}</p>}
-                </div>
+                <UnitField
+                  key={axis}
+                  id={`custom-${axis}`}
+                  label={
+                    <>
+                      {axis.toUpperCase()}{" "}
+                      <span className="sr-only">({unit})</span>{" "}
+                      <span className="font-normal">· {AXIS_HINTS[axis]}</span>
+                    </>
+                  }
+                  unit={unit}
+                  value={inputValues?.[axis] || ""}
+                  error={errors?.[axis]}
+                  onChange={(value) => handleInputChange(axis, value)}
+                  onBlur={() => validateSingleDimension(axis)}
+                />
               ))}
             </div>
-          </div>
+          </fieldset>
 
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium">Exclusion Zones (Optional)</h4>
-            <p className="text-xs text-muted-foreground">
-              Exclusion zones are areas on the print bed that should not be used for printing, such as regions blocked by clips or obstructions. Setting these values will reduce the printable area on the specified sides.
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-semibold">
+              Exclusion zones <span className="font-normal text-muted-foreground">(optional)</span>
+            </legend>
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              Areas of the bed you can&apos;t print on, such as clips or a purge area. Each value
+              trims that edge of the bed.
             </p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {(["front", "back", "left", "right"] as const).map((zone) => (
-                <div key={zone} className="space-y-2">
-                  <Label htmlFor={`exclusion-${zone}`}>
-                    {zone.charAt(0).toUpperCase() + zone.slice(1)} ({useMm ? "mm" : "in"})
-                  </Label>
-                  <Input
-                    id={`exclusion-${zone}`}
-                    type="text"
-                    inputMode="decimal"
-                    value={exclusionZoneInputs?.[zone] || ""}
-                    onChange={(e) => handleExclusionZoneChange(zone, e.target.value)}
-                    className={exclusionZoneErrors?.[zone] ? "border-red-500" : ""}
-                    placeholder="0"
-                    onFocus={(e) => e.target.select()}
-                  />
-                  {exclusionZoneErrors?.[zone] && <p className="text-sm text-red-500">{exclusionZoneErrors[zone]}</p>}
-                </div>
+                <UnitField
+                  key={zone}
+                  id={`exclusion-${zone}`}
+                  label={
+                    <>
+                      {zone.charAt(0).toUpperCase() + zone.slice(1)}{" "}
+                      <span className="sr-only">({unit})</span>
+                    </>
+                  }
+                  unit={unit}
+                  value={exclusionZoneInputs?.[zone] || ""}
+                  error={exclusionZoneErrors?.[zone]}
+                  onChange={(value) => handleExclusionZoneChange(zone, value)}
+                />
               ))}
             </div>
-          </div>
-        </div>
+          </fieldset>
 
-        <DialogFooter className="flex justify-between">
-          <Button variant="outline" onClick={resetToDefault}>
-            Reset to Default
-          </Button>
-          <div className="space-x-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+          <DialogFooter className="sm:justify-between">
+            <Button type="button" variant="ghost" onClick={resetToDefault} className="sm:-ml-2">
+              Reset to default
             </Button>
-            <Button onClick={handleSave}>Save</Button>
-          </div>
-        </DialogFooter>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Save</Button>
+            </div>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

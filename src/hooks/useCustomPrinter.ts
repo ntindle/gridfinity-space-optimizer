@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import { usePersistedState } from "./usePersistedState";
-import { convertToMm, convertFromMm, validateDimension } from "@/services/unitConversion";
+import { convertToMm, convertFromMm } from "@/services/unitConversion";
+import { unitMath } from "@/services/unitMath";
+import { FULL_GRID_SIZE } from "@/utils/gridfinityUtils";
 import type { PrinterSize } from "@/types";
+
+const MIN_BED_MM = 50;
+const MAX_BED_MM = 600;
 
 interface DimensionInputs {
   x: string;
@@ -45,6 +50,7 @@ export interface CustomPrinterState {
   validateSingleDimension: (axis: "x" | "y" | "z") => boolean;
   validateAll: () => boolean;
   resetToDefault: () => void;
+  loadDimensions: (dimensions: PrinterSize) => void;
 }
 
 export const useCustomPrinter = (useMm = false): CustomPrinterState => {
@@ -88,20 +94,29 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
     return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
   };
 
-  const syncInputsFromDimensions = () => {
+  const formatLimit = (mm: number): string =>
+    useMm ? `${mm} mm` : `${unitMath.round(convertFromMm(mm, "in"), 2)} in`;
+
+  const rangeError = (mmValue: number): string | null => {
+    if (mmValue < MIN_BED_MM) return `Minimum ${formatLimit(MIN_BED_MM)}`;
+    if (mmValue > MAX_BED_MM) return `Maximum ${formatLimit(MAX_BED_MM)}`;
+    return null;
+  };
+
+  const syncInputsFromDimensions = (dimensions: PrinterSize = customDimensions) => {
     setInputValues({
       x: useMm
-        ? customDimensions.x.toString()
-        : formatNumber(convertFromMm(customDimensions.x, "in")),
+        ? dimensions.x.toString()
+        : formatNumber(convertFromMm(dimensions.x, "in")),
       y: useMm
-        ? customDimensions.y.toString()
-        : formatNumber(convertFromMm(customDimensions.y, "in")),
+        ? dimensions.y.toString()
+        : formatNumber(convertFromMm(dimensions.y, "in")),
       z: useMm
-        ? customDimensions.z.toString()
-        : formatNumber(convertFromMm(customDimensions.z, "in")),
+        ? dimensions.z.toString()
+        : formatNumber(convertFromMm(dimensions.z, "in")),
     });
 
-    const zone = customDimensions.exclusionZone || {};
+    const zone = dimensions.exclusionZone || {};
     setExclusionZoneInputs({
       front: zone.front
         ? useMm
@@ -235,20 +250,46 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
         newErrors[axis] = "Please enter a valid dimension";
         isValid = false;
       } else {
-        const mmValue = useMm ? value : convertToMm(value, "in");
-        const validation = validateDimension(mmValue, {
-          min: 50,
-          max: 600,
-        });
-        if (!validation.valid) {
-          newErrors[axis] = validation.error || "Invalid dimension";
+        const error = rangeError(useMm ? value : convertToMm(value, "in"));
+        if (error) {
+          newErrors[axis] = error;
           isValid = false;
         }
       }
     });
-
     setErrors(newErrors);
+
+    if (Object.values(exclusionZoneErrors).some(Boolean)) {
+      return false;
+    }
+
+    const { left = 0, right = 0, front = 0, back = 0 } = customDimensions.exclusionZone ?? {};
+    const tooSmall = `Leaves less than ${formatLimit(FULL_GRID_SIZE)} to print on`;
+    const zoneErrors: Partial<ExclusionZoneErrors> = {};
+    if (unitMath.subtract(customDimensions.x, unitMath.add(left, right)) < FULL_GRID_SIZE) {
+      zoneErrors[right ? "right" : "left"] = tooSmall;
+    }
+    if (unitMath.subtract(customDimensions.y, unitMath.add(front, back)) < FULL_GRID_SIZE) {
+      zoneErrors[back ? "back" : "front"] = tooSmall;
+    }
+    if (Object.keys(zoneErrors).length > 0) {
+      setExclusionZoneErrors((prev) => ({ ...prev, ...zoneErrors }));
+      return false;
+    }
+
     return isValid;
+  };
+
+  const loadDimensions = (dimensions: PrinterSize) => {
+    setCustomDimensions(dimensions);
+    syncInputsFromDimensions(dimensions);
+    setErrors({ x: null, y: null, z: null });
+    setExclusionZoneErrors({
+      front: null,
+      back: null,
+      left: null,
+      right: null,
+    });
   };
 
   const resetToDefault = () => {
@@ -285,18 +326,11 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
       return false;
     }
 
-    const mmValue = useMm ? value : convertToMm(value, "in");
-    if (mmValue < 50) {
+    const error = rangeError(useMm ? value : convertToMm(value, "in"));
+    if (error) {
       setErrors((prev) => ({
         ...prev,
-        [axis]: `Minimum ${useMm ? "50mm" : "2 inches"}`,
-      }));
-      return false;
-    }
-    if (mmValue > 600) {
-      setErrors((prev) => ({
-        ...prev,
-        [axis]: `Maximum ${useMm ? "600mm" : "24 inches"}`,
+        [axis]: error,
       }));
       return false;
     }
@@ -320,5 +354,6 @@ export const useCustomPrinter = (useMm = false): CustomPrinterState => {
     validateSingleDimension,
     validateAll,
     resetToDefault,
+    loadDimensions,
   };
 };

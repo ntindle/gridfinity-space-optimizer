@@ -19,6 +19,7 @@ vi.mock('../../hooks/useCustomPrinter', () => ({
     validateSingleDimension: vi.fn(() => true),
     validateAll: vi.fn(() => true),
     resetToDefault: vi.fn(),
+    loadDimensions: vi.fn(),
   })),
 }));
 
@@ -42,8 +43,8 @@ describe('CustomPrinterDialog', () => {
       />
     );
 
-    expect(screen.getByText('Custom Printer Settings')).toBeInTheDocument();
-    expect(screen.getByText(/Configure your custom 3D printer dimensions/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Custom printer' })).toBeInTheDocument();
+    expect(screen.getByText(/Enter your print bed size/)).toBeInTheDocument();
   });
 
   it('should not render when closed', () => {
@@ -69,9 +70,9 @@ describe('CustomPrinterDialog', () => {
       />
     );
 
-    expect(screen.getByText(/X \(mm\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Y \(mm\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Z \(mm\)/)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /^X \(mm\)/ })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /^Y \(mm\)/ })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /^Z \(mm\)/ })).toBeInTheDocument();
   });
 
   it('should display dimension inputs with correct units for inches', () => {
@@ -84,9 +85,9 @@ describe('CustomPrinterDialog', () => {
       />
     );
 
-    expect(screen.getByText(/X \(in\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Y \(in\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Z \(in\)/)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /^X \(in\)/ })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /^Y \(in\)/ })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /^Z \(in\)/ })).toBeInTheDocument();
   });
 
   it.skip('should show preview with current dimensions', () => {
@@ -106,6 +107,7 @@ describe('CustomPrinterDialog', () => {
       validateSingleDimension: vi.fn(() => true),
       validateAll: vi.fn(() => true),
       resetToDefault: vi.fn(),
+      loadDimensions: vi.fn(),
     });
 
     render(
@@ -139,6 +141,7 @@ describe('CustomPrinterDialog', () => {
       validateSingleDimension: vi.fn(() => true),
       validateAll: vi.fn(() => false),
       resetToDefault: vi.fn(),
+      loadDimensions: vi.fn(),
     });
 
     render(
@@ -153,7 +156,8 @@ describe('CustomPrinterDialog', () => {
     expect(screen.getByText('Dimension must be at least 50mm')).toBeInTheDocument();
     
     const xInput = screen.getByRole('textbox', { name: /X \(mm\)/i });
-    expect(xInput).toHaveClass('border-red-500');
+    expect(xInput).toHaveAttribute('aria-invalid', 'true');
+    expect(xInput).toHaveAccessibleDescription('Dimension must be at least 50mm');
   });
 
   it('should call onConfirm with valid dimensions', async () => {
@@ -171,6 +175,7 @@ describe('CustomPrinterDialog', () => {
       validateSingleDimension: vi.fn(() => true),
       validateAll: mockValidateAll,
       resetToDefault: vi.fn(),
+      loadDimensions: vi.fn(),
     });
 
     render(
@@ -204,6 +209,7 @@ describe('CustomPrinterDialog', () => {
       validateSingleDimension: vi.fn(() => true),
       validateAll: mockValidateAll,
       resetToDefault: vi.fn(),
+      loadDimensions: vi.fn(),
     });
 
     render(
@@ -237,6 +243,7 @@ describe('CustomPrinterDialog', () => {
       validateSingleDimension: vi.fn(() => true),
       validateAll: vi.fn(() => true),
       resetToDefault: mockResetToDefault,
+      loadDimensions: vi.fn(),
     });
 
     render(
@@ -248,7 +255,7 @@ describe('CustomPrinterDialog', () => {
       />
     );
 
-    const resetButton = screen.getByText('Reset to Default');
+    const resetButton = screen.getByRole('button', { name: 'Reset to default' });
     await userEvent.click(resetButton);
 
     expect(mockResetToDefault).toHaveBeenCalled();
@@ -258,5 +265,33 @@ describe('CustomPrinterDialog', () => {
   });
 
   it.skip('should have correct step values for inch inputs', () => {
+  });
+
+  it('loads the printer in use each time it opens', () => {
+    const loadDimensions = vi.fn();
+    mockUseCustomPrinter.mockReturnValue({
+      customDimensions: { x: 200, y: 200, z: 200 },
+      inputValues: { x: '200', y: '200', z: '200' },
+      errors: { x: null, y: null, z: null },
+      exclusionZoneInputs: { front: '', back: '', left: '', right: '' },
+      exclusionZoneErrors: { front: null, back: null, left: null, right: null },
+      handleInputChange: vi.fn(),
+      handleExclusionZoneChange: vi.fn(),
+      validateSingleDimension: vi.fn(() => true),
+      validateAll: vi.fn(() => true),
+      resetToDefault: vi.fn(),
+      loadDimensions,
+    });
+    const applied = { x: 300, y: 250, z: 200, exclusionZone: { left: 20 } };
+
+    const { rerender } = render(
+      <CustomPrinterDialog open={false} onOpenChange={mockOnOpenChange} useMm={true} initialDimensions={applied} />
+    );
+    expect(loadDimensions).not.toHaveBeenCalled();
+
+    rerender(
+      <CustomPrinterDialog open={true} onOpenChange={mockOnOpenChange} useMm={true} initialDimensions={applied} />
+    );
+    expect(loadDimensions).toHaveBeenCalledWith(applied);
   });
 });

@@ -8,8 +8,13 @@ import userEvent from '@testing-library/user-event';
 import GridfinityCalculator from './GridfinityCalculator';
 import { SettingsProvider } from '../contexts/SettingsContext';
 import { saveUserSettings, loadUserSettings } from '../lib/utils';
+import { toast } from 'sonner';
 import type { Settings } from '@/types/gridfinity';
 import type { ReactElement } from 'react';
+
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
 
 vi.mock('../lib/utils', () => ({
   cn: vi.fn((inputs) => inputs),
@@ -20,6 +25,9 @@ vi.mock('../lib/utils', () => ({
   saveUserSettings: vi.fn(),
   loadUserSettings: vi.fn(),
 }));
+
+const widthInput = () => screen.getByRole('textbox', { name: /^Width/ });
+const depthInput = () => screen.getByRole('textbox', { name: /^Depth/ });
 
 const renderWithProviders = (component: ReactElement) => {
   return render(
@@ -38,11 +46,11 @@ describe('GridfinityCalculator', () => {
   it('should render all main sections', () => {
     renderWithProviders(<GridfinityCalculator />);
     
-    expect(screen.getByRole('heading', { name: 'Drawer Dimensions' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Printer Settings' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Bin Options' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Drawer Options' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Drawer Dimensions' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Drawer' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Printer' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Bins' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Drawer' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/identical drawers/i)).toBeInTheDocument();
   });
 
   it('should load saved settings on mount', () => {
@@ -70,9 +78,8 @@ describe('GridfinityCalculator', () => {
     
     const initialCallCount = vi.mocked(saveUserSettings).mock.calls.length;
     
-    const widthInput = screen.getByLabelText(/width/i);
-    await userEvent.clear(widthInput);
-    await userEvent.type(widthInput, '20');
+    await userEvent.clear(widthInput());
+    await userEvent.type(widthInput(), '20');
     
     await userEvent.tab();
     
@@ -86,25 +93,22 @@ describe('GridfinityCalculator', () => {
     
     await waitFor(() => {
       expect(screen.getByText(/Results for \d+ drawer/)).toBeInTheDocument();
-      expect(screen.getByText('Visual Preview')).toBeInTheDocument();
+      expect(screen.getByText('Parts list')).toBeInTheDocument();
     });
   });
 
   it('should toggle between inches and millimeters', async () => {
     renderWithProviders(<GridfinityCalculator />);
     
-    const unitToggle = document.getElementById('unit-toggle');
-    
-    const inchesLabel = screen.getByText('Inches');
-    expect(inchesLabel).toBeInTheDocument();
-    
-    if (unitToggle) {
-      await userEvent.click(unitToggle);
-    }
-    
+    expect(screen.getByRole('button', { name: 'in inches' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('textbox', { name: 'Width (inches)' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'mm millimeters' }));
+
     await waitFor(() => {
-      expect(screen.getByText(/Width \(mm\)/)).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'Width (mm)' })).toBeInTheDocument();
     });
+    expect(screen.getByRole('button', { name: 'mm millimeters' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('should update printer selection', async () => {
@@ -128,7 +132,7 @@ describe('GridfinityCalculator', () => {
   it('should handle half-size bin options', async () => {
     renderWithProviders(<GridfinityCalculator />);
     
-    const halfSizeCheckbox = screen.getByLabelText('Use only half-size bins (21x21mm)');
+    const halfSizeCheckbox = screen.getByLabelText('Half-size bins only');
     
     await userEvent.click(halfSizeCheckbox);
     
@@ -162,11 +166,12 @@ describe('GridfinityCalculator', () => {
   it('should handle invalid drawer dimensions gracefully', async () => {
     renderWithProviders(<GridfinityCalculator />);
     
-    const widthInput = screen.getByLabelText(/width/i);
-    await userEvent.clear(widthInput);
-    await userEvent.type(widthInput, '0');
-    
-    expect(screen.getByRole('heading', { name: 'Drawer Dimensions' })).toBeInTheDocument();
+    await userEvent.clear(widthInput());
+    await userEvent.type(widthInput(), '0');
+    await userEvent.tab();
+
+    expect(screen.getByRole('heading', { name: 'Drawer' })).toBeInTheDocument();
+    expect(await screen.findByText('Enter your drawer size')).toBeInTheDocument();
   });
 
   it('should recalculate when dimensions change', async () => {
@@ -174,9 +179,8 @@ describe('GridfinityCalculator', () => {
     
     const initialSaveCount = vi.mocked(saveUserSettings).mock.calls.length;
     
-    const heightInput = screen.getByLabelText(/height/i);
-    await userEvent.clear(heightInput);
-    await userEvent.type(heightInput, '25');
+    await userEvent.clear(depthInput());
+    await userEvent.type(depthInput(), '25');
     
     await userEvent.tab();
     
@@ -204,10 +208,11 @@ describe('GridfinityCalculator', () => {
       renderWithProviders(<GridfinityCalculator />);
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/width/i)).toHaveValue('15');
+        expect(widthInput()).toHaveValue('15');
       });
-      expect(screen.getByLabelText(/height/i)).toHaveValue('12');
+      expect(depthInput()).toHaveValue('12');
       expect(window.location.search).not.toContain('share=');
+      expect(toast.success).toHaveBeenCalledWith('Opened a shared layout', expect.anything());
     } finally {
       window.history.pushState(null, '', '/');
     }
@@ -219,9 +224,10 @@ describe('GridfinityCalculator', () => {
       renderWithProviders(<GridfinityCalculator />);
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/width/i)).toHaveValue('22.5');
+        expect(widthInput()).toHaveValue('22.5');
       });
       expect(window.location.search).not.toContain('share=');
+      expect(toast.error).toHaveBeenCalledWith("That share link couldn't be opened", expect.anything());
     } finally {
       window.history.pushState(null, '', '/');
     }
@@ -244,10 +250,10 @@ describe('GridfinityCalculator', () => {
       renderWithProviders(<GridfinityCalculator />);
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/width/i)).toHaveValue('381');
+        expect(widthInput()).toHaveValue('381');
       });
-      expect(screen.getByLabelText(/height/i)).toHaveValue('304.8');
-      expect(screen.getByLabelText(/number of duplicate drawers/i)).toHaveValue('2');
+      expect(depthInput()).toHaveValue('304.8');
+      expect(screen.getByLabelText(/identical drawers/i)).toHaveValue('2');
       await waitFor(() => {
         const match = vi.mocked(saveUserSettings).mock.calls.some((call) =>
           call[0]?.selectedPrinter === 'Test Printer' &&
@@ -281,7 +287,7 @@ describe('GridfinityCalculator', () => {
       renderWithProviders(<GridfinityCalculator />);
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/width/i)).toHaveValue('15');
+        expect(widthInput()).toHaveValue('15');
       });
       const writes = (localStorage.setItem as unknown as Mock).mock.calls
         .filter(([key]) => key === 'gridfinity_customPrinterSize')
@@ -317,7 +323,7 @@ describe('GridfinityCalculator', () => {
         renderWithProviders(<GridfinityCalculator />);
 
         await waitFor(() => {
-          expect(screen.getByLabelText(/width/i)).toHaveValue('15');
+          expect(widthInput()).toHaveValue('15');
         });
         const writes = (localStorage.setItem as unknown as Mock).mock.calls
           .filter(([key]) => key === 'gridfinity_customPrinterSize')
@@ -346,7 +352,7 @@ describe('GridfinityCalculator', () => {
     renderWithProviders(<GridfinityCalculator />);
 
     await waitFor(() => {
-      expect(screen.getByText('Half-size Bins:')).toBeInTheDocument();
+      expect(screen.getByText(/\d+ half-size bins?/)).toBeInTheDocument();
     });
   });
 
@@ -386,5 +392,48 @@ describe('GridfinityCalculator', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('Measure your drawer')).toBeInTheDocument();
     expect(screen.getByText('Step 1 of 5')).toBeInTheDocument();
+  });
+
+  it('keeps bin names when the layout changes and comes back', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<GridfinityCalculator />);
+
+    const row = await screen.findByRole('button', { name: /^Baseplate 5 × 5 — 2 in this drawer/ });
+    await user.click(row);
+    await user.type(screen.getByLabelText('Contents'), 'Screws');
+    await user.tab();
+    expect(
+      await screen.findByRole('button', { name: /^Baseplate 5 × 5 — 2 in this drawer · Screws/ })
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Half-size bins only'));
+    expect(screen.queryByRole('button', { name: /^Baseplate 5 × 5/ })).not.toBeInTheDocument();
+    await user.click(screen.getByLabelText('Half-size bins only'));
+
+    expect(
+      await screen.findByRole('button', { name: /^Baseplate 5 × 5 — 2 in this drawer · Screws/ })
+    ).toBeInTheDocument();
+  });
+
+  it('explains when the printer bed is too small to print a single grid cell', async () => {
+    vi.mocked(loadUserSettings).mockReturnValue(null);
+    const { encodeShareSettings } = await import('../utils/shareLayout');
+    const shared = encodeShareSettings({
+      drawerSize: { width: 15, height: 12 },
+      selectedPrinter: 'Custom Printer',
+      customPrinterSize: { x: 100, y: 100, z: 100, exclusionZone: { left: 30, right: 30 } },
+      useHalfSize: false,
+      preferHalfSize: false,
+      preferUniformBaseplates: false,
+      numDrawers: 1,
+      useMm: false,
+    });
+    window.history.pushState(null, '', `/?share=${shared}`);
+    try {
+      renderWithProviders(<GridfinityCalculator />);
+      expect(await screen.findByText('Your printer bed is too small')).toBeInTheDocument();
+    } finally {
+      window.history.pushState(null, '', '/');
+    }
   });
 });

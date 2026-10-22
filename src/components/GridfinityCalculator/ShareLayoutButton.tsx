@@ -3,6 +3,11 @@ import { Check, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSettings } from '@/contexts/SettingsContext';
 import { buildShareUrl } from '@/utils/shareLayout';
+import { cn } from '@/lib/utils';
+
+const swap =
+  'col-start-1 row-start-1 transition-[opacity,filter,scale] duration-200 ease-out motion-reduce:transition-none';
+const hidden = 'opacity-0 blur-[2px] scale-90';
 
 const ShareLayoutButton: React.FC = () => {
   const settings = useSettings();
@@ -78,28 +83,39 @@ const ShareLayoutButton: React.FC = () => {
     }
   };
 
+  const copied = status === 'copied';
+
   return (
-    <div className="flex flex-wrap items-center gap-2" data-tour="share">
+    <div className="flex flex-col items-end gap-2" data-tour="share">
       <Button
         type="button"
         variant="outline"
+        size="sm"
         onClick={handleCopy}
         title="Copy a link that opens this exact layout"
         aria-label="Copy share link for this layout"
       >
-        {status === 'copied' ? (
-          <Check className="mr-2 h-4 w-4" aria-hidden="true" />
-        ) : (
-          <Link2 className="mr-2 h-4 w-4" aria-hidden="true" />
-        )}
-        {status === 'copied' ? 'Link copied!' : 'Copy share link'}
+        <span className="grid size-4 place-items-center" aria-hidden="true">
+          <Link2 className={cn(swap, copied && hidden)} />
+          <Check className={cn(swap, 'text-brand', !copied && hidden)} />
+        </span>
+        <span className="grid" aria-hidden="true">
+          <span className={cn(swap, copied && hidden)}>Share link</span>
+          <span className={cn(swap, !copied && hidden)}>Copied</span>
+        </span>
       </Button>
-      <span className="text-sm text-muted-foreground" role="status">
-        {status === 'copied'
-          ? 'Send this link — it opens your exact layout.'
+      <span
+        className={cn(
+          'text-[13px]',
+          status === 'error' ? 'text-destructive' : 'sr-only'
+        )}
+        role="status"
+      >
+        {copied
+          ? 'Link copied — it opens your exact layout.'
           : status === 'error'
             ? 'Copy failed — select the link below and copy it manually.'
-            : 'Share this exact layout with one link.'}
+            : ''}
       </span>
       {failedUrl && (
         <input
@@ -108,7 +124,7 @@ const ShareLayoutButton: React.FC = () => {
           value={failedUrl}
           aria-label="Share link — select and copy manually"
           onFocus={(e) => e.target.select()}
-          className="w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="w-full max-w-md rounded-md border border-input bg-card px-3 py-2 text-base md:pointer-fine:text-sm"
         />
       )}
     </div>

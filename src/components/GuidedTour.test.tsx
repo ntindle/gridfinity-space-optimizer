@@ -180,6 +180,27 @@ describe('GuidedTour', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
   });
 
+  it('leaves controls inside an already open card alone', async () => {
+    const user = userEvent.setup();
+    const openPicker = vi.fn();
+    render(
+      <>
+        <div data-tour="drawer">anchor drawer</div>
+        <CollapsibleCard title="Printer" tourId="printer">
+          <button type="button" role="combobox" aria-expanded="false" onClick={openPicker}>
+            Bambu Lab A1
+          </button>
+        </CollapsibleCard>
+      </>
+    );
+    render(<GuidedTour open onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect(screen.getByText('Pick your printer')).toBeInTheDocument();
+    expect(openPicker).not.toHaveBeenCalled();
+  });
+
   it('calls onClose when no anchors remain', () => {
     const onClose = vi.fn();
     render(<GuidedTour open onClose={onClose} />);

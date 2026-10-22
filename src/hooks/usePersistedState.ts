@@ -20,7 +20,9 @@ export function usePersistedState<T>(
   const [state, setState] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
-      return item ? deserialize(item) : defaultValue;
+      if (!item) return defaultValue;
+      const value = deserialize(item);
+      return value === null || value === undefined ? defaultValue : value;
     } catch (error) {
       console.error(`Error loading ${key} from localStorage:`, error);
       return defaultValue;

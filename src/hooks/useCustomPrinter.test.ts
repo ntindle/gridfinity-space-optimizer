@@ -95,7 +95,7 @@ describe('useCustomPrinter', () => {
         result.current.validateSingleDimension('x');
       });
       
-      expect(result.current.errors.x).toBe('Maximum 600mm');
+      expect(result.current.errors.x).toBe('Maximum 600 mm');
     });
 
     it('should reset to defaults', () => {
@@ -330,6 +330,74 @@ describe('useCustomPrinter', () => {
       expect(result.current.customDimensions.exclusionZone?.back).toBe(12);
       expect(result.current.exclusionZoneInputs.front).toBe('18');
       expect(result.current.exclusionZoneInputs.back).toBe('12');
+    });
+  });
+
+  describe('Dialog sync and validation', () => {
+    it('loads the printer in use into the inputs', () => {
+      const { result } = renderHook(() => useCustomPrinter(true));
+
+      act(() => {
+        result.current.loadDimensions({ x: 300, y: 250, z: 200, exclusionZone: { left: 20, front: 10 } });
+      });
+
+      expect(result.current.inputValues).toEqual({ x: '300', y: '250', z: '200' });
+      expect(result.current.exclusionZoneInputs).toEqual({ front: '10', back: '', left: '20', right: '' });
+      expect(result.current.customDimensions.x).toBe(300);
+    });
+
+    it('rejects exclusion zones that together leave less than one grid cell', () => {
+      const { result } = renderHook(() => useCustomPrinter(true));
+
+      act(() => {
+        result.current.loadDimensions({ x: 100, y: 100, z: 100 });
+      });
+      act(() => {
+        result.current.handleExclusionZoneChange('left', '30');
+      });
+      act(() => {
+        result.current.handleExclusionZoneChange('right', '30');
+      });
+
+      let valid = true;
+      act(() => {
+        valid = result.current.validateAll();
+      });
+
+      expect(valid).toBe(false);
+      expect(result.current.exclusionZoneErrors.right).toBe('Leaves less than 42 mm to print on');
+    });
+
+    it('blocks saving while an exclusion zone shows an error', () => {
+      const { result } = renderHook(() => useCustomPrinter(true));
+
+      act(() => {
+        result.current.loadDimensions({ x: 200, y: 200, z: 200 });
+      });
+      act(() => {
+        result.current.handleExclusionZoneChange('front', '250');
+      });
+
+      let valid = true;
+      act(() => {
+        valid = result.current.validateAll();
+      });
+
+      expect(result.current.exclusionZoneErrors.front).toContain('exceed');
+      expect(valid).toBe(false);
+    });
+
+    it('states size limits in inches when entering inches', () => {
+      const { result } = renderHook(() => useCustomPrinter(false));
+
+      act(() => {
+        result.current.handleInputChange('x', '24');
+      });
+      act(() => {
+        result.current.validateSingleDimension('x');
+      });
+
+      expect(result.current.errors.x).toBe('Maximum 23.62 in');
     });
   });
 });
