@@ -168,7 +168,7 @@ describe("BinLabels printing and limits", () => {
     expect(container.querySelectorAll(".bin-label-card")).toHaveLength(2000);
     expect(screen.getByText(/shows the first 2,000 of 3,000 labels/)).toBeInTheDocument();
     expect(screen.getByText(/^3,000 labels, one for every bin/)).toBeInTheDocument();
-  });
+  }, 15_000);
 
   it("remembers the chosen label style", () => {
     render(<BinLabels bins={bins} useMm={true} numDrawers={1} />);

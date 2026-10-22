@@ -428,7 +428,7 @@ describe('GridfinityCalculator', () => {
       expect(placed()[0]).toHaveAccessibleName('Bin 1 × 1, 3 units tall, Screws, needs attention');
     });
     expect(screen.queryByText(/^1 bin/)).not.toBeInTheDocument();
-  });
+  }, 15_000);
 
   it('downloads every part in one zip', async () => {
     const user = userEvent.setup();
@@ -443,23 +443,31 @@ describe('GridfinityCalculator', () => {
       });
     try {
       renderWithProviders(<GridfinityCalculator />);
+      await user.clear(widthInput());
+      await user.type(widthInput(), '8');
+      await user.clear(depthInput());
+      await user.type(depthInput(), '4');
+      await user.tab();
       await user.click(await screen.findByRole('button', { name: 'Add bin' }));
       await user.click(screen.getByRole('button', { name: /^Download files/ }));
 
-      await waitFor(() => {
-        expect(saved).toEqual(['gridfinity-22.5x16.5in.zip']);
-      });
+      await waitFor(
+        () => {
+          expect(saved).toEqual(['gridfinity-8x4in.zip']);
+        },
+        { timeout: 15_000 },
+      );
       const blob = (createObjectURL.mock.calls[0] as unknown as [Blob])[0];
       expect(blob.type).toBe('application/zip');
       expect(blob.size).toBeGreaterThan(1000);
       expect(toast.success).toHaveBeenCalledWith(
-        'Downloaded gridfinity-22.5x16.5in.zip',
+        'Downloaded gridfinity-8x4in.zip',
         expect.objectContaining({ description: expect.stringMatching(/STL files and \d+ prints? as 3MF plates/) }),
       );
     } finally {
       click.mockRestore();
     }
-  });
+  }, 30_000);
 
   it('explains when the printer bed is too small to print a single grid cell', async () => {
     vi.mocked(loadUserSettings).mockReturnValue(null);

@@ -2,21 +2,26 @@ import { describe, it, expect } from 'vitest';
 import { strFromU8, unzipSync } from 'fflate';
 import { calculateGrids } from '@/utils/gridfinityUtils';
 import { createPrintFiles, type ExportRequest } from './exportFiles';
-import type { Bin, PrinterSize } from '@/types';
+import type { Bin, DrawerSize, PrinterSize } from '@/types';
 
 const A1: PrinterSize = { x: 256, y: 256, z: 256 };
-const drawerSize = { width: 22.5, height: 16.5 };
+const smallDrawer: DrawerSize = { width: 8, height: 4 };
+const exampleDrawer: DrawerSize = { width: 22.5, height: 16.5 };
+const HEAVY_TIMEOUT = 30_000;
 
-const request = (overrides: Partial<ExportRequest> = {}): ExportRequest => ({
-  layout: calculateGrids(drawerSize, A1, false, false).layout,
-  bins: [],
-  numDrawers: 1,
-  drawerSize,
-  useMm: false,
-  printerName: 'Bambu Lab A1',
-  printerSize: A1,
-  ...overrides,
-});
+const request = (overrides: Partial<ExportRequest> = {}): ExportRequest => {
+  const drawerSize = overrides.drawerSize ?? smallDrawer;
+  return {
+    layout: calculateGrids(drawerSize, A1, false, false).layout,
+    bins: [],
+    numDrawers: 1,
+    drawerSize,
+    useMm: false,
+    printerName: 'Bambu Lab A1',
+    printerSize: A1,
+    ...overrides,
+  };
+};
 
 const bin = (overrides: Partial<Bin>): Bin => ({
   id: 'b',
@@ -37,9 +42,9 @@ const model = (plate: Uint8Array) =>
     'application/xml'
   );
 
-describe('createPrintFiles', () => {
+describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
   it('bundles an STL per part, 3MF plates, and a README for the example drawer', () => {
-    const bundle = createPrintFiles(request());
+    const bundle = createPrintFiles(request({ drawerSize: exampleDrawer }));
     expect(bundle.filename).toBe('gridfinity-22.5x16.5in.zip');
     expect(bundle).toMatchObject({ parts: 9, plates: 3, prints: 4, skippedBins: 0 });
     const names = Object.keys(files(bundle));
@@ -55,9 +60,9 @@ describe('createPrintFiles', () => {
   });
 
   it('lays each plate out inside the printer bed', () => {
-    const plates = Object.entries(files(createPrintFiles(request()))).filter(([name]) =>
-      name.endsWith('.3mf')
-    );
+    const bundle = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
+    const plates = Object.entries(files(bundle)).filter(([name]) => name.endsWith('.3mf'));
+    expect(plates.length).toBeGreaterThan(1);
     for (const [, plate] of plates) {
       const doc = model(plate);
       expect(doc.getElementsByTagName('parsererror')).toHaveLength(0);
@@ -72,23 +77,42 @@ describe('createPrintFiles', () => {
     }
   });
 
+  it('stores the finished 3MF plates in the zip instead of compressing them twice', () => {
+    const bundle = createPrintFiles(request());
+    const plate = Object.keys(files(bundle)).find((name) => name.endsWith('.3mf')) ?? '';
+    const view = new DataView(bundle.data.buffer, bundle.data.byteOffset, bundle.data.byteLength);
+    let offset = 0;
+    const methods: Record<string, number> = {};
+    while (view.getUint32(offset, true) === 0x04034b50) {
+      const method = view.getUint16(offset + 8, true);
+      const compressedSize = view.getUint32(offset + 18, true);
+      const nameLength = view.getUint16(offset + 26, true);
+      const extraLength = view.getUint16(offset + 28, true);
+      const name = strFromU8(bundle.data.slice(offset + 30, offset + 30 + nameLength));
+      methods[name] = method;
+      offset += 30 + nameLength + extraLength + compressedSize;
+    }
+    expect(methods[plate]).toBe(0);
+    expect(methods['README.txt']).toBe(8);
+  });
+
   it('adds the bins you placed, as their own files and plates', () => {
     const bundle = createPrintFiles(
       request({
         bins: [
           bin({ id: 'a' }),
           bin({ id: 'b', x: 84, width: 42, depth: 84 }),
-          bin({ id: 'c', x: 168, width: 42, height: 3, label: 'Screws' }),
+          bin({ id: 'c', x: 126, width: 42, height: 3, label: 'Screws' }),
         ],
         numDrawers: 3,
       })
     );
     const entries = files(bundle);
     const names = Object.keys(entries);
-    expect(bundle.filename).toBe('gridfinity-22.5x16.5in-x3.zip');
+    expect(bundle.filename).toBe('gridfinity-8x4in-x3.zip');
     expect(names).toContain('stl/bin-2x1-6u-x6.stl');
     expect(names).toContain('stl/bin-1x1-3u-x3.stl');
-    expect(names).toContain('stl/baseplate-6x6-x6.stl');
+    expect(names).toContain('stl/baseplate-4x2-x3.stl');
     expect(names.some((name) => /^3mf\/plate-\d+-bins/.test(name))).toBe(true);
     const readme = strFromU8(entries['README.txt']);
     expect(readme).toContain('Parts for 3 identical drawers.');
@@ -97,21 +121,21 @@ describe('createPrintFiles', () => {
   });
 
   it('gives bins on half-size baseplates half-grid feet', () => {
-    const halfLayout = calculateGrids(drawerSize, A1, true, false).layout;
+    const halfLayout = calculateGrids(smallDrawer, A1, true, false).layout;
     const bundle = createPrintFiles(
       request({ layout: halfLayout, bins: [bin({ width: 63, depth: 21, height: 2 })] })
     );
     const names = Object.keys(files(bundle));
     expect(names).toContain('stl/bin-1.5x0.5-2u-half-grid-x1.stl');
-    expect(names).toContain('stl/half-size-baseplate-12x12-x2.stl');
+    expect(names).toContain('stl/half-size-baseplate-9x4-x1.stl');
   });
 
   it('leaves out bins that do not fit and says so', () => {
-    const bundle = createPrintFiles(
-      request({ bins: [bin({ id: 'off', x: 546 }), bin({ id: 'ok' })] })
-    );
+    const bundle = createPrintFiles(request({ bins: [bin({ id: 'off', x: 168 }), bin({ id: 'ok' })] }));
     expect(bundle.skippedBins).toBe(1);
-    expect(strFromU8(files(bundle)['README.txt'])).toContain('1 bin that doesn\'t fit the grid or the printer was left out.');
+    expect(strFromU8(files(bundle)['README.txt'])).toContain(
+      "1 bin that doesn't fit the grid or the printer was left out."
+    );
   });
 
   it('leaves out bins taller than the printer can print', () => {

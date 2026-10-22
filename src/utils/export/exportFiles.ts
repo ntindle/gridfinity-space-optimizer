@@ -201,6 +201,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
         objects,
         items,
       }),
+      { store: true },
     ]);
     plateLines.push(
       `  ${pad(file, 36)} ${pad(plate.copies === 1 ? "print once" : `print ${plate.copies} times`, 16)} ${describePlate(plate, labels)}`
