@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event';
 import GuidedTour from './GuidedTour';
 import CollapsibleCard from './CollapsibleCard';
 
-const ALL_ANCHORS = ['drawer', 'printer', 'bins', 'results', 'share'];
+const ALL_ANCHORS = ['drawer', 'printer', 'grid', 'results', 'download'];
 
 const renderAnchors = (ids: string[] = ALL_ANCHORS) => {
   render(
@@ -49,7 +49,7 @@ describe('GuidedTour', () => {
     expect(screen.getByText('Step 2 of 5')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Next' }));
-    expect(screen.getByText('Tune the bins')).toBeInTheDocument();
+    expect(screen.getByText('Choose the grid')).toBeInTheDocument();
     expect(screen.getByText('Step 3 of 5')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Back' }));
@@ -66,7 +66,7 @@ describe('GuidedTour', () => {
     for (let i = 0; i < 4; i += 1) {
       await user.click(screen.getByRole('button', { name: 'Next' }));
     }
-    expect(screen.getByText('Share or print labels')).toBeInTheDocument();
+    expect(screen.getByText('Download everything')).toBeInTheDocument();
     expect(screen.getByText('Step 5 of 5')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Done' }));
@@ -104,26 +104,26 @@ describe('GuidedTour', () => {
 
   it('skips a step whose anchor is missing from the DOM', async () => {
     const user = userEvent.setup();
-    renderAnchors(['drawer', 'results', 'share']);
+    renderAnchors(['drawer', 'results', 'download']);
     render(<GuidedTour open onClose={vi.fn()} />);
 
     await user.click(screen.getByRole('button', { name: 'Next' }));
-    expect(screen.getByText('Read the layout')).toBeInTheDocument();
+    expect(screen.getByText('Lay out your bins')).toBeInTheDocument();
     expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
   });
 
   it('skips backward over a missing anchor when going back', async () => {
     const user = userEvent.setup();
-    renderAnchors(['drawer', 'printer', 'bins', 'share']);
+    renderAnchors(['drawer', 'printer', 'grid', 'download']);
     render(<GuidedTour open onClose={vi.fn()} />);
 
     for (let i = 0; i < 3; i += 1) {
       await user.click(screen.getByRole('button', { name: 'Next' }));
     }
-    expect(screen.getByText('Share or print labels')).toBeInTheDocument();
+    expect(screen.getByText('Download everything')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Back' }));
-    expect(screen.getByText('Tune the bins')).toBeInTheDocument();
+    expect(screen.getByText('Choose the grid')).toBeInTheDocument();
     expect(screen.getByText('Step 3 of 4')).toBeInTheDocument();
   });
 

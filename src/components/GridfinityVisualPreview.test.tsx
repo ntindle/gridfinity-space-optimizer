@@ -2,10 +2,11 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { useState } from "react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
 import BinContentsInput from "./BinContentsInput";
-import type { LayoutItem } from "@/types";
+import type { Bin, LayoutItem, PrinterSize } from "@/types";
 
 const layout: LayoutItem[] = [
   {
@@ -43,500 +44,361 @@ const layout: LayoutItem[] = [
   },
 ];
 
-const renderPreview = (useMm = false) =>
-  render(
+const A1: PrinterSize = { x: 256, y: 256, z: 256 };
+const DRAWER = { width: 15, height: 10 };
+
+interface HarnessProps {
+  initial?: Bin[];
+  useMm?: boolean;
+  numDrawers?: number;
+  printerSize?: PrinterSize;
+  pieces?: LayoutItem[];
+  onBins?: (bins: Bin[]) => void;
+}
+
+const Harness = ({
+  initial = [],
+  useMm = false,
+  numDrawers = 1,
+  printerSize = A1,
+  pieces = layout,
+  onBins,
+}: HarnessProps) => {
+  const [bins, setBins] = useState<Bin[]>(initial);
+  return (
     <GridfinityVisualPreview
-      layout={layout}
-      drawerSize={{ width: 15, height: 10 }}
+      layout={pieces}
+      drawerSize={DRAWER}
       useMm={useMm}
-      binContents={{}}
-      onBinContentsChange={() => {}}
+      numDrawers={numDrawers}
+      bins={bins}
+      onBinsChange={(next) => {
+        setBins(next);
+        if (Array.isArray(next)) onBins?.(next);
+      }}
+      printerSize={printerSize}
     />
   );
+};
 
-describe("GridfinityVisualPreview piece selection", () => {
+const bin = (overrides: Partial<Bin> = {}): Bin => ({
+  id: "b1",
+  x: 0,
+  y: 0,
+  width: 42,
+  depth: 42,
+  height: 3,
+  label: "",
+  ...overrides,
+});
+
+const floorOf = (container: HTMLElement) => {
+  const floor = container.querySelector(".drawer-floor") as HTMLElement;
+  vi.spyOn(floor, "getBoundingClientRect").mockReturnValue({
+    left: 0,
+    top: 0,
+    x: 0,
+    y: 0,
+    width: 381,
+    height: 254,
+    right: 381,
+    bottom: 254,
+    toJSON: () => ({}),
+  });
+  return floor;
+};
+
+const pointer = (x: number, y: number) => ({
+  clientX: x,
+  clientY: y,
+  pointerId: 1,
+  button: 0,
+  pointerType: "mouse",
+});
+
+const binButtons = () => within(screen.getByRole("group", { name: "Bins in the drawer" })).queryAllByRole("button");
+
+describe("GridfinityVisualPreview parts list", () => {
   it("lists one row per distinct piece and shows no details until one is selected", () => {
-    renderPreview();
-    expect(screen.getByText("Parts list")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Baseplate 3 × 2 — 2 in this drawer/i })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Spacer 6 × 0\.5 — 1 in this drawer/i })
-    ).toBeInTheDocument();
+    render(<Harness />);
+    expect(screen.getByText("Parts to print")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Baseplate 3 × 2 — 2 in this drawer/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Spacer 6 × 0\.5 — 1 in this drawer/i })).toBeInTheDocument();
     expect(screen.queryByText("Piece details")).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/Select a piece in the drawing or the list/)
-    ).toBeInTheDocument();
   });
 
   it("shows the selected piece's details, with inches first when useMm is false", () => {
-    renderPreview(false);
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Spacer 6 × 0\.5 — 1 in this drawer/i,
-      })
-    );
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: /Spacer 6 × 0\.5 — 1 in this drawer/i }));
 
     expect(screen.getByText("Piece details")).toBeInTheDocument();
     expect(screen.getAllByRole("definition")[0]).toHaveTextContent("Spacer");
-    expect(
-      screen.getByText(/9\.92 × 0\.83 in \(252 × 21 mm\)/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/9\.92 × 0\.83 in \(252 × 21 mm\)/)).toBeInTheDocument();
     expect(screen.getByText("Column 0, row 2")).toBeInTheDocument();
-    expect(screen.getByText("1 in this drawer")).toBeInTheDocument();
+    expect(screen.getByText("Spacers fill the gap at the drawer wall.")).toBeInTheDocument();
   });
 
   it("shows millimetres first when useMm is true, and first position for a group", () => {
-    renderPreview(true);
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Baseplate 3 × 2 — 2 in this drawer/i,
-      })
-    );
+    render(<Harness useMm />);
+    fireEvent.click(screen.getByRole("button", { name: /Baseplate 3 × 2 — 2 in this drawer/i }));
 
-    expect(
-      screen.getByText(/126 × 84 mm \(4\.96 × 3\.31 in\)/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/126 × 84 mm \(4\.96 × 3\.31 in\)/)).toBeInTheDocument();
     expect(screen.getByText("2 in this drawer")).toBeInTheDocument();
-    expect(
-      screen.getByText("First at column 0, row 0")
-    ).toBeInTheDocument();
+    expect(screen.getByText("First at column 0, row 0")).toBeInTheDocument();
   });
 
   it("toggles selection off when the selected row is clicked again", () => {
-    renderPreview();
-    const row = screen.getByRole("button", {
-      name: /Baseplate 3 × 2 — 2 in this drawer/i,
-    });
+    render(<Harness />);
+    const row = screen.getByRole("button", { name: /Baseplate 3 × 2 — 2 in this drawer/i });
     fireEvent.click(row);
-    expect(screen.getByText("Piece details")).toBeInTheDocument();
     expect(row).toHaveAttribute("aria-pressed", "true");
+    expect(row.className).toContain("bg-brand-soft");
 
     fireEvent.click(row);
     expect(screen.queryByText("Piece details")).not.toBeInTheDocument();
     expect(row).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("gives the selected row a distinct selected style", () => {
-    renderPreview();
-    const row = screen.getByRole("button", {
-      name: /Baseplate 3 × 2 — 2 in this drawer/i,
-    });
-    const unselected = screen.getByRole("button", {
-      name: /Spacer 6 × 0\.5 — 1 in this drawer/i,
-    });
-    expect(row.className).not.toContain("bg-brand-soft");
-
-    fireEvent.click(row);
-    expect(row).toHaveAttribute("aria-pressed", "true");
-    expect(row.className).toContain("bg-brand-soft");
-    expect(unselected.className).not.toContain("bg-brand-soft");
-  });
-
-  it("hides the pieces section when the layout has no pieces", () => {
-    render(
-      <GridfinityVisualPreview
-        layout={[]}
-        drawerSize={{ width: 15, height: 10 }}
-        useMm={false}
-        binContents={{}}
-        onBinContentsChange={() => {}}
-      />
-    );
-    expect(screen.getByText(/No pieces fit yet/)).toBeInTheDocument();
-    expect(screen.queryByText("Parts list")).not.toBeInTheDocument();
-  });
-
-  it("clears the selection via the Clear selection button", () => {
-    renderPreview();
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Baseplate 3 × 2 — 2 in this drawer/i,
-      })
-    );
-    expect(screen.getByText("Piece details")).toBeInTheDocument();
-
+  it("clears the selection via the Clear selection button and returns focus to the row", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: /Baseplate 3 × 2 — 2 in this drawer/i }));
     fireEvent.click(screen.getByRole("button", { name: /Clear selection/i }));
     expect(screen.queryByText("Piece details")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Baseplate 3 × 2 — 2 in this drawer/i })
-    ).toHaveFocus();
+    expect(screen.getByRole("button", { name: /Baseplate 3 × 2 — 2 in this drawer/i })).toHaveFocus();
   });
 
-  it("clears the selection when the layout changes", () => {
-    const { rerender } = renderPreview();
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Baseplate 3 × 2 — 2 in this drawer/i,
-      })
-    );
-    expect(screen.getByText("Piece details")).toBeInTheDocument();
-
-    rerender(
-      <GridfinityVisualPreview
-        layout={[layout[0]]}
-        drawerSize={{ width: 15, height: 10 }}
-        useMm={false}
-        binContents={{}}
-        onBinContentsChange={() => {}}
-      />
-    );
+  it("clears the selection when the layout changes, but not for a unit change", () => {
+    const { rerender } = render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: /Spacer 6 × 0\.5 — 1 in this drawer/i }));
+    rerender(<Harness useMm />);
+    expect(screen.getByText(/252 × 21 mm \(9\.92 × 0\.83 in\)/)).toBeInTheDocument();
+    rerender(<Harness useMm pieces={[layout[0]]} />);
     expect(screen.queryByText("Piece details")).not.toBeInTheDocument();
   });
 
-  it("keeps the selection when only the unit toggle changes", () => {
-    const { rerender } = renderPreview(false);
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Spacer 6 × 0\.5 — 1 in this drawer/i,
-      })
-    );
-    expect(screen.getByText("Piece details")).toBeInTheDocument();
-
-    rerender(
-      <GridfinityVisualPreview
-        layout={layout}
-        drawerSize={{ width: 15, height: 10 }}
-        useMm={true}
-        binContents={{}}
-        onBinContentsChange={() => {}}
-      />
-    );
-    expect(screen.getByText("Piece details")).toBeInTheDocument();
-    expect(
-      screen.getByText(/252 × 21 mm \(9\.92 × 0\.83 in\)/)
-    ).toBeInTheDocument();
-  });
-});
-
-describe("GridfinityVisualPreview bin contents", () => {
-  const renderWithContents = (
-    binContents: Record<string, string>,
-    onBinContentsChange: (contents: Record<string, string>) => void = () => {}
-  ) =>
-    render(
-      <GridfinityVisualPreview
-        layout={layout}
-        drawerSize={{ width: 15, height: 10 }}
-        useMm={false}
-        binContents={binContents}
-        onBinContentsChange={onBinContentsChange}
-      />
-    );
-
-  const selectBaseplates = () => {
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Baseplate 3 × 2 — 2 in this drawer/i,
-      })
-    );
-  };
-
-  it("shows a contents input in the details panel for the selected group", () => {
-    renderWithContents({});
-    selectBaseplates();
-    const input = screen.getByLabelText("Contents");
-    expect(input).toBeInTheDocument();
-    expect(input).toHaveAttribute("placeholder", "e.g. M3 screws");
-    expect(input).toHaveValue("");
-  });
-
-  it("commits the edited contents keyed by group on blur", () => {
-    const seen: Record<string, string>[] = [];
-    renderWithContents({}, (next) => seen.push(next));
-    selectBaseplates();
-    const input = screen.getByLabelText("Contents");
-    fireEvent.change(input, { target: { value: "M3 screws" } });
-    expect(seen).toHaveLength(0);
-    fireEvent.blur(input);
-    expect(seen).toHaveLength(1);
-    expect(seen[0]).toEqual({ "baseplate:3x2": "M3 screws" });
-  });
-
-  it("keeps spaces while typing multi-word contents", () => {
-    const seen: Record<string, string>[] = [];
-    renderWithContents({}, (next) => seen.push(next));
-    selectBaseplates();
-    const input = screen.getByLabelText("Contents") as HTMLInputElement;
-    fireEvent.change(input, { target: { value: "M3 " } });
-    fireEvent.change(input, { target: { value: "M3 screws" } });
-    expect(input.value).toBe("M3 screws");
-    fireEvent.blur(input);
-    expect(seen).toHaveLength(1);
-    expect(seen[0]).toEqual({ "baseplate:3x2": "M3 screws" });
-  });
-
-  it("does not commit when the draft is unchanged on blur", () => {
-    const seen: Record<string, string>[] = [];
-    renderWithContents({ "baseplate:3x2": "M3 screws" }, (next) =>
-      seen.push(next)
-    );
-    selectBaseplates();
-    fireEvent.blur(screen.getByLabelText("Contents"));
-    expect(seen).toHaveLength(0);
-  });
-
-  it("removes the group key when the input is cleared", () => {
-    const seen: Record<string, string>[] = [];
-    renderWithContents({ "baseplate:3x2": "M3 screws" }, (next) =>
-      seen.push(next)
-    );
-    selectBaseplates();
-    expect(screen.getByLabelText("Contents")).toHaveValue("M3 screws");
-    const input = screen.getByLabelText("Contents");
-    fireEvent.change(input, { target: { value: "   " } });
-    fireEvent.blur(input);
-    expect(seen).toHaveLength(1);
-    expect(seen[0]).toEqual({});
-  });
-
-  it("shows the contents in the pieces list row", () => {
-    renderWithContents({ "baseplate:3x2": "M3 screws" });
-    expect(
-      screen.getByRole("button", {
-        name: /Baseplate 3 × 2 — 2 in this drawer · M3 screws/i,
-      })
-    ).toBeInTheDocument();
-  });
-});
-
-describe("GridfinityVisualPreview per-bin contents", () => {
-  const renderWithContents = (
-    binContents: Record<string, string>,
-    onBinContentsChange: (contents: Record<string, string>) => void = () => {}
-  ) =>
-    render(
-      <GridfinityVisualPreview
-        layout={layout}
-        drawerSize={{ width: 15, height: 10 }}
-        useMm={false}
-        binContents={binContents}
-        onBinContentsChange={onBinContentsChange}
-      />
-    );
-
-  const selectBaseplates = () => {
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Baseplate 3 × 2 — 2 in this drawer/i,
-      })
-    );
-  };
-
-  const openPerBinSection = () => {
-    fireEvent.click(
-      screen.getByText("Name each bin individually (2 bins)")
-    );
-  };
-
-  it("lists one input per bin with its position when a group has several pieces", () => {
-    renderWithContents({});
-    selectBaseplates();
-    openPerBinSection();
-    expect(
-      screen.getByLabelText("Bin 1 · column 0, row 0")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText("Bin 2 · column 3, row 0")
-    ).toBeInTheDocument();
-  });
-
-  it("hides the per-bin section for a group with a single piece", () => {
-    renderWithContents({});
-    fireEvent.click(
-      screen.getByRole("button", { name: /Spacer 6 × 0.5 — 1 in this drawer/i })
-    );
-    expect(
-      screen.queryByText(/Name each bin individually/i)
-    ).not.toBeInTheDocument();
-  });
-
-  it("shows the effective contents in each per-bin input", () => {
-    renderWithContents({
-      "baseplate:3x2": "M3 screws",
-      "baseplate:3x2#1": "M4 screws",
-    });
-    selectBaseplates();
-    openPerBinSection();
-    expect(screen.getByLabelText("Bin 1 · column 0, row 0")).toHaveValue(
-      "M3 screws"
-    );
-    expect(screen.getByLabelText("Bin 2 · column 3, row 0")).toHaveValue(
-      "M4 screws"
-    );
-  });
-
-  it("commits a per-bin override on blur without touching the group value", () => {
-    const seen: Record<string, string>[] = [];
-    renderWithContents({ "baseplate:3x2": "M3 screws" }, (next) =>
-      seen.push(next)
-    );
-    selectBaseplates();
-    openPerBinSection();
-    const input = screen.getByLabelText("Bin 1 · column 0, row 0");
-    fireEvent.change(input, { target: { value: "M4 screws" } });
-    expect(seen).toHaveLength(0);
-    fireEvent.blur(input);
-    expect(seen).toHaveLength(1);
-    expect(seen[0]).toEqual({
-      "baseplate:3x2": "M3 screws",
-      "baseplate:3x2#0": "M4 screws",
-    });
-  });
-
-  it("clearing a per-bin input reverts the bin to the group contents", () => {
-    const seen: Record<string, string>[] = [];
-    renderWithContents(
-      { "baseplate:3x2": "M3 screws", "baseplate:3x2#0": "M4 screws" },
-      (next) => seen.push(next)
-    );
-    selectBaseplates();
-    openPerBinSection();
-    const input = screen.getByLabelText("Bin 1 · column 0, row 0");
-    expect(input).toHaveValue("M4 screws");
-    fireEvent.change(input, { target: { value: "" } });
-    fireEvent.blur(input);
-    expect(seen).toHaveLength(1);
-    expect(seen[0]).toEqual({ "baseplate:3x2": "M3 screws" });
-  });
-
-  it("marks the pieces list row when bins vary", () => {
-    renderWithContents({
-      "baseplate:3x2": "M3 screws",
-      "baseplate:3x2#0": "M4 screws",
-    });
-    expect(
-      screen.getByRole("button", {
-        name: /Baseplate 3 × 2 — 2 in this drawer · M3 screws \(varies by bin\)/i,
-      })
-    ).toBeInTheDocument();
-  });
-
-  it("marks the pieces list row when only per-bin contents exist", () => {
-    renderWithContents({ "baseplate:3x2#1": "M4 screws" });
-    expect(
-      screen.getByRole("button", {
-        name: /Baseplate 3 × 2 — 2 in this drawer · varies by bin/i,
-      })
-    ).toBeInTheDocument();
-  });
-});
-
-describe("BinContentsInput", () => {
-  it("syncs the draft when the committed value changes externally", () => {
-    const { rerender } = render(
-      <BinContentsInput value="" pieceCount={2} onCommit={() => {}} />
-    );
-    const input = screen.getByLabelText("Contents") as HTMLInputElement;
-    fireEvent.change(input, { target: { value: "draft text" } });
-    expect(input.value).toBe("draft text");
-    rerender(
-      <BinContentsInput value="external" pieceCount={2} onCommit={() => {}} />
-    );
-    expect(input.value).toBe("external");
-  });
-
-  it("describes how many pieces the contents apply to", () => {
-    const { rerender } = render(
-      <BinContentsInput value="" pieceCount={3} onCommit={() => {}} />
-    );
-    expect(
-      screen.getByText(/Applies to all 3 identical pieces\./)
-    ).toBeInTheDocument();
-    rerender(<BinContentsInput value="" pieceCount={1} onCommit={() => {}} />);
-    expect(screen.getByText(/Applies to this piece\./)).toBeInTheDocument();
-  });
-});
-
-describe("GridfinityVisualPreview drawing", () => {
-  it("selects a piece's group when the piece is clicked in the drawing", () => {
-    const { container } = renderPreview();
-    const slots = container.querySelectorAll(".piece-slot");
-    expect(slots).toHaveLength(3);
-
-    fireEvent.click(slots[1]);
-
-    expect(screen.getByText("Piece details")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Baseplate 3 × 2 — 2 in this drawer/i })
-    ).toHaveAttribute("aria-pressed", "true");
-    const selected = container.querySelectorAll('.piece[data-state="selected"]');
-    expect(selected).toHaveLength(2);
-
-    fireEvent.click(slots[0]);
-    expect(screen.queryByText("Piece details")).not.toBeInTheDocument();
-  });
-
-  it("labels baseplates but not spacers in the drawing", () => {
-    const { container } = renderPreview();
-    const labels = Array.from(container.querySelectorAll(".piece-label")).map(
-      (label) => label.textContent
-    );
-    expect(labels).toEqual(["3×2", "3×2"]);
-  });
-
-  it("annotates the drawer dimensions in the current unit", () => {
-    const { container, rerender } = renderPreview(false);
-    expect(container.textContent).toContain("15 in");
-    expect(container.textContent).toContain("10 in");
-    rerender(
-      <GridfinityVisualPreview
-        layout={layout}
-        drawerSize={{ width: 15, height: 10 }}
-        useMm={true}
-        binContents={{}}
-        onBinContentsChange={() => {}}
-      />
-    );
-    expect(container.textContent).toContain("381 mm");
-    expect(container.textContent).toContain("254 mm");
+  it("says so when no pieces fit", () => {
+    render(<Harness pieces={[]} />);
+    expect(screen.getByText(/No pieces fit yet/)).toBeInTheDocument();
+    expect(screen.queryByText("Parts to print")).not.toBeInTheDocument();
   });
 
   it("shows per-drawer and total quantities for several identical drawers", () => {
-    render(
-      <GridfinityVisualPreview
-        layout={layout}
-        drawerSize={{ width: 15, height: 10 }}
-        useMm={false}
-        numDrawers={3}
-        binContents={{}}
-        onBinContentsChange={() => {}}
-      />
-    );
-    const row = screen.getByRole("button", {
-      name: /^Baseplate 3 × 2 — 2 in this drawer, 6 in total/,
-    });
+    render(<Harness numDrawers={3} />);
+    const row = screen.getByRole("button", { name: /^Baseplate 3 × 2 — 2 in this drawer, 6 in total/ });
     expect(row).toHaveTextContent("×6");
     expect(row).toHaveTextContent("2 per drawer");
     expect(screen.getByText("Totals for 3 drawers")).toBeInTheDocument();
   });
 
-  it("does not offer contents for spacers, which never get a label", () => {
-    renderPreview();
-    fireEvent.click(
-      screen.getByRole("button", { name: /Spacer 6 × 0\.5 — 1 in this drawer/i })
-    );
-    expect(screen.getByText("Piece details")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Contents")).not.toBeInTheDocument();
-    expect(screen.getByText(/don't get a label/)).toBeInTheDocument();
+  it("annotates the drawer dimensions in the current unit", () => {
+    const { container, rerender } = render(<Harness />);
+    expect(container.textContent).toContain("15 in");
+    rerender(<Harness useMm />);
+    expect(container.textContent).toContain("381 mm");
+    expect(container.textContent).toContain("254 mm");
   });
 
-  it("shows the group name again after a per-bin name is cleared", () => {
-    const onCommit = vi.fn();
+  it("lists bins first, counting a turned bin as the same part", () => {
     render(
-      <BinContentsInput
-        value="Screws"
-        pieceCount={1}
-        inputId="bin-contents-bin-0"
-        label="Bin 1"
-        onCommit={onCommit}
+      <Harness
+        numDrawers={2}
+        initial={[
+          bin({ id: "a", width: 84, label: "Screws" }),
+          bin({ id: "b", x: 84, depth: 84 }),
+          bin({ id: "c", x: 126 }),
+        ]}
       />
     );
-    const input = screen.getByLabelText("Bin 1");
-    fireEvent.change(input, { target: { value: "" } });
-    fireEvent.blur(input);
-    expect(onCommit).toHaveBeenCalledWith("");
+    const list = screen.getByText("Parts to print").parentElement?.nextElementSibling as HTMLElement;
+    const rows = within(list).getAllByRole("listitem").map((item) => item.textContent ?? "");
+    expect(rows[0]).toMatch(/^Bin 2 × 1 · 3u/);
+    expect(
+      screen.getByRole("button", {
+        name: "Bin 2 × 1 · 3u — 2 in this drawer · Screws, 4 in total 3.29 × 1.63 in · 0.97 in tall",
+      })
+    ).toHaveTextContent("×4");
+    expect(screen.getByRole("button", { name: /^Bin 1 × 1 · 3u — 1 in this drawer/ })).toBeInTheDocument();
+  });
+});
+
+describe("GridfinityVisualPreview bin editor", () => {
+  it("adds a 1 × 1 bin in the first free cell and opens it", async () => {
+    const onBins = vi.fn();
+    render(<Harness initial={[bin()]} onBins={onBins} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add bin" }));
+
+    const added = onBins.mock.calls[0][0] as Bin[];
+    expect(added).toHaveLength(2);
+    expect(added[1]).toMatchObject({ x: 42, y: 0, width: 42, depth: 42, height: 3, label: "" });
+    expect(screen.getByRole("heading", { name: "Bin 1 × 1 · 3u" })).toBeInTheDocument();
+    await waitFor(() => expect(binButtons()[1]).toHaveFocus());
+  });
+
+  it("draws a bin across the cells the pointer passes over", () => {
+    const { container } = render(<Harness />);
+    const floor = floorOf(container);
+
+    fireEvent.pointerDown(floor, pointer(10, 10));
+    fireEvent.pointerMove(floor, pointer(60, 10));
+    fireEvent.pointerMove(floor, pointer(110, 60));
+    expect(container.querySelector(".bin-draft")).toHaveTextContent("3×2");
+    fireEvent.pointerUp(floor, pointer(110, 60));
+
+    expect(binButtons()).toHaveLength(1);
+    expect(binButtons()[0]).toHaveAccessibleName("Bin 3 × 2, 3 units tall");
+    expect(container.querySelector(".bin-draft")).toBeNull();
+  });
+
+  it("refuses to draw over another bin or off the grid", () => {
+    const { container } = render(<Harness initial={[bin({ x: 42 })]} />);
+    const floor = floorOf(container);
+
+    fireEvent.pointerDown(floor, pointer(10, 10));
+    fireEvent.pointerMove(floor, pointer(100, 10));
+    expect(container.querySelector(".bin-draft")).not.toHaveAttribute("data-valid");
+    fireEvent.pointerUp(floor, pointer(100, 10));
+    expect(binButtons()).toHaveLength(1);
+
+    fireEvent.pointerDown(floor, pointer(300, 100));
+    fireEvent.pointerUp(floor, pointer(300, 100));
+    expect(binButtons()).toHaveLength(1);
+  });
+
+  it("moves a bin by dragging it to another cell", () => {
+    const onBins = vi.fn();
+    const { container } = render(<Harness initial={[bin()]} onBins={onBins} />);
+    const floor = floorOf(container);
+
+    fireEvent.pointerDown(binButtons()[0], pointer(21, 21));
+    fireEvent.pointerMove(floor, pointer(110, 25));
+    fireEvent.pointerUp(floor, pointer(110, 25));
+
+    expect(onBins).toHaveBeenLastCalledWith([bin({ x: 84 })]);
+  });
+
+  it("selects a bin on click and edits its size, height, and contents", () => {
+    render(<Harness initial={[bin()]} />);
+    fireEvent.click(binButtons()[0]);
+    expect(binButtons()[0]).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Wider" }));
+    fireEvent.click(screen.getByRole("button", { name: "Taller" }));
+    expect(screen.getByRole("heading", { name: "Bin 2 × 1 · 4u" })).toBeInTheDocument();
+
+    const contents = screen.getByLabelText("Contents");
+    fireEvent.change(contents, { target: { value: "  Hex keys " } });
+    fireEvent.blur(contents);
+    expect(binButtons()[0]).toHaveAccessibleName("Bin 2 × 1, 4 units tall, Hex keys");
+  });
+
+  it("caps a bin's height at what the printer can print", () => {
+    render(<Harness initial={[bin({ height: 6 })]} printerSize={{ x: 256, y: 256, z: 50 }} />);
+    fireEvent.click(binButtons()[0]);
+    expect(screen.getByRole("button", { name: "Taller" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Lower" })).toBeEnabled();
+  });
+
+  it("moves with arrow keys, resizes with Shift, and ignores moves off the grid", () => {
+    const onBins = vi.fn();
+    render(<Harness initial={[bin()]} onBins={onBins} />);
+    const target = binButtons()[0];
+
+    fireEvent.keyDown(target, { key: "ArrowLeft" });
+    expect(onBins).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(target, { key: "ArrowRight" });
+    expect(onBins).toHaveBeenLastCalledWith([bin({ x: 42 })]);
+
+    fireEvent.keyDown(binButtons()[0], { key: "ArrowDown", shiftKey: true });
+    expect(onBins).toHaveBeenLastCalledWith([bin({ x: 42, depth: 84 })]);
+  });
+
+  it("deletes the focused bin with the Delete key", () => {
+    render(<Harness initial={[bin(), bin({ id: "b2", x: 42 })]} />);
+    fireEvent.keyDown(binButtons()[0], { key: "Delete" });
+    expect(binButtons()).toHaveLength(1);
+  });
+
+  it("fills every empty cell, then undoes and redoes it", () => {
+    render(<Harness initial={[bin({ width: 84 })]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Fill with 1 × 1" }));
+    expect(binButtons()).toHaveLength(11);
+    expect(screen.getByRole("button", { name: "Fill with 1 × 1" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(binButtons()).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Redo" }));
+    expect(binButtons()).toHaveLength(11);
+
+    fireEvent.keyDown(binButtons()[0], { key: "z", ctrlKey: true });
+    expect(binButtons()).toHaveLength(1);
+  });
+
+  it("fills with copies of the selected bin", () => {
+    render(<Harness initial={[bin({ width: 84, height: 5 })]} />);
+    fireEvent.click(binButtons()[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Fill with 2 × 1" }));
+    expect(binButtons().map((button) => button.getAttribute("aria-pressed"))).toHaveLength(6);
+    expect(binButtons()[5]).toHaveAccessibleName("Bin 2 × 1, 5 units tall");
+  });
+
+  it("clears every bin and can bring them back", () => {
+    render(<Harness initial={[bin(), bin({ id: "b2", x: 42 })]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Clear all bins" }));
+    expect(binButtons()).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(binButtons()).toHaveLength(2);
+  });
+
+  it("flags a bin that no longer fits the grid and explains why", () => {
+    render(<Harness initial={[bin({ x: 252 })]} />);
+    expect(binButtons()[0]).toHaveAccessibleName("Bin 1 × 1, 3 units tall, needs attention");
+    fireEvent.click(binButtons()[0]);
+    expect(screen.getByText(/no longer sits on whole grid cells/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Bin 1 × 1 · 3u —/ })).not.toBeInTheDocument();
+  });
+
+  it("closes the bin details and returns focus to the bin", async () => {
+    render(<Harness initial={[bin()]} />);
+    fireEvent.click(binButtons()[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Done with this bin" }));
+    expect(screen.queryByRole("heading", { name: /^Bin 1 × 1/ })).not.toBeInTheDocument();
+    await waitFor(() => expect(binButtons()[0]).toHaveFocus());
+  });
+
+  it("duplicates a bin into the next free spot", () => {
+    render(<Harness initial={[bin({ label: "Nuts" })]} />);
+    fireEvent.click(binButtons()[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate" }));
+    expect(binButtons()).toHaveLength(2);
+    expect(binButtons()[1]).toHaveAccessibleName("Bin 1 × 1, 3 units tall, Nuts");
+  });
+});
+
+describe("BinContentsInput", () => {
+  it("syncs the draft when the committed value changes externally", () => {
+    const { rerender } = render(<BinContentsInput value="Screws" onCommit={() => {}} />);
+    expect(screen.getByLabelText("Contents")).toHaveValue("Screws");
+    rerender(<BinContentsInput value="Nails" onCommit={() => {}} />);
+    expect(screen.getByLabelText("Contents")).toHaveValue("Nails");
+  });
+
+  it("commits trimmed text on Enter and skips unchanged values", () => {
+    const onCommit = vi.fn();
+    render(<BinContentsInput value="Screws" onCommit={onCommit} hint="Printed on this bin's label." />);
+    const input = screen.getByLabelText("Contents");
+    expect(input).toHaveAccessibleDescription("Printed on this bin's label.");
+
+    fireEvent.change(input, { target: { value: "Screws " } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onCommit).not.toHaveBeenCalled();
     expect(input).toHaveValue("Screws");
+
+    fireEvent.change(input, { target: { value: " M4 nuts " } });
+    fireEvent.blur(input);
+    expect(onCommit).toHaveBeenCalledWith("M4 nuts");
   });
 });

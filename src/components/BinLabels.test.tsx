@@ -4,54 +4,23 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import BinLabels from "./BinLabels";
-import type { LayoutItem } from "@/types/gridfinity";
+import type { Bin } from "@/types";
 
-const layout: LayoutItem[] = [
-  {
-    x: 0,
-    y: 0,
-    width: 6,
-    height: 6,
-    type: "baseplate",
-    pixelX: 0,
-    pixelY: 0,
-    pixelWidth: 252,
-    pixelHeight: 252,
-  },
-  {
-    x: 6,
-    y: 0,
-    width: 6,
-    height: 6,
-    type: "baseplate",
-    pixelX: 252,
-    pixelY: 0,
-    pixelWidth: 252,
-    pixelHeight: 252,
-  },
-  {
-    x: 0,
-    y: 6,
-    width: 3,
-    height: 2,
-    type: "half-size",
-    pixelX: 0,
-    pixelY: 252,
-    pixelWidth: 126,
-    pixelHeight: 84,
-  },
-  {
-    x: 3,
-    y: 6,
-    width: 6,
-    height: 0.5,
-    type: "spacer",
-    pixelX: 126,
-    pixelY: 252,
-    pixelWidth: 252,
-    pixelHeight: 21,
-  },
+const bins: Bin[] = [
+  { id: "a", x: 0, y: 0, width: 84, depth: 42, height: 6, label: "M3 screws" },
+  { id: "b", x: 84, y: 0, width: 42, depth: 42, height: 3, label: "" },
+  { id: "c", x: 0, y: 42, width: 252, depth: 84, height: 4, label: "Long things" },
 ];
+
+const stubPrint = () => {
+  const printSpy = vi.fn();
+  Object.defineProperty(window, "print", {
+    value: printSpy,
+    writable: true,
+    configurable: true,
+  });
+  return printSpy;
+};
 
 afterEach(() => {
   document.body.classList.remove(
@@ -64,240 +33,110 @@ afterEach(() => {
 });
 
 describe("BinLabels", () => {
-  it("renders one label per bin across all drawers and skips spacers", () => {
-    render(<BinLabels layout={layout} useMm={true} numDrawers={2} binContents={{}} />);
+  it("prints one label for every placed bin in every drawer", () => {
+    render(<BinLabels bins={bins} useMm={true} numDrawers={2} />);
     expect(screen.getByText("Bin labels")).toBeInTheDocument();
-    expect(screen.getAllByText("6 × 6")).toHaveLength(4);
-    expect(screen.getAllByText("3 × 2")).toHaveLength(2);
-    expect(screen.queryByText("Spacer")).not.toBeInTheDocument();
+    expect(screen.getAllByText("M3 screws")).toHaveLength(2);
+    expect(screen.getAllByText("Long things")).toHaveLength(2);
+    expect(screen.getAllByText("1 × 1")).toHaveLength(2);
+    expect(screen.getByText(/^6 labels, one for every bin/)).toBeInTheDocument();
   });
 
-  it("shows physical size unit-first", () => {
-    const { rerender } = render(
-      <BinLabels layout={layout} useMm={true} numDrawers={1} binContents={{}} />
-    );
-    expect(screen.getAllByText("252 mm × 252 mm").length).toBeGreaterThan(0);
-    rerender(<BinLabels layout={layout} useMm={false} numDrawers={1} binContents={{}} />);
-    expect(screen.getAllByText("9.92″ × 9.92″").length).toBeGreaterThan(0);
+  it("shows the bin's outside size in the chosen unit", () => {
+    const { rerender } = render(<BinLabels bins={bins} useMm={true} numDrawers={1} />);
+    expect(screen.getByText("83.5 × 41.5 mm")).toBeInTheDocument();
+    rerender(<BinLabels bins={bins} useMm={false} numDrawers={1} />);
+    expect(screen.getByText("3.29 × 1.63 in")).toBeInTheDocument();
   });
 
-  it("renders nothing when the layout has no bins", () => {
-    const spacerOnly = layout.filter((item) => item.type === "spacer");
-    render(<BinLabels layout={spacerOnly} useMm={true} numDrawers={1} binContents={{}} />);
-    expect(screen.queryByText("Bin labels")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /print labels/i })
-    ).not.toBeInTheDocument();
+  it("asks for bins when there are none, with nothing to print", () => {
+    render(<BinLabels bins={[]} useMm={true} numDrawers={1} />);
+    expect(screen.getByText("Bin labels")).toBeInTheDocument();
+    expect(screen.getByText(/Add bins to the drawer/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /print labels/i })).not.toBeInTheDocument();
   });
 
   it("hides the on-screen label sheet from screen readers and summarizes it", () => {
-    const { container } = render(
-      <BinLabels layout={layout} useMm={true} numDrawers={1} binContents={{}} />
-    );
+    const { container } = render(<BinLabels bins={bins} useMm={true} numDrawers={2} />);
     const sheet = container.querySelector(".bin-label-sheet");
-    expect(sheet).not.toBeNull();
     expect(sheet?.getAttribute("aria-hidden")).toBe("true");
-    expect(
-      screen.getByText(/label group.*on the print sheet/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText("6 labels on the print sheet, one per bin.")).toBeInTheDocument();
   });
 
   it("print button marks the body for label-only printing and cleans up after print", () => {
-    const printSpy = vi.fn();
-    Object.defineProperty(window, "print", {
-      value: printSpy,
-      writable: true,
-      configurable: true,
-    });
-    render(<BinLabels layout={layout} useMm={true} numDrawers={1} binContents={{}} />);
+    const printSpy = stubPrint();
+    render(<BinLabels bins={bins} useMm={true} numDrawers={1} />);
     fireEvent.click(screen.getByRole("button", { name: /print labels/i }));
     expect(printSpy).toHaveBeenCalledTimes(1);
     expect(document.body.classList.contains("print-bin-labels")).toBe(true);
-    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(
-      true
-    );
+    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(true);
     fireEvent(window, new Event("afterprint"));
     expect(document.body.classList.contains("print-bin-labels")).toBe(false);
-    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(
-      false
-    );
+    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(false);
   });
 
   it("offers three label styles with the paper card selected by default", () => {
-    render(<BinLabels layout={layout} useMm={true} numDrawers={1} binContents={{}} />);
-    const group = screen.getByRole("group", { name: /label style/i });
-    expect(group).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /^Paper card/ })
-    ).toHaveAttribute("aria-pressed", "true");
-    expect(
-      screen.getByRole("button", { name: /Cullenect 36.4/ })
-    ).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByRole("button", { name: /Bin-width slot/ })).toHaveAttribute(
-      "aria-pressed",
-      "false"
-    );
+    render(<BinLabels bins={bins} useMm={true} numDrawers={1} />);
+    expect(screen.getByRole("group", { name: /label style/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Paper card/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Cullenect 36.4/ })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: /Bin-width slot/ })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("switching styles changes the print body class", () => {
-    const printSpy = vi.fn();
-    Object.defineProperty(window, "print", {
-      value: printSpy,
-      writable: true,
-      configurable: true,
-    });
-    render(<BinLabels layout={layout} useMm={true} numDrawers={1} binContents={{}} />);
+    stubPrint();
+    render(<BinLabels bins={bins} useMm={true} numDrawers={1} />);
     fireEvent.click(screen.getByRole("button", { name: /Cullenect 36.4/ }));
-    expect(screen.getByRole("button", { name: /Cullenect 36.4/ })).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    );
+    expect(screen.getByRole("button", { name: /Cullenect 36.4/ })).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(screen.getByRole("button", { name: /print labels/i }));
-    expect(document.body.classList.contains("print-bin-labels-cullenect")).toBe(
-      true
-    );
-    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(
-      false
-    );
+    expect(document.body.classList.contains("print-bin-labels-cullenect")).toBe(true);
+    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(false);
     fireEvent(window, new Event("afterprint"));
-    expect(
-      document.body.classList.contains("print-bin-labels-cullenect")
-    ).toBe(false);
+    expect(document.body.classList.contains("print-bin-labels-cullenect")).toBe(false);
   });
 
-  it("pred-slot cards carry the bin width as a print CSS variable", () => {
-    render(
-      <BinLabels
-        layout={layout}
-        useMm={true}
-        numDrawers={1}
-        binContents={{}}
-      />
-    );
+  it("makes bin-width labels exactly as wide as each bin", () => {
+    render(<BinLabels bins={bins} useMm={true} numDrawers={1} />);
     fireEvent.click(screen.getByRole("button", { name: /Bin-width slot/ }));
-    const cards = document.querySelectorAll(".bin-label-card");
-    expect(cards.length).toBeGreaterThan(0);
-    cards.forEach((card) => {
-      expect(
-        (card as HTMLElement).style.getPropertyValue("--label-w")
-      ).toMatch(/^\d+(\.\d+)?mm$/);
-    });
-    expect(
-      (cards[0] as HTMLElement).style.getPropertyValue("--label-w")
-    ).toBe("252mm");
+    const widths = [...document.querySelectorAll(".bin-label-card")].map((card) =>
+      (card as HTMLElement).style.getPropertyValue("--label-w")
+    );
+    expect(widths).toEqual(["83.5mm", "41.5mm", "251.5mm"]);
   });
 
-  it("prints the contents on paper cards", () => {
-    render(
-      <BinLabels
-        layout={layout}
-        useMm={true}
-        numDrawers={1}
-        binContents={{ "half-size:3x2": "M3 screws" }}
-      />
-    );
-    expect(screen.getByText("M3 screws")).toBeInTheDocument();
-    expect(screen.queryByText("M4 nuts")).not.toBeInTheDocument();
-  });
-
-  it("puts the contents first on cullenect cards", () => {
-    render(
-      <BinLabels
-        layout={layout}
-        useMm={true}
-        numDrawers={1}
-        binContents={{ "half-size:3x2": "M3 screws" }}
-      />
-    );
+  it("puts the contents first on cullenect cards and the size under it", () => {
+    render(<BinLabels bins={bins} useMm={true} numDrawers={1} />);
     fireEvent.click(screen.getByRole("button", { name: /Cullenect 36.4/ }));
     expect(screen.getByText("M3 screws")).toBeInTheDocument();
-    expect(screen.getByText("3 × 2 · Half-size bin")).toBeInTheDocument();
-  });
-
-  it("prints a per-bin override on its card and the group contents elsewhere", () => {
-    render(
-      <BinLabels
-        layout={layout}
-        useMm={true}
-        numDrawers={1}
-        binContents={{
-          "baseplate:6x6": "plates",
-          "baseplate:6x6#1": "special plates",
-        }}
-      />
-    );
-    expect(screen.getByText("special plates")).toBeInTheDocument();
-    expect(screen.getAllByText("plates")).toHaveLength(1);
-  });
-
-  it("wraps the per-bin index across duplicate drawers", () => {
-    render(
-      <BinLabels
-        layout={layout}
-        useMm={true}
-        numDrawers={2}
-        binContents={{ "baseplate:6x6#0": "drawer bin one" }}
-      />
-    );
-    fireEvent.click(screen.getByRole("button", { name: /Cullenect 36.4/ }));
-    expect(screen.getAllByText("drawer bin one")).toHaveLength(2);
-    expect(screen.getAllByText("6 × 6")).toHaveLength(2);
+    expect(screen.getByText("Bin 2 × 1 · 6u")).toBeInTheDocument();
+    expect(screen.getByText("1 × 1")).toBeInTheDocument();
+    expect(screen.getByText("3u bin")).toBeInTheDocument();
   });
 
   it("clears a stale style class before marking the body for printing", () => {
-    const printSpy = vi.fn();
-    Object.defineProperty(window, "print", {
-      value: printSpy,
-      writable: true,
-      configurable: true,
-    });
-    render(
-      <BinLabels
-        layout={layout}
-        useMm={true}
-        numDrawers={1}
-        binContents={{}}
-      />
-    );
+    stubPrint();
+    render(<BinLabels bins={bins} useMm={true} numDrawers={1} />);
     document.body.classList.add("print-bin-labels-cullenect");
     fireEvent.click(screen.getByRole("button", { name: /print labels/i }));
-    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(
-      true
-    );
-    expect(
-      document.body.classList.contains("print-bin-labels-cullenect")
-    ).toBe(false);
+    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(true);
+    expect(document.body.classList.contains("print-bin-labels-cullenect")).toBe(false);
   });
 
   it("removes the print body classes on unmount", () => {
-    const printSpy = vi.fn();
-    Object.defineProperty(window, "print", {
-      value: printSpy,
-      writable: true,
-      configurable: true,
-    });
-    const { unmount } = render(
-      <BinLabels
-        layout={layout}
-        useMm={true}
-        numDrawers={1}
-        binContents={{}}
-      />
-    );
+    stubPrint();
+    const { unmount } = render(<BinLabels bins={bins} useMm={true} numDrawers={1} />);
     fireEvent.click(screen.getByRole("button", { name: /print labels/i }));
     expect(document.body.classList.contains("print-bin-labels")).toBe(true);
     unmount();
     expect(document.body.classList.contains("print-bin-labels")).toBe(false);
-    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(
-      false
-    );
+    expect(document.body.classList.contains("print-bin-labels-paper")).toBe(false);
   });
 });
 
 describe("BinLabels printing and limits", () => {
   it("prints bin-width labels wider than a portrait page in landscape", () => {
     const print = vi.spyOn(window, "print").mockImplementation(() => {});
-    render(<BinLabels layout={layout} useMm={true} numDrawers={1} binContents={{}} />);
+    render(<BinLabels bins={bins} useMm={true} numDrawers={1} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Bin-width slot/ }));
     fireEvent.click(screen.getByRole("button", { name: /print labels/i }));
@@ -312,10 +151,11 @@ describe("BinLabels printing and limits", () => {
     print.mockRestore();
   });
 
-  it("keeps portrait for paper cards", () => {
+  it("keeps portrait when every bin-width label fits the page", () => {
     const print = vi.spyOn(window, "print").mockImplementation(() => {});
-    render(<BinLabels layout={layout} useMm={true} numDrawers={1} binContents={{}} />);
+    render(<BinLabels bins={bins.slice(0, 2)} useMm={true} numDrawers={1} />);
 
+    fireEvent.click(screen.getByRole("button", { name: /Bin-width slot/ }));
     fireEvent.click(screen.getByRole("button", { name: /print labels/i }));
 
     expect(print).toHaveBeenCalled();
@@ -324,16 +164,14 @@ describe("BinLabels printing and limits", () => {
   });
 
   it("caps the sheet at 2,000 labels and says so", () => {
-    const { container } = render(
-      <BinLabels layout={layout} useMm={true} numDrawers={1000} binContents={{}} />
-    );
+    const { container } = render(<BinLabels bins={bins} useMm={true} numDrawers={1000} />);
     expect(container.querySelectorAll(".bin-label-card")).toHaveLength(2000);
     expect(screen.getByText(/shows the first 2,000 of 3,000 labels/)).toBeInTheDocument();
     expect(screen.getByText(/^3,000 labels, one for every bin/)).toBeInTheDocument();
   });
 
   it("remembers the chosen label style", () => {
-    render(<BinLabels layout={layout} useMm={true} numDrawers={1} binContents={{}} />);
+    render(<BinLabels bins={bins} useMm={true} numDrawers={1} />);
     fireEvent.click(screen.getByRole("button", { name: /Cullenect 36.4/ }));
     expect(localStorage.setItem).toHaveBeenCalledWith(
       "gridfinity_labelStyle",

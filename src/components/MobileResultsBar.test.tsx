@@ -20,9 +20,9 @@ const makeResult = (
 
 describe('MobileResultsBar', () => {
   it('renders per-category counts scaled by the drawer multiplier', () => {
-    render(<MobileResultsBar result={makeResult()} preferHalfSize />);
+    render(<MobileResultsBar result={makeResult()} binCount={3} />);
     expect(
-      screen.getByText('4 baseplates · 8 bins · 2 spacers')
+      screen.getByText('6 bins · 12 baseplates · 2 spacers')
     ).toBeInTheDocument();
   });
 
@@ -65,15 +65,9 @@ describe('MobileResultsBar', () => {
     expect(bar.className).toContain('print:hidden');
   });
 
-  it('hides baseplates when useHalfSize is on, matching the results panel', () => {
-    render(<MobileResultsBar result={makeResult()} useHalfSize />);
-    expect(screen.getByText('8 bins · 2 spacers')).toBeInTheDocument();
-    expect(screen.queryByText(/baseplate/)).not.toBeInTheDocument();
-  });
-
-  it('hides bins unless half-size bins are enabled, matching the results panel', () => {
+  it('counts half-size baseplates as baseplates and only shows bins you placed', () => {
     render(<MobileResultsBar result={makeResult()} />);
-    expect(screen.getByText('4 baseplates · 2 spacers')).toBeInTheDocument();
+    expect(screen.getByText('12 baseplates · 2 spacers')).toBeInTheDocument();
     expect(screen.queryByText(/bin/)).not.toBeInTheDocument();
   });
 

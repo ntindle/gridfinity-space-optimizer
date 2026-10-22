@@ -29,15 +29,15 @@ describe('GridfinityResults', () => {
     expect(screen.getByText('9 baseplates · 3 spacers')).toBeInTheDocument();
   });
 
-  it('names half-size bins in full and hides baseplates in half-size mode', () => {
+  it('counts half-size pieces as baseplates and leads with the placed bins', () => {
     render(
       <GridfinityResults
-        result={result({ baseplates: {}, halfSizeBins: { '12x12': 2 } })}
+        result={result({ baseplates: {}, halfSizeBins: { '12x12': 2 }, numDrawers: 2 })}
         useMm={false}
-        useHalfSize
+        binCount={5}
       />
     );
-    expect(screen.getByText('2 half-size bins · 1 spacer')).toBeInTheDocument();
+    expect(screen.getByText('10 bins · 4 baseplates · 2 spacers')).toBeInTheDocument();
   });
 
   it('explains a drawer too small for a single grid cell', () => {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Compass } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ import { useGridfinityCalculation } from "@/hooks/useGridfinityCalculation";
 import { saveUserSettings, loadUserSettings } from "@/lib/utils";
 import { parseShareParam } from "@/utils/shareLayout";
 import ShareLayoutButton from "@/components/GridfinityCalculator/ShareLayoutButton";
+import DownloadButton from "@/components/GridfinityCalculator/DownloadButton";
+import { binIssues, gridCells, indexCells, maxBinHeight } from "@/utils/bins";
+import { usableBed } from "@/utils/printPlan";
 import GuidedTour from "@/components/GuidedTour";
 import CollapsibleCard from "@/components/CollapsibleCard";
 import MobileResultsBar from "@/components/MobileResultsBar";
@@ -64,6 +67,7 @@ const GridfinityCalculator: React.FC = () => {
       settings.setPreferUniformBaseplates(shared.preferUniformBaseplates);
       settings.setNumDrawers(shared.numDrawers);
       settings.setUseMm(shared.useMm);
+      settings.setBins(shared.bins);
       toast.success("Opened a shared layout", {
         description: "It replaces the layout saved on this device.",
       });
@@ -95,6 +99,13 @@ const GridfinityCalculator: React.FC = () => {
   ]);
 
   const hasLayout = Boolean(result) && layout.length > 0;
+  const placedBins = useMemo(() => {
+    const issues = binIssues(settings.bins, indexCells(gridCells(layout)), {
+      ...usableBed(printerSize),
+      height: maxBinHeight(printerSize.z),
+    });
+    return settings.bins.filter((bin) => !issues.has(bin.id));
+  }, [layout, printerSize, settings.bins]);
   const drawerEntered = settings.drawerSize.width > 0 && settings.drawerSize.height > 0;
 
   const drawerSummary = `${formatDrawerSize(settings.drawerSize, settings.useMm)}${
@@ -102,7 +113,7 @@ const GridfinityCalculator: React.FC = () => {
   }`;
   const binSummary =
     [
-      settings.useHalfSize && "Half-size only",
+      settings.useHalfSize && "Half-size grid",
       settings.preferHalfSize && "Half-size gaps",
       settings.preferUniformBaseplates && !settings.useHalfSize && "Uniform",
     ]
@@ -117,8 +128,9 @@ const GridfinityCalculator: React.FC = () => {
             Plan a Gridfinity layout for any drawer
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground text-pretty">
-            Enter the inside of your drawer and pick your printer. Get every
-            baseplate, spacer, and label you need to print.
+            Enter the inside of your drawer and pick your printer, then lay out
+            your bins. Download every bin, baseplate, and spacer to print, and
+            the labels to go with them.
           </p>
           <Button
             variant="outline"
@@ -183,10 +195,10 @@ const GridfinityCalculator: React.FC = () => {
             </CollapsibleCard>
 
             <CollapsibleCard
-              title="Bins"
+              title="Grid"
               summary={binSummary}
               defaultOpen={false}
-              tourId="bins"
+              tourId="grid"
               className="border-t"
             >
               <BinOptions
@@ -202,11 +214,7 @@ const GridfinityCalculator: React.FC = () => {
         </div>
 
         {hasLayout && result && (
-          <MobileResultsBar
-            result={result}
-            useHalfSize={settings.useHalfSize}
-            preferHalfSize={settings.preferHalfSize}
-          />
+          <MobileResultsBar result={result} binCount={placedBins.length} />
         )}
       </aside>
 
@@ -217,10 +225,26 @@ const GridfinityCalculator: React.FC = () => {
               <GridfinityResults
                 result={result}
                 useMm={settings.useMm}
-                useHalfSize={settings.useHalfSize}
-                preferHalfSize={settings.preferHalfSize}
+                binCount={placedBins.length}
                 drawerSize={settings.drawerSize}
-                action={<ShareLayoutButton />}
+                action={
+                  <div className="flex flex-wrap items-start gap-2">
+                    <DownloadButton
+                      layout={layout}
+                      bins={settings.bins}
+                      numDrawers={settings.numDrawers}
+                      drawerSize={settings.drawerSize}
+                      useMm={settings.useMm}
+                      printerName={
+                        settings.selectedPrinter === "Custom Printer"
+                          ? "custom printer"
+                          : settings.selectedPrinter
+                      }
+                      printerSize={printerSize}
+                    />
+                    <ShareLayoutButton />
+                  </div>
+                }
               />
               <div className="mt-6">
                 <GridfinityVisualPreview
@@ -228,16 +252,16 @@ const GridfinityCalculator: React.FC = () => {
                   drawerSize={settings.drawerSize}
                   useMm={settings.useMm}
                   numDrawers={settings.numDrawers}
-                  binContents={settings.binContents}
-                  onBinContentsChange={settings.setBinContents}
+                  bins={settings.bins}
+                  onBinsChange={settings.setBins}
+                  printerSize={printerSize}
                 />
               </div>
             </Card>
             <BinLabels
-              layout={layout}
+              bins={placedBins}
               useMm={settings.useMm}
               numDrawers={settings.numDrawers}
-              binContents={settings.binContents}
             />
           </>
         ) : (

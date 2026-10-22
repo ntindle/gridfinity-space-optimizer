@@ -1,6 +1,8 @@
 # Layout editor (F6, F9, undo/redo, shortcuts)
 
-**Status:** not started. **Demand:** D2 (drag and drop), D3 (layers). **Slots:** S3 (toolbar), S4.
+**Status:** drag and drop, keyboard moves, and undo/redo shipped for **bins** (see [bins.md](bins.md)),
+which covers F6. Not started: moving or re-splitting the automatic baseplate pieces by hand, and
+layers (F9). **Demand:** D2 (drag and drop), D3 (layers). **Slots:** S3 (toolbar), S4.
 
 The job: start from the automatic layout and move pieces by hand when it is not what you want.
 

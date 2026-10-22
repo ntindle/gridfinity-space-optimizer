@@ -7,8 +7,7 @@ import type { DrawerSize } from "@/types";
 interface GridfinityResultsProps {
   result: CalculationResultWithDrawers;
   useMm: boolean;
-  useHalfSize?: boolean;
-  preferHalfSize?: boolean;
+  binCount?: number;
   drawerSize?: DrawerSize;
   action?: React.ReactNode;
 }
@@ -16,16 +15,14 @@ interface GridfinityResultsProps {
 const GridfinityResults: React.FC<GridfinityResultsProps> = ({
   result,
   useMm,
-  useHalfSize,
-  preferHalfSize,
+  binCount = 0,
   drawerSize,
   action,
 }) => {
   const { numDrawers } = result;
-  const counts = countResult(result, useHalfSize, preferHalfSize);
-  const parts = summaryParts(counts, "half-size bin");
-  const onlySpacers =
-    counts.baseplates === 0 && counts.bins === 0 && counts.spacers > 0;
+  const counts = countResult(result, binCount);
+  const parts = summaryParts(counts);
+  const onlySpacers = counts.baseplates === 0 && counts.spacers > 0;
 
   return (
     <div id="calculator-results" className="scroll-mt-6">

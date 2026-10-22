@@ -100,6 +100,7 @@ describe('startPreviewServer', () => {
 describe('piece labels', () => {
   it('matches baseplate, half-size bin, and spacer labels', () => {
     expect(PIECE_LABEL_PATTERN.test('Baseplate 6x6')).toBe(true);
+    expect(PIECE_LABEL_PATTERN.test('Half-size baseplate 3x3')).toBe(true);
     expect(PIECE_LABEL_PATTERN.test('Half-size bin 3x3')).toBe(true);
     expect(PIECE_LABEL_PATTERN.test('Spacer 25.2mm x 25.2mm')).toBe(true);
     expect(PIECE_LABEL_PATTERN.test('Bin 3x3')).toBe(false);

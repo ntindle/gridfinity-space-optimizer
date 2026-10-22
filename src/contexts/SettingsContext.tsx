@@ -54,7 +54,7 @@ export const useDrawerCount = () => {
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useBinContents = () => {
-  const { binContents, setBinContents } = useSettings();
-  return { binContents, setBinContents };
+export const useBins = () => {
+  const { bins, setBins } = useSettings();
+  return { bins, setBins };
 };

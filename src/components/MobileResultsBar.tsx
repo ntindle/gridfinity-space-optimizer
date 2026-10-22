@@ -7,16 +7,11 @@ import type { CalculationResultWithDrawers } from "@/hooks/useGridfinityCalculat
 
 interface MobileResultsBarProps {
   result: CalculationResultWithDrawers;
-  useHalfSize?: boolean;
-  preferHalfSize?: boolean;
+  binCount?: number;
 }
 
-const MobileResultsBar: React.FC<MobileResultsBarProps> = ({
-  result,
-  useHalfSize,
-  preferHalfSize,
-}) => {
-  const parts = summaryParts(countResult(result, useHalfSize, preferHalfSize));
+const MobileResultsBar: React.FC<MobileResultsBarProps> = ({ result, binCount = 0 }) => {
+  const parts = summaryParts(countResult(result, binCount));
   const summary = parts.length > 0 ? parts.join(" · ") : "Layout ready";
 
   const scrollToResults = () => {

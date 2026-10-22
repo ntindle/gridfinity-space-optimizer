@@ -45,7 +45,7 @@ describe("getPreviewPieceDetails", () => {
     expect(getPreviewPieceDetails(layout[3], layout).typeLabel).toBe("Spacer");
   });
 
-  it("labels half-size bins and fractional grid sizes without trailing zeros", () => {
+  it("labels half-size baseplates by their 21 mm cells", () => {
     const layout = [
       baseplate({
         type: "half-size",
@@ -61,8 +61,8 @@ describe("getPreviewPieceDetails", () => {
     ];
     const details = getPreviewPieceDetails(layout[0], layout);
 
-    expect(details.typeLabel).toBe("Half-size bin");
-    expect(details.gridLabel).toBe("0.5 × 1");
+    expect(details.typeLabel).toBe("Half-size baseplate");
+    expect(details.gridLabel).toBe("1 × 2");
     expect(details.widthMm).toBe(21);
     expect(details.heightMm).toBe(42);
     expect(details.column).toBe(1.5);

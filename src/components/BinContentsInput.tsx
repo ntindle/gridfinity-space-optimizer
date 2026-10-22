@@ -1,23 +1,22 @@
 import React, { useId, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MAX_LABEL_LENGTH } from "@/utils/bins";
 
 interface BinContentsInputProps {
   value: string;
-  pieceCount: number;
   onCommit: (value: string) => void;
   inputId?: string;
   label?: string;
-  compact?: boolean;
+  hint?: string;
 }
 
 const BinContentsInput: React.FC<BinContentsInputProps> = ({
   value,
-  pieceCount,
   onCommit,
   inputId = "bin-contents-input",
   label = "Contents",
-  compact = false,
+  hint,
 }) => {
   const [draft, setDraft] = useState(value);
   const [prevValue, setPrevValue] = useState(value);
@@ -29,18 +28,17 @@ const BinContentsInput: React.FC<BinContentsInputProps> = ({
   }
 
   const commit = () => {
-    if (draft !== value) {
-      onCommit(draft);
+    const next = draft.trim();
+    if (next !== value) {
+      onCommit(next);
+    } else if (draft !== value) {
       setDraft(value);
     }
   };
 
   return (
-    <div className={compact ? "mt-2" : "mt-3"}>
-      <Label
-        htmlFor={inputId}
-        className="text-[13px] font-medium text-muted-foreground"
-      >
+    <div>
+      <Label htmlFor={inputId} className="text-[13px] font-medium text-muted-foreground">
         {label}
       </Label>
       <Input
@@ -55,18 +53,15 @@ const BinContentsInput: React.FC<BinContentsInputProps> = ({
         enterKeyHint="done"
         autoComplete="off"
         placeholder="e.g. M3 screws"
-        maxLength={60}
-        aria-describedby={compact ? undefined : hintId}
+        maxLength={MAX_LABEL_LENGTH}
+        aria-describedby={hint ? hintId : undefined}
         className="mt-1.5"
       />
-      {compact ? null : (
+      {hint ? (
         <p id={hintId} className="mt-1.5 text-xs text-muted-foreground">
-          {pieceCount > 1
-            ? `Applies to all ${pieceCount} identical pieces.`
-            : "Applies to this piece."}{" "}
-          Shown on the bin labels below.
+          {hint}
         </p>
-      )}
+      ) : null}
     </div>
   );
 };

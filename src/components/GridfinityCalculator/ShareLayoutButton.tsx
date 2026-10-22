@@ -63,6 +63,7 @@ const ShareLayoutButton: React.FC = () => {
         preferUniformBaseplates: settings.preferUniformBaseplates,
         numDrawers: settings.numDrawers,
         useMm: settings.useMm,
+        bins: settings.bins,
       },
     );
 

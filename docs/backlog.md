@@ -7,17 +7,18 @@ Still-valid items carried over from `CLAUDE.md` and `REFACTOR_PLAN.md`, checked 
 - Share configurations via URL: shipped in #68 (`src/utils/shareLayout.ts`).
 - Phase 4 service layer: the plan lists `services/storage.ts`, `calculation.ts`, `validation.ts`, `export.ts` as done, but none exist in `src/services/`. The claim is stale; the work lives in hooks and `gridfinityUtils.ts`. Not carried over as a goal on its own.
 - Floating-point precision and the half-size spacer bug: fixed.
+- STL and 3MF export: shipped 2026-10-22 as Download files (`src/utils/export/`).
+- Drag-and-drop editing, undo/redo, and keyboard shortcuts: shipped 2026-10-22 for bins in the drawing.
 
 ## Product
 
 | Item | Source | Notes |
 | --- | --- | --- |
-| Export the layout for printing (bin list as CSV/JSON, print view, then STL/3MF) | REFACTOR_PLAN Phase 5.2 | No export exists in `src/` today. Blocks the "export" core task. |
+| Export the parts list as CSV/JSON and a print plan view | REFACTOR_PLAN Phase 5.2 | STL and 3MF shipped; see `docs/wireframes/print-and-export.md` for the rest. |
 | Stackable prints export with model links | issue #5, draft PR #66 | Highest-demand open issue. |
 | Presets for common drawer sizes, saved configurations | REFACTOR_PLAN Phase 5.1 | |
-| 3D preview, drag-and-drop editing, dimension labels | REFACTOR_PLAN Phase 5.3 | |
+| 3D preview | REFACTOR_PLAN Phase 5.3 | Drag-and-drop editing and dimension labels shipped. |
 | Multi-drawer layouts, cost and print-time estimates | REFACTOR_PLAN Future | |
-| Undo/redo, keyboard shortcuts | REFACTOR_PLAN Tech debt 7, 8 | |
 | Responsive mobile layout | REFACTOR_PLAN Success metrics | Unchecked. |
 
 ## Engineering

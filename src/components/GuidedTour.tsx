@@ -30,22 +30,22 @@ const STEPS: TourStep[] = [
   {
     id: "printer",
     title: "Pick your printer",
-    body: "Your printer's build volume splits big baseplates into pieces that fit your print bed.",
+    body: "Your print bed splits big baseplates into pieces that fit, and caps how big and tall a bin can be.",
   },
   {
-    id: "bins",
-    title: "Tune the bins",
-    body: "Half-size bins and baseplate preferences shape the final layout.",
+    id: "grid",
+    title: "Choose the grid",
+    body: "Use a 21 mm half-size grid, fill the gaps at the walls with half-size baseplates, or prefer fewer baseplate sizes.",
   },
   {
     id: "results",
-    title: "Read the layout",
-    body: "The drawing shows every piece to scale. Select a piece for its details, position, and contents.",
+    title: "Lay out your bins",
+    body: "Drag across the grid to add a bin, or tap it on a phone. Select a bin to resize it, change its height, or name what goes in it.",
   },
   {
-    id: "share",
-    title: "Share or print labels",
-    body: "Copy a share link for your layout, or scroll to Bin labels to print a label for every bin.",
+    id: "download",
+    title: "Download everything",
+    body: "One zip holds every bin, baseplate, and spacer as STL files, plus 3MF plates laid out for your printer. Labels print from Bin labels below.",
   },
 ];
 
