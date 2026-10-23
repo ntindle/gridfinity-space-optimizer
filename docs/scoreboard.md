@@ -98,6 +98,24 @@ Local build on the box, three full runs; values are identical or within the spre
 
 Noise: input-to-preview varies about ±5 ms between runs, so a change must beat that to count. Biggest speed lever seen in the build: the 634 KB `math-vendor` (mathjs) chunk.
 
+## 2026-10-23, PR #148 (print plan card, F28)
+
+Catch-up: main moved twice since the 2026-10-22 entry — arena PRs #146 (UI redesign + 18 bug fixes) and #147 (placed bins + STL/3MF export) merged 2026-10-22, moving the map from 34.0% to 42.0% (F6, F14, F25, F27 → ✅; F15 → 🟡; F30 stays 🟡 with plate packing; F10/F45/F46 cell updates). The scoreboard entries between 2026-10-22 and this one record only this run's slice; the map's honesty log carries the #146/#147 detail.
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`).
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 43.0% (20 ✅ + 3 🟡 / 50) | 42.0% |
+| Lighthouse perf | 76 | 78 |
+| TTI | 3491 ms | 3442 ms |
+| Input-to-preview (median) | 36.3 ms | 36.0 ms |
+| Layout task | 4 steps, 473 ms | 4 steps, 461 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 77 ms | 1 click, 86 ms |
+
+Verdict: no regression — every speed delta sits inside run noise (Lighthouse −2.6%, TTI +1.4%, input-to-preview +0.3 ms, layout +2.6%; share favors the branch). The diff adds one card and a pure part-grouping module; the mesh-building code stays behind its lazy `import()`. Parity +1.0pp (F28 🟡→✅); Job 3 print/export gains an in-app print plan: plate rows with per-plate part counts plus a Copy list (one line per part). Bundle delta: index chunk 221,250 → 226,570 B (+2.4%).
+
 ## 2026-10-15, PR #86 (printable bin labels + half-size results fix)
 
 Local preview, branch vs trunk measured back-to-back on the same box. TTI/Lighthouse are noisy run-to-run here (trunk alone swung 2696–3282 ms across two same-day runs), so the gate reads the overlap, not single points.
