@@ -1,18 +1,9 @@
 import { unitMath } from "@/services/unitMath";
-import { FULL_GRID_SIZE, HALF_GRID_SIZE } from "@/utils/gridfinityUtils";
 import { drawerSizeMm, formatDrawerSize, formatSize, pluralize } from "@/utils/format";
-import {
-  binIssues,
-  binOuterSize,
-  binSizeLabel,
-  gridCells,
-  groupBins,
-  indexCells,
-  maxBinHeight,
-} from "@/utils/bins";
 import { PLATE_GAP_MM, planPlates, usableBed, type Plate } from "@/utils/printPlan";
+import { collectPrintParts, slug, type PrintPartSummary } from "@/utils/printParts";
 import type { Bin, DrawerSize, LayoutItem, PrinterSize } from "@/types";
-import { BASEPLATE_HEIGHT, baseplateMesh, spacerMesh } from "./gridfinityMesh";
+import { baseplateMesh, spacerMesh } from "./gridfinityMesh";
 import { binMesh } from "./binMesh";
 import { meshToStl } from "./stl";
 import { createThreeMf, quarterTurn, translation } from "./threeMf";
@@ -38,124 +29,40 @@ export interface ExportBundle {
   skippedBins: number;
 }
 
-type PartKind = "bin" | "baseplate" | "spacer";
-
-interface PrintPart {
-  key: string;
-  kind: PartKind;
-  label: string;
-  stem: string;
-  width: number;
-  depth: number;
-  height: number;
-  count: number;
-  mesh: () => Mesh;
-}
-
-const slug = (text: string): string =>
-  text
-    .toLowerCase()
-    .replace(/\s*×\s*/g, "x")
-    .replace(/(\d)\s+(mm|in)\b/g, "$1$2")
-    .replace(/[^a-z0-9.]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+const pad = (text: string, width: number): string => text.padEnd(width, " ");
 
 const trim = (value: number): string => String(unitMath.round(value, 2));
-
-const binParts = (request: ExportRequest): { parts: PrintPart[]; skipped: number } => {
-  const index = indexCells(gridCells(request.layout));
-  const bed = usableBed(request.printerSize);
-  const limits = { ...bed, height: maxBinHeight(request.printerSize.z) };
-  const skipped = binIssues(request.bins, index, limits).size;
-  const parts = groupBins(request.bins, index, limits).map((group): PrintPart => {
-    const half = group.cellSize === HALF_GRID_SIZE;
-    const size = binSizeLabel(group);
-    const label = `Bin ${size} · ${group.height}u${half ? " · half-grid feet" : ""}`;
-    const outer = binOuterSize(group);
-    return {
-      key: group.key,
-      kind: "bin",
-      label,
-      stem: slug(`bin ${size} ${group.height}u${half ? " half grid" : ""}`),
-      width: outer.width,
-      depth: outer.depth,
-      height: outer.height,
-      count: unitMath.multiply(group.bins.length, request.numDrawers),
-      mesh: () =>
-        binMesh({
-          columns: unitMath.round(unitMath.divide(group.width, group.cellSize), 0),
-          rows: unitMath.round(unitMath.divide(group.depth, group.cellSize), 0),
-          cellSize: group.cellSize,
-          height: group.height,
-        }),
-    };
-  });
-  return { parts, skipped };
-};
-
-const gridParts = (request: ExportRequest): PrintPart[] => {
-  const groups = new Map<string, { item: LayoutItem; count: number }>();
-  for (const item of request.layout) {
-    const key = `${item.type}:${unitMath.round(item.pixelWidth, 2)}x${unitMath.round(item.pixelHeight, 2)}`;
-    const group = groups.get(key);
-    if (group) {
-      group.count = unitMath.add(group.count, 1);
-    } else {
-      groups.set(key, { item, count: 1 });
-    }
-  }
-  return [...groups].map(([key, { item, count }]): PrintPart => {
-    const width = item.pixelWidth;
-    const depth = item.pixelHeight;
-    const total = unitMath.multiply(count, request.numDrawers);
-    if (item.type === "spacer") {
-      const label = `Spacer ${trim(width)} × ${trim(depth)} mm`;
-      return {
-        key,
-        kind: "spacer",
-        label,
-        stem: slug(label),
-        width,
-        depth,
-        height: BASEPLATE_HEIGHT,
-        count: total,
-        mesh: () => spacerMesh(width, depth),
-      };
-    }
-    const cellSize = item.type === "half-size" ? HALF_GRID_SIZE : FULL_GRID_SIZE;
-    const columns = unitMath.round(unitMath.divide(width, cellSize), 0);
-    const rows = unitMath.round(unitMath.divide(depth, cellSize), 0);
-    const label = `${item.type === "half-size" ? "Half-size baseplate" : "Baseplate"} ${columns} × ${rows}`;
-    return {
-      key,
-      kind: "baseplate",
-      label,
-      stem: slug(label),
-      width,
-      depth,
-      height: BASEPLATE_HEIGHT,
-      count: total,
-      mesh: () => baseplateMesh(columns, rows, cellSize),
-    };
-  });
-};
-
-const pad = (text: string, width: number): string => text.padEnd(width, " ");
 
 const describePlate = (plate: Plate, labels: Map<string, string>): string =>
   plate.parts.map(({ key, count }) => `${count} × ${labels.get(key)}`).join(", ");
 
 export const createPrintFiles = (request: ExportRequest): ExportBundle => {
-  const { parts: bins, skipped } = binParts(request);
-  const grid = gridParts(request);
-  const parts = [...bins, ...grid];
+  const { parts, skippedBins } = collectPrintParts({
+    layout: request.layout,
+    bins: request.bins,
+    numDrawers: request.numDrawers,
+    printerSize: request.printerSize,
+  });
   if (parts.length === 0) throw new Error("There is nothing to print yet");
 
   const meshes = new Map<string, Mesh>();
-  const meshFor = (part: PrintPart): Mesh => {
+  const meshFor = (part: PrintPartSummary): Mesh => {
     const cached = meshes.get(part.key);
     if (cached) return cached;
-    const mesh = part.mesh();
+    let mesh: Mesh;
+    if (part.binGeometry) {
+      mesh = binMesh(part.binGeometry);
+    } else if (part.kind === "spacer") {
+      mesh = spacerMesh(part.width, part.depth);
+    } else if (part.gridGeometry) {
+      mesh = baseplateMesh(
+        part.gridGeometry.columns,
+        part.gridGeometry.rows,
+        part.gridGeometry.cellSize
+      );
+    } else {
+      throw new Error(`No geometry for ${part.key}`);
+    }
     meshes.set(part.key, mesh);
     return mesh;
   };
@@ -170,11 +77,13 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
 
   const byKey = new Map(parts.map((part) => [part.key, part]));
   const labels = new Map(parts.map((part) => [part.key, part.label]));
-  const plan = (kind: "grid" | "bin", members: PrintPart[]) =>
+  const plan = (kind: "grid" | "bin", members: PrintPartSummary[]) =>
     planPlates(
       members.map(({ key, width, depth, count }) => ({ key, width, depth, count })),
       request.printerSize
     ).map((plate) => ({ kind, plate }));
+  const grid = parts.filter((part) => part.kind !== "bin");
+  const bins = parts.filter((part) => part.kind === "bin");
   const plates = [...plan("grid", grid), ...plan("bin", bins)];
 
   const plateLines: string[] = [];
@@ -227,8 +136,8 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       "- Bins follow the Gridfinity spec: 7 mm height units plus a stacking lip, 0.95 mm walls, no magnet holes.",
     bins.some((part) => part.label.includes("half-grid")) &&
       "- Bins marked half-grid feet sit on half-size baseplates.",
-    skipped > 0 &&
-      `- ${pluralize(skipped, "bin")} that ${skipped === 1 ? "doesn't" : "don't"} fit the grid or the printer ${skipped === 1 ? "was" : "were"} left out.`,
+    skippedBins > 0 &&
+      `- ${pluralize(skippedBins, "bin")} that ${skippedBins === 1 ? "doesn't" : "don't"} fit the grid or the printer ${skippedBins === 1 ? "was" : "were"} left out.`,
     "- Print the bin labels from the Bin labels section of the page.",
   ].filter(Boolean);
 
@@ -261,6 +170,6 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     parts: parts.length,
     plates: plates.length,
     prints,
-    skippedBins: skipped,
+    skippedBins,
   };
 };

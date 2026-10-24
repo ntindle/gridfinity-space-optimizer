@@ -10,6 +10,7 @@ import BinOptions from "./GridfinityCalculator/BinOptions";
 import DrawerOptions from "./GridfinityCalculator/DrawerOptions";
 import GridfinityResults from "./GridfinityResults";
 import GridfinityVisualPreview from "./GridfinityVisualPreview";
+import PrintPlanCard from "./PrintPlanCard";
 import BinLabels from "./BinLabels";
 import { formatDrawerSize } from "@/utils/format";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -258,6 +259,18 @@ const GridfinityCalculator: React.FC = () => {
                 />
               </div>
             </Card>
+            <PrintPlanCard
+              layout={layout}
+              bins={settings.bins}
+              numDrawers={settings.numDrawers}
+              useMm={settings.useMm}
+              printerName={
+                settings.selectedPrinter === "Custom Printer"
+                  ? "custom printer"
+                  : settings.selectedPrinter
+              }
+              printerSize={printerSize}
+            />
             <BinLabels
               bins={placedBins}
               useMm={settings.useMm}

@@ -1,8 +1,6 @@
 # Print and export (F28, F30, F32, F31, F25, F27, F26)
 
-**Status:** STL and 3MF shipped as one **Download files** button in S2 (F25, F27, plate packing for F30).
-Not started: the print plan card, copy list, CSV, layout JSON, test fit, estimates, STEP, stacking.
-Draft PR #66 has an earlier take on the print list and stacking; reuse its logic and ignore its UI.
+**Status:** STL and 3MF shipped as one **Download files** button in S2 (F25, F27, plate packing for F30). Print plan card shipped 2026-10-23 (S5): plate rows with per-plate part counts plus **Copy list** (one line per part); the card's print-list portion supersedes draft PR #66's earlier take (same part grouping, new UI). Not started: CSV, layout JSON, test fit, estimates, STEP, stacking.
 **Demand:** D1. **Slots:** S5 (new card), S2 (download, shipped).
 
 The job: walk from the plan to the printer without retyping anything.

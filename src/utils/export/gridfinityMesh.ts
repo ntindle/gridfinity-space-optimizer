@@ -1,4 +1,5 @@
 import { createMeshBuilder, type Mesh } from "./mesh";
+import { BASEPLATE_HEIGHT_MM } from "@/utils/printParts";
 import {
   ARC_SEGMENTS,
   DOWN,
@@ -12,7 +13,7 @@ import {
   type Point,
 } from "./shapes";
 
-export const BASEPLATE_HEIGHT = 5;
+export const BASEPLATE_HEIGHT = BASEPLATE_HEIGHT_MM;
 export const BASEPLATE_CORNER_RADIUS = 4;
 
 export const POCKET_PROFILE = [
