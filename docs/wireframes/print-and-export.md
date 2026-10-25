@@ -1,6 +1,6 @@
 # Print and export (F28, F30, F32, F31, F25, F27, F26)
 
-**Status:** STL and 3MF shipped as one **Download files** button in S2 (F25, F27, plate packing for F30). Print plan card shipped 2026-10-23 (S5): plate rows with per-plate part counts plus **Copy list** (one line per part); the card's print-list portion supersedes draft PR #66's earlier take (same part grouping, new UI). Not started: CSV, layout JSON, test fit, estimates, STEP, stacking.
+**Status:** STL and 3MF shipped as one **Download files** button in S2 (F25, F27, plate packing for F30). Print plan card shipped 2026-10-23 (S5): plate rows with per-plate part counts plus **Copy list** (one line per part); the card's print-list portion supersedes draft PR #66's earlier take (same part grouping, new UI). Test fit shipped 2026-10-25 (F32 🟡): "Test fit first" switch in the card, Plate 0 with 1 × 1 baseplate + edge spacer, counts include it, persisted as `gridfinity_testFit`; the test pieces are not in the Download files zip yet (next slice). Not started: CSV, layout JSON, estimates, STEP, stacking.
 **Demand:** D1. **Slots:** S5 (new card), S2 (download, shipped).
 
 The job: walk from the plan to the printer without retyping anything.
@@ -76,4 +76,5 @@ add actions.
 - [x] `planPlates` has unit tests: one plate, many plates, identical plates, exclusion zones, rotation, and a part as big as the bed.
 - [x] Download tested with Testing Library via a stubbed `URL.createObjectURL`. The card and copy list are still to do.
 - [ ] Checked at 1440 px and 390 px, light and dark.
-- [ ] F28 and F30 rows in `docs/feature-map.md` updated; F32 too if the test-fit switch shipped.
+- [x] F28 and F30 rows in `docs/feature-map.md` updated; F32 too if the test-fit switch shipped.
+  - 2026-10-25: test-fit switch shipped (F32 ❌→🟡); the test pieces are not in the Download files zip yet — one-click test-piece download is the next slice.

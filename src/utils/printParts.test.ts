@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculateGrids } from '@/utils/gridfinityUtils';
-import { collectPrintParts } from './printParts';
+import { collectPrintParts, TEST_FIT_BASEPLATE_KEY, testFitParts } from './printParts';
+import type { PrintPartSummary } from './printParts';
 import type { Bin, DrawerSize, PrinterSize } from '@/types';
 
 const A1: PrinterSize = { x: 256, y: 256, z: 256 };
@@ -85,5 +86,73 @@ describe('collectPrintParts', () => {
     expect(summaries[0].label).toBe('Bin 2 × 1 · 6u');
     expect(summaries[1].count).toBe(3);
     expect(summaries[1].label).toBe('Bin 2 × 1 · 3u');
+  });
+});
+
+describe('testFitParts', () => {
+  const baseplate = (overrides: Partial<PrintPartSummary> = {}): PrintPartSummary => ({
+    key: 'baseplate:84x84',
+    kind: 'baseplate',
+    swatch: 'baseplate',
+    label: 'Baseplate 2 × 2',
+    stem: 'baseplate-2x2',
+    width: 84,
+    depth: 84,
+    height: 5,
+    count: 2,
+    gridGeometry: { columns: 2, rows: 2, cellSize: 42 },
+    ...overrides,
+  });
+  const spacer = (overrides: Partial<PrintPartSummary> = {}): PrintPartSummary => ({
+    key: 'spacer:252x41.1',
+    kind: 'spacer',
+    swatch: 'spacer',
+    label: 'Spacer 252 × 41.1 mm',
+    stem: 'spacer-252x41.1mm',
+    width: 252,
+    depth: 41.1,
+    height: 5,
+    count: 4,
+    ...overrides,
+  });
+
+  it('returns a 1 × 1 baseplate with spec geometry', () => {
+    const [part] = testFitParts([]);
+    expect(part.key).toBe(TEST_FIT_BASEPLATE_KEY);
+    expect(part.kind).toBe('baseplate');
+    expect(part.label).toBe('Baseplate 1 × 1');
+    expect(part.width).toBe(42);
+    expect(part.depth).toBe(42);
+    expect(part.height).toBe(5);
+    expect(part.count).toBe(1);
+    expect(part.gridGeometry).toEqual({ columns: 1, rows: 1, cellSize: 42 });
+  });
+
+  it('adds one edge spacer, the first spacer by key', () => {
+    const wide = spacer({ key: 'spacer:252x41.1', count: 4 });
+    const narrow = spacer({
+      key: 'spacer:35.2x101.6',
+      label: 'Spacer 35.2 × 101.6 mm',
+      stem: 'spacer-35.2x101.6mm',
+      width: 35.2,
+      depth: 101.6,
+      count: 2,
+    });
+    const parts = testFitParts([baseplate(), narrow, wide]);
+    expect(parts).toHaveLength(2);
+    expect(parts[1].key).toBe('spacer:252x41.1');
+    expect(parts[1].count).toBe(1);
+    expect(parts[1].width).toBe(252);
+    expect(parts[1].depth).toBe(41.1);
+  });
+
+  it('returns only the baseplate when the layout has no spacer', () => {
+    expect(testFitParts([baseplate()])).toHaveLength(1);
+  });
+
+  it('does not change the layout spacer count', () => {
+    const original = spacer({ count: 4 });
+    testFitParts([baseplate(), original]);
+    expect(original.count).toBe(4);
   });
 });

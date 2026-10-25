@@ -66,7 +66,7 @@ interface OptionRowProps {
   onCheckedChange: (checked: boolean) => void;
 }
 
-const OptionRow: React.FC<OptionRowProps> = ({
+export const OptionRow: React.FC<OptionRowProps> = ({
   id,
   title,
   description,
