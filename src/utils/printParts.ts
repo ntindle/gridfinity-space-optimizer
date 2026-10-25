@@ -146,3 +146,24 @@ export const collectPrintParts = (
   const grid = gridParts(request.layout, request.numDrawers);
   return { parts: [...bins, ...grid], skippedBins: skipped };
 };
+
+export const TEST_FIT_BASEPLATE_KEY = "test-fit:baseplate-1x1";
+
+export const testFitParts = (parts: PrintPartSummary[]): PrintPartSummary[] => {
+  const baseplate: PrintPartSummary = {
+    key: TEST_FIT_BASEPLATE_KEY,
+    kind: "baseplate",
+    swatch: "baseplate",
+    label: "Baseplate 1 × 1",
+    stem: "baseplate-1x1",
+    width: FULL_GRID_SIZE,
+    depth: FULL_GRID_SIZE,
+    height: BASEPLATE_HEIGHT_MM,
+    count: 1,
+    gridGeometry: { columns: 1, rows: 1, cellSize: FULL_GRID_SIZE },
+  };
+  const spacer = parts
+    .filter((part) => part.kind === "spacer")
+    .sort((a, b) => a.key.localeCompare(b.key))[0];
+  return spacer ? [baseplate, { ...spacer, count: 1 }] : [baseplate];
+};
