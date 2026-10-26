@@ -167,3 +167,20 @@ export const testFitParts = (parts: PrintPartSummary[]): PrintPartSummary[] => {
     .sort((a, b) => a.key.localeCompare(b.key))[0];
   return spacer ? [baseplate, { ...spacer, count: 1 }] : [baseplate];
 };
+
+export const mergeTestFitParts = (
+  parts: PrintPartSummary[],
+  testParts: PrintPartSummary[]
+): PrintPartSummary[] => {
+  const merged = new Map(parts.map((part) => [part.stem, part]));
+  for (const testPart of testParts) {
+    const existing = merged.get(testPart.stem);
+    merged.set(
+      testPart.stem,
+      existing
+        ? { ...existing, count: unitMath.add(existing.count, testPart.count) }
+        : testPart
+    );
+  }
+  return [...merged.values()];
+};

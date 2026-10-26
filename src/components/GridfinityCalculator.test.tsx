@@ -7,6 +7,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GridfinityCalculator from './GridfinityCalculator';
 import { SettingsProvider } from '../contexts/SettingsContext';
+import { TEST_FIT_STORAGE_KEY } from '../hooks/useGridfinitySettings';
 import { saveUserSettings, loadUserSettings } from '../lib/utils';
 import { toast } from 'sonner';
 import type { Settings } from '@/types/gridfinity';
@@ -464,6 +465,56 @@ describe('GridfinityCalculator', () => {
         'Downloaded gridfinity-8x4in.zip',
         expect.objectContaining({ description: expect.stringMatching(/STL files and \d+ prints? as 3MF plates/) }),
       );
+    } finally {
+      click.mockRestore();
+    }
+  }, 30_000);
+
+  it('persists the test-fit switch across renders', async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderWithProviders(<GridfinityCalculator />);
+    await user.click(await screen.findByRole('switch', { name: 'Test fit first' }));
+    await waitFor(() => {
+      expect(localStorage.setItem).toHaveBeenCalledWith(TEST_FIT_STORAGE_KEY, 'true');
+    });
+    const getItem = localStorage.getItem as unknown as Mock;
+    getItem.mockImplementation((key: string) =>
+      key === TEST_FIT_STORAGE_KEY ? 'true' : undefined,
+    );
+    try {
+      unmount();
+      renderWithProviders(<GridfinityCalculator />);
+      expect(
+        await screen.findByRole('switch', { name: 'Test fit first' })
+      ).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByText('Test fit')).toBeInTheDocument();
+    } finally {
+      getItem.mockReset();
+    }
+  });
+
+  it('includes the test-fit plate in the download when test fit is on', async () => {
+    const user = userEvent.setup();
+    const createObjectURL = vi.fn(() => 'blob:print-files');
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }));
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {});
+    try {
+      renderWithProviders(<GridfinityCalculator />);
+      await user.click(await screen.findByRole('switch', { name: 'Test fit first' }));
+      await user.click(screen.getByRole('button', { name: /^Download files/ }));
+      await waitFor(
+        () => {
+          expect(createObjectURL).toHaveBeenCalledTimes(1);
+        },
+        { timeout: 15_000 },
+      );
+      const blob = (createObjectURL.mock.calls[0] as unknown as [Blob])[0];
+      const { unzipSync } = await import('fflate');
+      const names = Object.keys(unzipSync(new Uint8Array(await blob.arrayBuffer())));
+      expect(names).toContain('3mf/plate-0-test-fit.3mf');
+      expect(names).toContain('stl/baseplate-1x1-x1.stl');
     } finally {
       click.mockRestore();
     }

@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { calculateGrids } from '@/utils/gridfinityUtils';
-import { collectPrintParts, TEST_FIT_BASEPLATE_KEY, testFitParts } from './printParts';
+import {
+  collectPrintParts,
+  mergeTestFitParts,
+  TEST_FIT_BASEPLATE_KEY,
+  testFitParts,
+} from './printParts';
 import type { PrintPartSummary } from './printParts';
 import type { Bin, DrawerSize, PrinterSize } from '@/types';
 
@@ -154,5 +159,65 @@ describe('testFitParts', () => {
     const original = spacer({ count: 4 });
     testFitParts([baseplate(), original]);
     expect(original.count).toBe(4);
+  });
+});
+
+describe('mergeTestFitParts', () => {
+  const testBaseplate = (): PrintPartSummary => ({
+    key: TEST_FIT_BASEPLATE_KEY,
+    kind: 'baseplate',
+    swatch: 'baseplate',
+    label: 'Baseplate 1 × 1',
+    stem: 'baseplate-1x1',
+    width: 42,
+    depth: 42,
+    height: 5,
+    count: 1,
+    gridGeometry: { columns: 1, rows: 1, cellSize: 42 },
+  });
+  const layoutSpacer = (count: number): PrintPartSummary => ({
+    key: 'spacer:126x10.8',
+    kind: 'spacer',
+    swatch: 'spacer',
+    label: 'Spacer 126 × 10.8 mm',
+    stem: 'spacer-126x10.8mm',
+    width: 126,
+    depth: 10.8,
+    height: 5,
+    count,
+  });
+
+  it('appends the test baseplate when the layout has no 1 × 1 baseplate', () => {
+    const merged = mergeTestFitParts([layoutSpacer(2)], [testBaseplate()]);
+    expect(merged).toHaveLength(2);
+    expect(merged[1].key).toBe(TEST_FIT_BASEPLATE_KEY);
+    expect(merged[1].count).toBe(1);
+    expect(merged[0].count).toBe(2);
+  });
+
+  it('bumps the count instead of duplicating a part with the same stem', () => {
+    const layoutBaseplate: PrintPartSummary = {
+      ...testBaseplate(),
+      key: 'baseplate:42x42',
+      count: 3,
+    };
+    const merged = mergeTestFitParts(
+      [layoutBaseplate, layoutSpacer(2)],
+      [testBaseplate(), { ...layoutSpacer(2), count: 1 }]
+    );
+    expect(merged).toHaveLength(2);
+    expect(merged[0].key).toBe('baseplate:42x42');
+    expect(merged[0].count).toBe(4);
+    expect(merged[1].key).toBe('spacer:126x10.8');
+    expect(merged[1].count).toBe(3);
+    expect(merged.map((part) => part.stem)).toEqual([
+      'baseplate-1x1',
+      'spacer-126x10.8mm',
+    ]);
+  });
+
+  it('returns the layout parts unchanged when there are no test parts', () => {
+    const parts = [layoutSpacer(2)];
+    expect(mergeTestFitParts(parts, [])).toEqual(parts);
   });
 });

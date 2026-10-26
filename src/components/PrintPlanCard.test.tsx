@@ -1,11 +1,12 @@
 /**
  * @vitest-environment jsdom
  */
+import { useState, type FC } from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { calculateGrids } from '@/utils/gridfinityUtils';
 import { collectPrintParts } from '@/utils/printParts';
-import PrintPlanCard, { TEST_FIT_STORAGE_KEY } from './PrintPlanCard';
+import PrintPlanCard from './PrintPlanCard';
 import { buildPrintListText } from '@/utils/printList';
 import { planPlates } from '@/utils/printPlan';
 import type { DrawerSize, PrinterSize } from '@/types';
@@ -23,6 +24,25 @@ const props = {
   printerSize: A1,
 };
 
+const StatefulCard: FC<{
+  initialTestFit?: boolean;
+  onTestFitChange?: (value: boolean) => void;
+  overrides?: Partial<typeof props>;
+}> = ({ initialTestFit = false, onTestFitChange, overrides = {} }) => {
+  const [testFit, setTestFit] = useState(initialTestFit);
+  return (
+    <PrintPlanCard
+      {...props}
+      {...overrides}
+      testFit={testFit}
+      onTestFitChange={(value) => {
+        setTestFit(value);
+        onTestFitChange?.(value);
+      }}
+    />
+  );
+};
+
 describe('PrintPlanCard', () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
 
@@ -37,7 +57,7 @@ describe('PrintPlanCard', () => {
   });
 
   it('renders the heading, the summary, and one row per plate', () => {
-    render(<PrintPlanCard {...props} />);
+    render(<StatefulCard />);
     expect(screen.getByRole('heading', { name: 'Print plan' })).toBeInTheDocument();
     expect(screen.getByText(/Bambu Lab A1 \(256 × 256 mm\)/)).toBeInTheDocument();
     const rows = screen.getAllByRole('listitem');
@@ -46,14 +66,14 @@ describe('PrintPlanCard', () => {
   });
 
   it('numbers plates and notes repeated prints', () => {
-    render(<PrintPlanCard {...props} numDrawers={2} />);
+    render(<StatefulCard overrides={{ numDrawers: 2 }} />);
     const { parts } = collectPrintParts({ layout, bins: [], numDrawers: 2, printerSize: A1 });
     const total = parts.reduce((sum, part) => sum + part.count, 0);
     expect(screen.getByText(new RegExp(`${total} parts on`))).toBeInTheDocument();
   });
 
   it('copies one line per part and shows confirmation', async () => {
-    render(<PrintPlanCard {...props} />);
+    render(<StatefulCard />);
     fireEvent.click(screen.getByRole('button', { name: /copy list/i }));
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledTimes(1);
@@ -69,7 +89,7 @@ describe('PrintPlanCard', () => {
   it('shows an error state when copying fails', async () => {
     writeText.mockRejectedValueOnce(new Error('denied'));
     Object.defineProperty(document, 'execCommand', { value: undefined, configurable: true });
-    render(<PrintPlanCard {...props} />);
+    render(<StatefulCard />);
     fireEvent.click(screen.getByRole('button', { name: /copy list/i }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /copy failed/i })).toBeInTheDocument();
@@ -77,19 +97,19 @@ describe('PrintPlanCard', () => {
   });
 
   it('renders nothing when there is nothing to print', () => {
-    const { container } = render(<PrintPlanCard {...props} layout={[]} />);
+    const { container } = render(<StatefulCard overrides={{ layout: [] }} />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it('shows the test-fit switch off by default with no test plate', () => {
-    render(<PrintPlanCard {...props} />);
+    render(<StatefulCard />);
     const toggle = screen.getByRole('switch', { name: 'Test fit first' });
     expect(toggle).toHaveAttribute('aria-checked', 'false');
     expect(screen.queryByText('Test fit')).not.toBeInTheDocument();
   });
 
   it('adds a Test fit plate first and includes it in the counts', () => {
-    render(<PrintPlanCard {...props} />);
+    render(<StatefulCard />);
     fireEvent.click(screen.getByRole('switch', { name: 'Test fit first' }));
     const { parts } = collectPrintParts({ layout, bins: [], numDrawers: 1, printerSize: A1 });
     const plates = planPlates(
@@ -107,13 +127,8 @@ describe('PrintPlanCard', () => {
     ).toBeInTheDocument();
   });
 
-  it('persists the test-fit switch across renders', () => {
-    const { unmount } = render(<PrintPlanCard {...props} />);
-    fireEvent.click(screen.getByRole('switch', { name: 'Test fit first' }));
-    expect(localStorage.setItem).toHaveBeenCalledWith(TEST_FIT_STORAGE_KEY, 'true');
-    vi.mocked(localStorage.getItem).mockReturnValueOnce('true');
-    unmount();
-    render(<PrintPlanCard {...props} />);
+  it('shows the test-fit plate when the switch starts on', () => {
+    render(<StatefulCard initialTestFit />);
     expect(screen.getByRole('switch', { name: 'Test fit first' })).toHaveAttribute(
       'aria-checked',
       'true'
@@ -121,8 +136,15 @@ describe('PrintPlanCard', () => {
     expect(screen.getByText('Test fit')).toBeInTheDocument();
   });
 
+  it('reports the switch change to its parent', () => {
+    const onTestFitChange = vi.fn();
+    render(<StatefulCard onTestFitChange={onTestFitChange} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Test fit first' }));
+    expect(onTestFitChange).toHaveBeenCalledWith(true);
+  });
+
   it('copies the test-fit pieces with the list when on', async () => {
-    render(<PrintPlanCard {...props} />);
+    render(<StatefulCard />);
     fireEvent.click(screen.getByRole('switch', { name: 'Test fit first' }));
     fireEvent.click(screen.getByRole('button', { name: /copy list/i }));
     await waitFor(() => {

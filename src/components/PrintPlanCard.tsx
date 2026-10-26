@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import PieceSwatch from "@/components/PieceSwatch";
 import { OptionRow } from "@/components/GridfinityCalculator/BinOptions";
-import { usePersistedState } from "@/hooks/usePersistedState";
 import { unitMath } from "@/services/unitMath";
 import { formatSize, pluralize } from "@/utils/format";
 import {
@@ -17,8 +16,6 @@ import { buildPrintListText } from "@/utils/printList";
 import { planPlates, usableBed, type Plate } from "@/utils/printPlan";
 import type { Bin, LayoutItem, PrinterSize } from "@/types";
 
-export const TEST_FIT_STORAGE_KEY = "gridfinity_testFit";
-
 interface PrintPlanCardProps {
   layout: LayoutItem[];
   bins: Bin[];
@@ -26,6 +23,8 @@ interface PrintPlanCardProps {
   useMm: boolean;
   printerName: string;
   printerSize: PrinterSize;
+  testFit: boolean;
+  onTestFitChange: (value: boolean) => void;
 }
 
 const copyViaFallback = (text: string): boolean => {
@@ -94,9 +93,10 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
   useMm,
   printerName,
   printerSize,
+  testFit,
+  onTestFitChange,
 }) => {
   const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
-  const [testFit, setTestFit] = usePersistedState(TEST_FIT_STORAGE_KEY, false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -227,7 +227,7 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
           title="Test fit first"
           description="Print one corner (1 × 1 baseplate + edge spacer) before the rest."
           checked={testFit}
-          onCheckedChange={setTestFit}
+          onCheckedChange={onTestFitChange}
         />
       </div>
       <ol className="mt-4 space-y-2">
