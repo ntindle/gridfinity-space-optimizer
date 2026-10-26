@@ -242,6 +242,7 @@ const GridfinityCalculator: React.FC = () => {
                           : settings.selectedPrinter
                       }
                       printerSize={printerSize}
+                      testFit={settings.testFit}
                     />
                     <ShareLayoutButton />
                   </div>
@@ -270,6 +271,8 @@ const GridfinityCalculator: React.FC = () => {
                   : settings.selectedPrinter
               }
               printerSize={printerSize}
+              testFit={settings.testFit}
+              onTestFitChange={settings.setTestFit}
             />
             <BinLabels
               bins={placedBins}

@@ -4,6 +4,8 @@ import { migrateLegacySettings } from './useLegacyMigration';
 import { sanitizeBins } from '@/utils/bins';
 import type { Bin, DrawerSize, PrinterSize } from '@/types';
 
+export const TEST_FIT_STORAGE_KEY = 'gridfinity_testFit';
+
 const binStorage = {
   deserialize: (value: string): Bin[] => sanitizeBins(JSON.parse(value)),
 };
@@ -33,6 +35,9 @@ export interface GridfinitySettings {
 
   bins: Bin[];
   setBins: Dispatch<SetStateAction<Bin[]>>;
+
+  testFit: boolean;
+  setTestFit: (value: boolean) => void;
 
   resetSettings: () => void;
 }
@@ -82,6 +87,8 @@ export const useGridfinitySettings = (): GridfinitySettings => {
 
   const [bins, setBins] = usePersistedState<Bin[]>('gridfinity_bins', [], binStorage);
 
+  const [testFit, setTestFit] = usePersistedState<boolean>(TEST_FIT_STORAGE_KEY, false);
+
   const handleUseHalfSizeChange = (value: boolean) => {
     setUseHalfSize(value);
     if (value) setPreferHalfSize(false);
@@ -129,6 +136,9 @@ export const useGridfinitySettings = (): GridfinitySettings => {
 
     bins,
     setBins,
+
+    testFit,
+    setTestFit,
 
     resetSettings,
   };

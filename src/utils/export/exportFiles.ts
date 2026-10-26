@@ -1,7 +1,13 @@
 import { unitMath } from "@/services/unitMath";
 import { drawerSizeMm, formatDrawerSize, formatSize, pluralize } from "@/utils/format";
 import { PLATE_GAP_MM, planPlates, usableBed, type Plate } from "@/utils/printPlan";
-import { collectPrintParts, slug, type PrintPartSummary } from "@/utils/printParts";
+import {
+  collectPrintParts,
+  mergeTestFitParts,
+  slug,
+  testFitParts,
+  type PrintPartSummary,
+} from "@/utils/printParts";
 import type { Bin, DrawerSize, LayoutItem, PrinterSize } from "@/types";
 import { baseplateMesh, spacerMesh } from "./gridfinityMesh";
 import { binMesh } from "./binMesh";
@@ -18,6 +24,7 @@ export interface ExportRequest {
   useMm: boolean;
   printerName: string;
   printerSize: PrinterSize;
+  testFit?: boolean;
 }
 
 export interface ExportBundle {
@@ -45,6 +52,19 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
   });
   if (parts.length === 0) throw new Error("There is nothing to print yet");
 
+  const testParts = request.testFit ? testFitParts(parts) : [];
+  const exportParts = mergeTestFitParts(parts, testParts);
+  const testMembers = testParts.flatMap((testPart) => {
+    const merged = exportParts.find((part) => part.stem === testPart.stem);
+    return merged
+      ? [{ key: merged.key, width: merged.width, depth: merged.depth, count: 1 }]
+      : [];
+  });
+  const testPlate =
+    testMembers.length > 0
+      ? (planPlates(testMembers, request.printerSize)[0] ?? null)
+      : null;
+
   const meshes = new Map<string, Mesh>();
   const meshFor = (part: PrintPartSummary): Mesh => {
     const cached = meshes.get(part.key);
@@ -69,14 +89,14 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
 
   const entries: ZipEntry[] = [];
   const files = new Map<string, string>();
-  for (const part of parts) {
+  for (const part of exportParts) {
     const file = `stl/${part.stem}-x${part.count}.stl`;
     files.set(part.key, file);
     entries.push([file, meshToStl(meshFor(part), part.label)]);
   }
 
-  const byKey = new Map(parts.map((part) => [part.key, part]));
-  const labels = new Map(parts.map((part) => [part.key, part.label]));
+  const byKey = new Map(exportParts.map((part) => [part.key, part]));
+  const labels = new Map(exportParts.map((part) => [part.key, part.label]));
   const plan = (kind: "grid" | "bin", members: PrintPartSummary[]) =>
     planPlates(
       members.map(({ key, width, depth, count }) => ({ key, width, depth, count })),
@@ -84,13 +104,22 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     ).map((plate) => ({ kind, plate }));
   const grid = parts.filter((part) => part.kind !== "bin");
   const bins = parts.filter((part) => part.kind === "bin");
-  const plates = [...plan("grid", grid), ...plan("bin", bins)];
+  const mainPlates = [...plan("grid", grid), ...plan("bin", bins)];
+  const plates = [
+    ...(testPlate ? [{ kind: "grid" as const, plate: testPlate, number: 0 }] : []),
+    ...mainPlates.map((entry, index) => ({
+      ...entry,
+      number: unitMath.add(index, 1),
+    })),
+  ];
 
   const plateLines: string[] = [];
-  plates.forEach(({ kind, plate }, index) => {
-    const number = unitMath.add(index, 1);
+  plates.forEach(({ kind, plate, number }) => {
     const copies = plate.copies > 1 ? `-x${plate.copies}` : "";
-    const file = `3mf/plate-${number}-${kind === "bin" ? "bins" : "baseplates"}${copies}.3mf`;
+    const file =
+      number === 0
+        ? "3mf/plate-0-test-fit.3mf"
+        : `3mf/plate-${number}-${kind === "bin" ? "bins" : "baseplates"}${copies}.3mf`;
     const members = plate.parts.flatMap(({ key }) => {
       const part = byKey.get(key);
       return part ? [part] : [];
@@ -106,7 +135,10 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     entries.push([
       file,
       createThreeMf({
-        title: `Gridfinity plate ${number} of ${plates.length}`,
+        title:
+          number === 0
+            ? "Gridfinity test fit plate"
+            : `Gridfinity plate ${number} of ${plates.length}`,
         objects,
         items,
       }),
@@ -122,7 +154,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
   const drawers =
     request.numDrawers > 1 ? `${request.numDrawers} identical drawers` : "1 drawer";
   const bed = usableBed(request.printerSize);
-  const partLines = parts.map((part) => {
+  const partLines = exportParts.map((part) => {
     const size = `${formatSize(part.width, part.depth, true).replace(/ mm$/, "")} × ${trim(part.height)} mm`;
     return `  ${pad(String(part.count), 6)} ${pad(part.label, 36)} ${pad(size, 26)} ${files.get(part.key)}`;
   });
@@ -138,6 +170,8 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       "- Bins marked half-grid feet sit on half-size baseplates.",
     skippedBins > 0 &&
       `- ${pluralize(skippedBins, "bin")} that ${skippedBins === 1 ? "doesn't" : "don't"} fit the grid or the printer ${skippedBins === 1 ? "was" : "were"} left out.`,
+    testPlate &&
+      `- Test fit first: print the test-fit plate first (${describePlate(testPlate, labels)}) to check the fit before the rest.`,
     "- Print the bin labels from the Bin labels section of the page.",
   ].filter(Boolean);
 
@@ -167,7 +201,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
   return {
     filename: `gridfinity-${drawerSlug}${request.numDrawers > 1 ? `-x${request.numDrawers}` : ""}.zip`,
     data: createZip([["README.txt", readme], ...entries]),
-    parts: parts.length,
+    parts: exportParts.length,
     plates: plates.length,
     prints,
     skippedBins,

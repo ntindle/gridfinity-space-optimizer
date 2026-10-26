@@ -114,6 +114,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no regression — branch is at or above trunk on every speed metric except input-to-preview (+5.1 ms), which sits inside the ±5 ms run noise and on a code path this diff does not touch (drawer-width edit → preview piece list is unchanged code; the new work is a switch plus one `planPlates` call over two parts). The first branch run (Lighthouse 59, TTI 5537 ms) executed while the trunk worktree's `npm ci` + build and the full test suite were still running on the same box; it was discarded as contaminated per the 2026-10-19 precedent and re-run clean on a quiet box. Parity +1.0pp (F32 ❌→🟡); Job 3 gains a test-fit workflow: a Test fit plate (1 × 1 baseplate + edge spacer) prints first, counts include it, choice persists. Bundle delta: index chunk 226,579 → 227,799 B (+0.5%).
 
+## 2026-10-26, PR #154 (one-click test-piece download, F32)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`).
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 45.0% (21 ✅ + 3 🟡 / 50) | 44.0% |
+| Lighthouse perf | 71 | 74 |
+| TTI | 3732 ms | 3546 ms |
+| Input-to-preview (median) | 49.5 ms | 41.4 ms |
+| Layout task | 4 steps, 565 ms | 4 steps, 535 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 102 ms | 1 click, 86 ms |
+
+Verdict: no credible regression. Every metric overlaps across three same-day pairs: a reversed-order re-run gave Lighthouse 69 vs 68, TTI 3885 vs 3951 ms, layout 551 vs 552 ms, share 85 vs 94 ms; an `--n=30 --lh=1` pair gave input-to-preview 34.5 vs 33.2 ms, layout 481.5 vs 493.5 ms, share 81 vs 84 ms — the n=15 input-to-preview gap (+8.1 ms) did not reproduce at n=30 (+1.3 ms). The diff touches no measured code path (drawer-width edit → preview piece list is unchanged; the new work is one extra persisted settings key, a prop pass-through, and export code behind a lazy `import()` that only runs on download). Parity +1.0pp (F32 🟡→✅); Job 3 completes the test-fit workflow: with the switch on, the Download files zip includes the test pieces as their own STLs plus a first 3MF plate (`3mf/plate-0-test-fit.3mf`), counts merging into the layout's STLs when the part already exists. Bundle delta: index chunk 227,799 → 228,122 B (+0.1%).
+
 ## 2026-10-23, PR #148 (print plan card, F28)
 
 Catch-up: main moved twice since the 2026-10-22 entry — arena PRs #146 (UI redesign + 18 bug fixes) and #147 (placed bins + STL/3MF export) merged 2026-10-22, moving the map from 34.0% to 42.0% (F6, F14, F25, F27 → ✅; F15 → 🟡; F30 stays 🟡 with plate packing; F10/F45/F46 cell updates). The scoreboard entries between 2026-10-22 and this one record only this run's slice; the map's honesty log carries the #146/#147 detail.

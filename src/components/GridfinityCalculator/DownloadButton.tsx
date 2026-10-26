@@ -14,6 +14,7 @@ interface DownloadButtonProps {
   useMm: boolean;
   printerName: string;
   printerSize: PrinterSize;
+  testFit: boolean;
 }
 
 const DownloadButton: React.FC<DownloadButtonProps> = ({
@@ -24,6 +25,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
   useMm,
   printerName,
   printerSize,
+  testFit,
 }) => {
   const [busy, setBusy] = useState(false);
 
@@ -43,6 +45,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
         useMm,
         printerName,
         printerSize,
+        testFit,
       });
       saveFile(bundle.filename, bundle.data, "application/zip");
       const skipped =

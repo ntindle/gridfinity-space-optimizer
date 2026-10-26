@@ -130,6 +130,87 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(names).toContain('stl/half-size-baseplate-9x4-x1.stl');
   });
 
+  it('adds the test-fit pieces to the zip when test fit is on', () => {
+    const base = createPrintFiles(request());
+    const bundle = createPrintFiles(request({ testFit: true }));
+    const names = Object.keys(files(bundle));
+    expect(bundle.parts).toBe(base.parts + 1);
+    expect(bundle.plates).toBe(base.plates + 1);
+    expect(bundle.prints).toBe(base.prints + 1);
+    expect(names).toContain('stl/baseplate-1x1-x1.stl');
+    expect(names).toContain('3mf/plate-0-test-fit.3mf');
+    expect(new Set(names).size).toBe(names.length);
+    const readme = strFromU8(files(bundle)['README.txt']);
+    expect(readme).toContain('Test fit first:');
+    expect(readme).toContain('3mf/plate-0-test-fit.3mf');
+    const plateLines = readme
+      .split('\n')
+      .filter((line) => line.trim().startsWith('3mf/'));
+    expect(plateLines[0]).toContain('plate-0-test-fit.3mf');
+    expect(plateLines[0]).toContain('1 × Baseplate 1 × 1');
+    expect(plateLines[0]).toContain('Spacer');
+  });
+
+  it('packs only the test pieces onto the test-fit plate', () => {
+    const bundle = createPrintFiles(request({ testFit: true }));
+    const plate = files(bundle)['3mf/plate-0-test-fit.3mf'];
+    expect(plate).toBeDefined();
+    const doc = model(plate);
+    expect(doc.getElementsByTagName('parsererror')).toHaveLength(0);
+    expect(doc.getElementsByTagName('object')).toHaveLength(2);
+    expect(doc.getElementsByTagName('item')).toHaveLength(2);
+    const names = [...doc.getElementsByTagName('object')].map((object) =>
+      object.getAttribute('name')
+    );
+    expect(names).toContain('Baseplate 1 × 1');
+  });
+
+  it('counts the test pieces with the layout pieces instead of duplicating the STL', () => {
+    const layout = [
+      {
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+        type: 'baseplate' as const,
+        pixelX: 0,
+        pixelY: 0,
+        pixelWidth: 42,
+        pixelHeight: 42,
+      },
+      {
+        x: 1,
+        y: 0,
+        width: 1,
+        height: 1,
+        type: 'spacer' as const,
+        pixelX: 42,
+        pixelY: 0,
+        pixelWidth: 10,
+        pixelHeight: 42,
+      },
+    ];
+    const base = createPrintFiles(request({ layout }));
+    const bundle = createPrintFiles(request({ layout, testFit: true }));
+    const names = Object.keys(files(bundle));
+    expect(bundle.parts).toBe(base.parts);
+    expect(bundle.plates).toBe(base.plates + 1);
+    expect(names).toContain('stl/baseplate-1x1-x2.stl');
+    expect(names).toContain('stl/spacer-10x42mm-x2.stl');
+    expect(new Set(names).size).toBe(names.length);
+    expect(names).toContain('3mf/plate-0-test-fit.3mf');
+    const readme = strFromU8(files(bundle)['README.txt']);
+    expect(readme).toMatch(/2\s+Baseplate 1 × 1\s+42 × 42 × 5 mm\s+stl\/baseplate-1x1-x2\.stl/);
+  });
+
+  it('leaves the zip unchanged when test fit is off', () => {
+    const bundle = createPrintFiles(request({ testFit: false }));
+    const names = Object.keys(files(bundle));
+    expect(names).not.toContain('3mf/plate-0-test-fit.3mf');
+    expect(names).not.toContain('stl/baseplate-1x1-x1.stl');
+    expect(strFromU8(files(bundle)['README.txt'])).not.toContain('Test fit first:');
+  });
+
   it('leaves out bins that do not fit and says so', () => {
     const bundle = createPrintFiles(request({ bins: [bin({ id: 'off', x: 168 }), bin({ id: 'ok' })] }));
     expect(bundle.skippedBins).toBe(1);
