@@ -130,6 +130,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression. Every metric overlaps across three same-day pairs: a reversed-order re-run gave Lighthouse 69 vs 68, TTI 3885 vs 3951 ms, layout 551 vs 552 ms, share 85 vs 94 ms; an `--n=30 --lh=1` pair gave input-to-preview 34.5 vs 33.2 ms, layout 481.5 vs 493.5 ms, share 81 vs 84 ms — the n=15 input-to-preview gap (+8.1 ms) did not reproduce at n=30 (+1.3 ms). The diff touches no measured code path (drawer-width edit → preview piece list is unchanged; the new work is one extra persisted settings key, a prop pass-through, and export code behind a lazy `import()` that only runs on download). Parity +1.0pp (F32 🟡→✅); Job 3 completes the test-fit workflow: with the switch on, the Download files zip includes the test pieces as their own STLs plus a first 3MF plate (`3mf/plate-0-test-fit.3mf`), counts merging into the layout's STLs when the part already exists. Bundle delta: index chunk 227,799 → 228,122 B (+0.1%).
 
+## 2026-10-27, PR #155 (rough print estimates, F31)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order `--n=30 --lh=1` pair to check an outlier).
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 47.0% (22 ✅ + 3 🟡 / 50) | 45.0% |
+| Lighthouse perf | 67 | 68 |
+| TTI | 3990 ms | 3907 ms |
+| Input-to-preview (median) | 111.4 ms | 39.0 ms |
+| Layout task | 4 steps, 535 ms | 4 steps, 502 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 97 ms | 1 click, 87 ms |
+
+Verdict: no credible regression. The n=15 input-to-preview gap (+72.4 ms) did not reproduce in the reversed-order `--n=30 --lh=1` pair (36.4 vs 35.3 ms, +1.1 ms), and layout (475 vs 476.5 ms) and share (83 vs 79.5 ms) are identical there; Lighthouse (71 vs 77 at lh=1) and TTI (3628 vs 3553 ms) overlap the bands seen all week. The diff touches no measured code path (drawer-width edit → preview piece list is unchanged code; the new work is one `useMemo` over the already-grouped print parts — analytic volumes from the part geometry — plus one text line in the Print plan card). Parity +2.0pp (F31 ❌→✅); Job 3 gains rough print estimates on the Print plan card: ~time · ~grams PLA · ~$cost from the analytic volumes of the generated parts (default 15×12in layout: ~4 h 2 min · ~144 g PLA · ~$2.88), with the fixed assumptions (PLA 1.24 g/cm³, $20/kg, ~8 mm³/s) stated on the card. Bundle delta: index chunk 228,122 → 231,700 B (+1.6%); the lazy export chunk is unchanged (21.89 → 21.44 kB) because the profile constants moved into a light shared module while the mesh builders stay lazy.
+
 ## 2026-10-23, PR #148 (print plan card, F28)
 
 Catch-up: main moved twice since the 2026-10-22 entry — arena PRs #146 (UI redesign + 18 bug fixes) and #147 (placed bins + STL/3MF export) merged 2026-10-22, moving the map from 34.0% to 42.0% (F6, F14, F25, F27 → ✅; F15 → 🟡; F30 stays 🟡 with plate packing; F10/F45/F46 cell updates). The scoreboard entries between 2026-10-22 and this one record only this run's slice; the map's honesty log carries the #146/#147 detail.

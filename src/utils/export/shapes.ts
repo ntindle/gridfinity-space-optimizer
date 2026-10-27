@@ -1,4 +1,7 @@
 import type { Vec3 } from "./mesh";
+import { ARC_SEGMENTS } from "./gridfinityProfiles";
+
+export { ARC_SEGMENTS };
 
 export type Point = readonly [number, number];
 
@@ -8,7 +11,6 @@ export interface Corner {
   startAngle: number;
 }
 
-export const ARC_SEGMENTS = 8;
 export const UP: Vec3 = [0, 0, 1];
 export const DOWN: Vec3 = [0, 0, -1];
 

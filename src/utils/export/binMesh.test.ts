@@ -1,17 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
-  BIN_BASE_HEIGHT,
-  BIN_GAP,
-  BIN_TOP_RADIUS,
-  FOOT_PROFILE,
   binMesh,
-  binWallProfile,
 } from './binMesh';
+import { binWallProfile } from './gridfinityProfiles';
+import { binVolumeMm3 } from '@/utils/partVolumes';
 import { meshBounds, meshVolume, type Mesh } from './mesh';
 import { binTotalHeight } from '@/utils/bins';
-
-const ARC_SEGMENTS = 8;
-const cornerLoss = 4 - 2 * ARC_SEGMENTS * Math.sin(Math.PI / (2 * ARC_SEGMENTS));
 
 const edgeProblems = (mesh: Mesh): string[] => {
   const directed = new Map<string, number>();
@@ -29,45 +23,6 @@ const edgeProblems = (mesh: Mesh): string[] => {
     if (directed.get(`${to}>${from}`) !== 1) problems.push(`${key} has no opposite edge`);
   }
   return problems;
-};
-
-const roundedArea = (width: number, depth: number, radius: number) =>
-  width * depth - cornerLoss * radius * radius;
-
-const footVolume = (cellSize: number): number => {
-  const area = (inset: number) =>
-    roundedArea(cellSize - 2 * BIN_GAP - 2 * inset, cellSize - 2 * BIN_GAP - 2 * inset, BIN_TOP_RADIUS - inset);
-  let volume = 0;
-  for (let band = 0; band < FOOT_PROFILE.length - 1; band += 1) {
-    const lower = FOOT_PROFILE[band];
-    const upper = FOOT_PROFILE[band + 1];
-    volume +=
-      ((upper.z - lower.z) / 6) *
-      (area(lower.inset) + 4 * area((lower.inset + upper.inset) / 2) + area(upper.inset));
-  }
-  return volume;
-};
-
-const expectedBinVolume = (columns: number, rows: number, cellSize: number, height: number): number => {
-  const a = columns * cellSize - 2 * BIN_GAP;
-  const b = rows * cellSize - 2 * BIN_GAP;
-  const feet = columns * rows * footVolume(cellSize);
-  const bridge = roundedArea(a, b, BIN_TOP_RADIUS) * (BIN_BASE_HEIGHT - FOOT_PROFILE[FOOT_PROFILE.length - 1].z);
-  const polygon = binWallProfile(height).map((point, index) =>
-    index === 0 ? { ...point, z: BIN_BASE_HEIGHT } : point
-  );
-  let area = 0;
-  let moment = 0;
-  polygon.forEach((current, index) => {
-    const next = polygon[(index + 1) % polygon.length];
-    const crossing = current.inset * next.z - next.inset * current.z;
-    area += crossing / 2;
-    moment += ((current.inset + next.inset) * crossing) / 6;
-  });
-  const perimeterAtWall = 2 * a + 2 * b - 2 * cornerLoss * BIN_TOP_RADIUS;
-  const perimeterSlope = 2 * cornerLoss - 8;
-  const walls = Math.abs(perimeterAtWall * area + perimeterSlope * moment);
-  return feet + bridge + walls;
 };
 
 describe('binMesh', () => {
@@ -90,7 +45,7 @@ describe('binMesh', () => {
     [2, 3, 21, 4],
   ])('matches the Gridfinity bin volume for %i × %i on %i mm, %iu', (columns, rows, cellSize, height) => {
     const volume = meshVolume(binMesh({ columns, rows, cellSize, height }));
-    const expected = expectedBinVolume(columns, rows, cellSize, height);
+    const expected = binVolumeMm3(columns, rows, cellSize, height);
     expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
   });
 

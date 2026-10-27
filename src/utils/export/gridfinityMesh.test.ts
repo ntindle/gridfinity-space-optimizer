@@ -1,15 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
-  BASEPLATE_CORNER_RADIUS,
   BASEPLATE_HEIGHT,
-  POCKET_PROFILE,
   baseplateMesh,
   spacerMesh,
 } from './gridfinityMesh';
+import { baseplateVolumeMm3 } from '@/utils/partVolumes';
 import { meshBounds, meshVolume, triangleCount, type Mesh } from './mesh';
-
-const ARC_SEGMENTS = 8;
-const cornerLoss = 4 - 2 * ARC_SEGMENTS * Math.sin(Math.PI / (2 * ARC_SEGMENTS));
 
 const edgeProblems = (mesh: Mesh): string[] => {
   const directed = new Map<string, number>();
@@ -27,34 +23,6 @@ const edgeProblems = (mesh: Mesh): string[] => {
     if (directed.get(`${to}>${from}`) !== 1) problems.push(`${key} has no opposite edge`);
   }
   return problems;
-};
-
-const pocketArea = (cellSize: number, inset: number): number => {
-  const side = cellSize - 2 * inset;
-  const radius = BASEPLATE_CORNER_RADIUS - inset;
-  return side * side - cornerLoss * radius * radius;
-};
-
-const pocketVolume = (cellSize: number): number => {
-  let volume = 0;
-  for (let band = 0; band < POCKET_PROFILE.length - 1; band += 1) {
-    const lower = POCKET_PROFILE[band];
-    const upper = POCKET_PROFILE[band + 1];
-    const middle = (lower.inset + upper.inset) / 2;
-    volume +=
-      ((upper.z - lower.z) / 6) *
-      (pocketArea(cellSize, lower.inset) +
-        4 * pocketArea(cellSize, middle) +
-        pocketArea(cellSize, upper.inset));
-  }
-  return volume;
-};
-
-const expectedBaseplateVolume = (columns: number, rows: number, cellSize: number): number => {
-  const outlineArea =
-    columns * cellSize * rows * cellSize -
-    cornerLoss * BASEPLATE_CORNER_RADIUS * BASEPLATE_CORNER_RADIUS;
-  return outlineArea * BASEPLATE_HEIGHT - columns * rows * pocketVolume(cellSize);
 };
 
 describe('baseplateMesh', () => {
@@ -76,7 +44,7 @@ describe('baseplateMesh', () => {
     [2, 5, 21],
   ])('matches the Gridfinity profile volume for %i × %i on %i mm', (columns, rows, cellSize) => {
     const volume = meshVolume(baseplateMesh(columns, rows, cellSize));
-    const expected = expectedBaseplateVolume(columns, rows, cellSize);
+    const expected = baseplateVolumeMm3(columns, rows, cellSize);
     expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
   });
 

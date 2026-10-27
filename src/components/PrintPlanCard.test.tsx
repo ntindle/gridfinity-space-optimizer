@@ -5,7 +5,12 @@ import { useState, type FC } from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { calculateGrids } from '@/utils/gridfinityUtils';
-import { collectPrintParts } from '@/utils/printParts';
+import { collectPrintParts, testFitParts } from '@/utils/printParts';
+import {
+  estimatePrint,
+  formatEstimateDuration,
+  formatEstimateGrams,
+} from '@/utils/partVolumes';
 import PrintPlanCard from './PrintPlanCard';
 import { buildPrintListText } from '@/utils/printList';
 import { planPlates } from '@/utils/printPlan';
@@ -70,6 +75,41 @@ describe('PrintPlanCard', () => {
     const { parts } = collectPrintParts({ layout, bins: [], numDrawers: 2, printerSize: A1 });
     const total = parts.reduce((sum, part) => sum + part.count, 0);
     expect(screen.getByText(new RegExp(`${total} parts on`))).toBeInTheDocument();
+  });
+
+  it('shows the print estimate for the parts in the plan', () => {
+    render(<StatefulCard />);
+    const { parts } = collectPrintParts({ layout, bins: [], numDrawers: 1, printerSize: A1 });
+    const estimate = estimatePrint(parts);
+    expect(
+      screen.getByText(new RegExp(`~${formatEstimateDuration(estimate.minutes)}`))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(`~${formatEstimateGrams(estimate.grams)} PLA`))
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Rough estimate/)).toBeInTheDocument();
+    expect(screen.getByText(/1\.24 g\/cm³/)).toBeInTheDocument();
+  });
+
+  it('includes the test-fit pieces in the estimate when the switch is on', () => {
+    render(<StatefulCard />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Test fit first' }));
+    const { parts } = collectPrintParts({ layout, bins: [], numDrawers: 1, printerSize: A1 });
+    const merged = new Map(parts.map((part) => [part.key, part]));
+    for (const testPart of testFitParts(parts)) {
+      const existing = merged.get(testPart.key);
+      merged.set(
+        testPart.key,
+        existing ? { ...existing, count: existing.count + testPart.count } : testPart
+      );
+    }
+    const estimate = estimatePrint([...merged.values()]);
+    expect(
+      screen.getByText(new RegExp(`~${formatEstimateDuration(estimate.minutes)}`))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(`~${formatEstimateGrams(estimate.grams)} PLA`))
+    ).toBeInTheDocument();
   });
 
   it('copies one line per part and shows confirmation', async () => {

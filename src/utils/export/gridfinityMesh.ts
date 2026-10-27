@@ -1,6 +1,10 @@
 import { createMeshBuilder, type Mesh } from "./mesh";
 import { BASEPLATE_HEIGHT_MM } from "@/utils/printParts";
 import {
+  BASEPLATE_CORNER_RADIUS,
+  POCKET_PROFILE,
+} from "./gridfinityProfiles";
+import {
   ARC_SEGMENTS,
   DOWN,
   SIDE_DIRECTIONS,
@@ -14,15 +18,6 @@ import {
 } from "./shapes";
 
 export const BASEPLATE_HEIGHT = BASEPLATE_HEIGHT_MM;
-export const BASEPLATE_CORNER_RADIUS = 4;
-
-export const POCKET_PROFILE = [
-  { z: 0, inset: 2.85 },
-  { z: 0.35, inset: 2.85 },
-  { z: 1.05, inset: 2.15 },
-  { z: 2.85, inset: 2.15 },
-  { z: BASEPLATE_HEIGHT, inset: 0 },
-] as const;
 
 const outline = (width: number, depth: number, cellSize: number): Point[] => {
   const r = BASEPLATE_CORNER_RADIUS;
