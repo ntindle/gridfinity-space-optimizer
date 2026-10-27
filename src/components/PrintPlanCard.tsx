@@ -14,6 +14,15 @@ import {
 } from "@/utils/printParts";
 import { buildPrintListText } from "@/utils/printList";
 import { planPlates, usableBed, type Plate } from "@/utils/printPlan";
+import {
+  EFFECTIVE_FLOW_MM3_PER_S,
+  FILAMENT_PRICE_USD_PER_KG,
+  PLA_DENSITY_G_PER_CM3,
+  estimatePrint,
+  formatEstimateCost,
+  formatEstimateDuration,
+  formatEstimateGrams,
+} from "@/utils/partVolumes";
 import type { Bin, LayoutItem, PrinterSize } from "@/types";
 
 interface PrintPlanCardProps {
@@ -157,6 +166,7 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
     }
     return [...merged.values()];
   }, [testFit, parts, testParts]);
+  const estimate = useMemo(() => estimatePrint(copyParts), [copyParts]);
   const byKey = useMemo(
     () =>
       new Map(
@@ -243,6 +253,16 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
           />
         ))}
       </ol>
+      <p className="mt-4 text-[13px] tabular-nums text-muted-foreground">
+        ~{formatEstimateDuration(estimate.minutes)} · ~
+        {formatEstimateGrams(estimate.grams)} PLA · ~
+        {formatEstimateCost(estimate.costUsd)}
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Rough estimate — PLA at {PLA_DENSITY_G_PER_CM3} g/cm³, $
+        {FILAMENT_PRICE_USD_PER_KG}/kg, ~{EFFECTIVE_FLOW_MM3_PER_S} mm³/s. Your
+        slicer, infill, and material change the real numbers.
+      </p>
     </Card>
   );
 };

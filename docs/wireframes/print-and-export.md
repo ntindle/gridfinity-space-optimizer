@@ -1,6 +1,6 @@
 # Print and export (F28, F30, F32, F31, F25, F27, F26)
 
-**Status:** STL and 3MF shipped as one **Download files** button in S2 (F25, F27, plate packing for F30). Print plan card shipped 2026-10-23 (S5): plate rows with per-plate part counts plus **Copy list** (one line per part); the card's print-list portion supersedes draft PR #66's earlier take (same part grouping, new UI). Test fit shipped 2026-10-25 (F32 🟡): "Test fit first" switch in the card, first row labeled "Test fit" with 1 × 1 baseplate + edge spacer, counts include it, persisted as `gridfinity_testFit` in the shared settings. One-click test-piece download shipped 2026-10-26 (F32 ✅): when the switch is on, the Download files zip includes the test pieces as their own STLs plus a first 3MF plate (`3mf/plate-0-test-fit.3mf`, plate 0 in the files, "Test fit" in the card). Not started: CSV, layout JSON, estimates, STEP, stacking.
+**Status:** STL and 3MF shipped as one **Download files** button in S2 (F25, F27, plate packing for F30). Print plan card shipped 2026-10-23 (S5): plate rows with per-plate part counts plus **Copy list** (one line per part); the card's print-list portion supersedes draft PR #66's earlier take (same part grouping, new UI). Test fit shipped 2026-10-25 (F32 🟡): "Test fit first" switch in the card, first row labeled "Test fit" with 1 × 1 baseplate + edge spacer, counts include it, persisted as `gridfinity_testFit` in the shared settings. One-click test-piece download shipped 2026-10-26 (F32 ✅): when the switch is on, the Download files zip includes the test pieces as their own STLs plus a first 3MF plate (`3mf/plate-0-test-fit.3mf`, plate 0 in the files, "Test fit" in the card). Estimates shipped 2026-10-27 (F31 ✅): the card shows a rough-estimate line (~time · ~grams PLA · ~$cost) from the analytic volumes of the generated parts, with the fixed assumptions (PLA 1.24 g/cm³, $20/kg, ~8 mm³/s) stated on the card. Not started: CSV, layout JSON, STEP, stacking.
 **Demand:** D1. **Slots:** S5 (new card), S2 (download, shipped).
 
 The job: walk from the plan to the printer without retyping anything.
@@ -40,7 +40,7 @@ Later, the card's own Download ▾ adds: Parts list (CSV), Layout (JSON)
 - **Copy list** copies plain text, one line per part: `2 × Baseplate 6 × 6 (252 × 252 mm)`. Confirm with the same check-icon swap `ShareLayoutButton` uses.
 - A plate row reuses `PieceSwatch` and the parts-list row height (`min-h-14`). Selecting a row highlights its parts in the drawing (same `selectedKey` mechanism as the parts list).
 - **Test fit** is a switch row (copy `OptionRow`). When on, the first plate row is labeled "Test fit" (plate 0 in the download files) and the counts include it. The switch state lives in the shared settings (`gridfinity_testFit`), so the Download files zip follows it.
-- The estimate line appears only after F31 is built, and it says it is an estimate.
+- The estimate line shipped with F31 (2026-10-27): it says it is a rough estimate and states its assumptions (PLA 1.24 g/cm³, $20/kg, ~8 mm³/s) on the card. Material/price/speed settings are a follow-up slice.
 
 ## Phone
 
@@ -79,3 +79,4 @@ add actions.
 - [x] F28 and F30 rows in `docs/feature-map.md` updated; F32 too if the test-fit switch shipped.
   - 2026-10-25: test-fit switch shipped (F32 ❌→🟡); the test pieces are not in the Download files zip yet — one-click test-piece download is the next slice.
   - 2026-10-26: one-click test-piece download shipped (F32 🟡→✅): with the switch on, the Download files zip gains the test pieces as their own STLs plus a first 3MF plate (`3mf/plate-0-test-fit.3mf`); counts merge into the layout's STLs when the part already exists, so no filename ever duplicates.
+  - 2026-10-27: estimates shipped (F31 ❌→✅): the Print plan card shows a rough-estimate line (~time · ~grams PLA · ~$cost) from the analytic volumes of the generated parts; the analytic formulas moved out of the mesh tests into `src/utils/partVolumes.ts`, and the mesh tests now import them.
