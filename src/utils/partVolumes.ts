@@ -13,10 +13,66 @@ import { BASEPLATE_HEIGHT_MM } from "@/utils/printParts";
 import type { PrintPartSummary } from "@/utils/printParts";
 
 export const PLA_DENSITY_G_PER_CM3 = 1.24;
+export const PETG_DENSITY_G_PER_CM3 = 1.27;
+export const ABS_DENSITY_G_PER_CM3 = 1.04;
 export const FILAMENT_PRICE_USD_PER_KG = 20;
 export const EFFECTIVE_FLOW_MM3_PER_S = 8;
+export const MIN_FILAMENT_PRICE_USD_PER_KG = 1;
+export const MAX_FILAMENT_PRICE_USD_PER_KG = 200;
+export const MIN_EFFECTIVE_FLOW_MM3_PER_S = 1;
+export const MAX_EFFECTIVE_FLOW_MM3_PER_S = 50;
 export const MM3_PER_CM3 = 1000;
 export const GRAMS_PER_KG = 1000;
+
+export type EstimateMaterial = "PLA" | "PETG" | "ABS";
+
+export const ESTIMATE_MATERIALS: EstimateMaterial[] = ["PLA", "PETG", "ABS"];
+
+export const ESTIMATE_MATERIAL_DENSITY_G_PER_CM3: Record<
+  EstimateMaterial,
+  number
+> = {
+  PLA: PLA_DENSITY_G_PER_CM3,
+  PETG: PETG_DENSITY_G_PER_CM3,
+  ABS: ABS_DENSITY_G_PER_CM3,
+};
+
+export interface EstimateSettings {
+  material: EstimateMaterial;
+  priceUsdPerKg: number;
+  flowMm3PerS: number;
+}
+
+export const DEFAULT_ESTIMATE_SETTINGS: EstimateSettings = {
+  material: "PLA",
+  priceUsdPerKg: FILAMENT_PRICE_USD_PER_KG,
+  flowMm3PerS: EFFECTIVE_FLOW_MM3_PER_S,
+};
+
+export const sanitizeEstimateSettings = (value: unknown): EstimateSettings => {
+  if (typeof value !== "object" || value === null) return DEFAULT_ESTIMATE_SETTINGS;
+  const record = value as Record<string, unknown>;
+  const material = ESTIMATE_MATERIALS.includes(record.material as EstimateMaterial)
+    ? (record.material as EstimateMaterial)
+    : DEFAULT_ESTIMATE_SETTINGS.material;
+  const price = Number(record.priceUsdPerKg);
+  const flow = Number(record.flowMm3PerS);
+  return {
+    material,
+    priceUsdPerKg: Number.isFinite(price)
+      ? unitMath.max(
+          MIN_FILAMENT_PRICE_USD_PER_KG,
+          unitMath.min(price, MAX_FILAMENT_PRICE_USD_PER_KG)
+        )
+      : DEFAULT_ESTIMATE_SETTINGS.priceUsdPerKg,
+    flowMm3PerS: Number.isFinite(flow)
+      ? unitMath.max(
+          MIN_EFFECTIVE_FLOW_MM3_PER_S,
+          unitMath.min(flow, MAX_EFFECTIVE_FLOW_MM3_PER_S)
+        )
+      : DEFAULT_ESTIMATE_SETTINGS.flowMm3PerS,
+  };
+};
 
 const sineOfArcStep = unitMath.divide(
   unitMath.sqrt(unitMath.subtract(2, unitMath.sqrt(unitMath.add(2, unitMath.sqrt(2))))),
@@ -201,22 +257,25 @@ export interface PrintEstimate {
   costUsd: number;
 }
 
-export const estimatePrint = (parts: PrintPartSummary[]): PrintEstimate => {
+export const estimatePrint = (
+  parts: PrintPartSummary[],
+  settings: EstimateSettings = DEFAULT_ESTIMATE_SETTINGS
+): PrintEstimate => {
   const volumeMm3 = parts.reduce(
     (sum, part) =>
       unitMath.add(sum, unitMath.multiply(partVolumeMm3(part), part.count)),
     0
   );
   const grams = unitMath.divide(
-    unitMath.multiply(volumeMm3, PLA_DENSITY_G_PER_CM3),
+    unitMath.multiply(volumeMm3, ESTIMATE_MATERIAL_DENSITY_G_PER_CM3[settings.material]),
     MM3_PER_CM3
   );
   const minutes = unitMath.divide(
     volumeMm3,
-    unitMath.multiply(EFFECTIVE_FLOW_MM3_PER_S, 60)
+    unitMath.multiply(settings.flowMm3PerS, 60)
   );
   const costUsd = unitMath.divide(
-    unitMath.multiply(grams, FILAMENT_PRICE_USD_PER_KG),
+    unitMath.multiply(grams, settings.priceUsdPerKg),
     GRAMS_PER_KG
   );
   return { volumeMm3, grams, minutes, costUsd };

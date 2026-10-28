@@ -2,9 +2,20 @@ import { useState, type Dispatch, type SetStateAction } from 'react';
 import { usePersistedState } from './usePersistedState';
 import { migrateLegacySettings } from './useLegacyMigration';
 import { sanitizeBins } from '@/utils/bins';
+import {
+  DEFAULT_ESTIMATE_SETTINGS,
+  sanitizeEstimateSettings,
+  type EstimateSettings,
+} from '@/utils/partVolumes';
 import type { Bin, DrawerSize, PrinterSize } from '@/types';
 
 export const TEST_FIT_STORAGE_KEY = 'gridfinity_testFit';
+export const ESTIMATE_SETTINGS_STORAGE_KEY = 'gridfinity_estimateSettings';
+
+const estimateSettingsStorage = {
+  deserialize: (value: string): EstimateSettings =>
+    sanitizeEstimateSettings(JSON.parse(value)),
+};
 
 const binStorage = {
   deserialize: (value: string): Bin[] => sanitizeBins(JSON.parse(value)),
@@ -38,6 +49,9 @@ export interface GridfinitySettings {
 
   testFit: boolean;
   setTestFit: (value: boolean) => void;
+
+  estimateSettings: EstimateSettings;
+  setEstimateSettings: (settings: EstimateSettings) => void;
 
   resetSettings: () => void;
 }
@@ -89,6 +103,12 @@ export const useGridfinitySettings = (): GridfinitySettings => {
 
   const [testFit, setTestFit] = usePersistedState<boolean>(TEST_FIT_STORAGE_KEY, false);
 
+  const [estimateSettings, setEstimateSettings] = usePersistedState<EstimateSettings>(
+    ESTIMATE_SETTINGS_STORAGE_KEY,
+    DEFAULT_ESTIMATE_SETTINGS,
+    estimateSettingsStorage
+  );
+
   const handleUseHalfSizeChange = (value: boolean) => {
     setUseHalfSize(value);
     if (value) setPreferHalfSize(false);
@@ -139,6 +159,9 @@ export const useGridfinitySettings = (): GridfinitySettings => {
 
     testFit,
     setTestFit,
+
+    estimateSettings,
+    setEstimateSettings,
 
     resetSettings,
   };

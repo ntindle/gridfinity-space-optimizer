@@ -273,6 +273,8 @@ const GridfinityCalculator: React.FC = () => {
               printerSize={printerSize}
               testFit={settings.testFit}
               onTestFitChange={settings.setTestFit}
+              estimateSettings={settings.estimateSettings}
+              onEstimateSettingsChange={settings.setEstimateSettings}
             />
             <BinLabels
               bins={placedBins}

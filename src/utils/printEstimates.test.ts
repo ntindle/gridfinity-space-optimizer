@@ -5,11 +5,13 @@ import { meshVolume } from './export/mesh';
 import {
   baseplateVolumeMm3,
   binVolumeMm3,
+  DEFAULT_ESTIMATE_SETTINGS,
   estimatePrint,
   formatEstimateCost,
   formatEstimateDuration,
   formatEstimateGrams,
   partVolumeMm3,
+  sanitizeEstimateSettings,
   spacerVolumeMm3,
 } from './partVolumes';
 import type { PrintPartSummary } from './printParts';
@@ -143,6 +145,50 @@ describe('estimatePrint', () => {
     expect(triple.grams).toBeCloseTo(single.grams * 3, 6);
     expect(triple.minutes).toBeCloseTo(single.minutes * 3, 6);
     expect(triple.costUsd).toBeCloseTo(single.costUsd * 3, 6);
+  });
+
+  it('scales grams by the chosen material density', () => {
+    const parts = [baseplatePart(1, 1, 42, 1)];
+    const pla = estimatePrint(parts);
+    const petg = estimatePrint(parts, { ...DEFAULT_ESTIMATE_SETTINGS, material: 'PETG' });
+    const abs = estimatePrint(parts, { ...DEFAULT_ESTIMATE_SETTINGS, material: 'ABS' });
+    expect(petg.grams).toBeCloseTo((pla.grams * 1.27) / 1.24, 6);
+    expect(abs.grams).toBeCloseTo((pla.grams * 1.04) / 1.24, 6);
+    expect(petg.minutes).toBeCloseTo(pla.minutes, 6);
+  });
+
+  it('scales cost by the filament price and time by the flow rate', () => {
+    const parts = [baseplatePart(1, 1, 42, 1)];
+    const base = estimatePrint(parts);
+    const pricey = estimatePrint(parts, { ...DEFAULT_ESTIMATE_SETTINGS, priceUsdPerKg: 40 });
+    expect(pricey.costUsd).toBeCloseTo(base.costUsd * 2, 6);
+    expect(pricey.minutes).toBeCloseTo(base.minutes, 6);
+    const faster = estimatePrint(parts, { ...DEFAULT_ESTIMATE_SETTINGS, flowMm3PerS: 16 });
+    expect(faster.minutes).toBeCloseTo(base.minutes / 2, 6);
+    expect(faster.costUsd).toBeCloseTo(base.costUsd, 6);
+  });
+});
+
+describe('sanitizeEstimateSettings', () => {
+  it('returns defaults for non-objects', () => {
+    expect(sanitizeEstimateSettings(null)).toEqual(DEFAULT_ESTIMATE_SETTINGS);
+    expect(sanitizeEstimateSettings('PLA')).toEqual(DEFAULT_ESTIMATE_SETTINGS);
+    expect(sanitizeEstimateSettings(42)).toEqual(DEFAULT_ESTIMATE_SETTINGS);
+  });
+
+  it('keeps valid settings', () => {
+    expect(
+      sanitizeEstimateSettings({ material: 'PETG', priceUsdPerKg: 25, flowMm3PerS: 10 })
+    ).toEqual({ material: 'PETG', priceUsdPerKg: 25, flowMm3PerS: 10 });
+  });
+
+  it('falls back per field for unknown materials and out-of-range numbers', () => {
+    expect(
+      sanitizeEstimateSettings({ material: 'Nylon', priceUsdPerKg: 500, flowMm3PerS: 0 })
+    ).toEqual({ material: 'PLA', priceUsdPerKg: 200, flowMm3PerS: 1 });
+    expect(
+      sanitizeEstimateSettings({ material: 'ABS', priceUsdPerKg: 'cheap', flowMm3PerS: NaN })
+    ).toEqual({ material: 'ABS', priceUsdPerKg: 20, flowMm3PerS: 8 });
   });
 });
 

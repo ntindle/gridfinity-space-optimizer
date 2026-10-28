@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ClipboardCopy, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import EstimateSettingsPanel from "@/components/EstimateSettings";
 import PieceSwatch from "@/components/PieceSwatch";
 import { OptionRow } from "@/components/GridfinityCalculator/BinOptions";
 import { unitMath } from "@/services/unitMath";
@@ -15,13 +16,12 @@ import {
 import { buildPrintListText } from "@/utils/printList";
 import { planPlates, usableBed, type Plate } from "@/utils/printPlan";
 import {
-  EFFECTIVE_FLOW_MM3_PER_S,
-  FILAMENT_PRICE_USD_PER_KG,
-  PLA_DENSITY_G_PER_CM3,
+  ESTIMATE_MATERIAL_DENSITY_G_PER_CM3,
   estimatePrint,
   formatEstimateCost,
   formatEstimateDuration,
   formatEstimateGrams,
+  type EstimateSettings,
 } from "@/utils/partVolumes";
 import type { Bin, LayoutItem, PrinterSize } from "@/types";
 
@@ -34,6 +34,8 @@ interface PrintPlanCardProps {
   printerSize: PrinterSize;
   testFit: boolean;
   onTestFitChange: (value: boolean) => void;
+  estimateSettings: EstimateSettings;
+  onEstimateSettingsChange: (settings: EstimateSettings) => void;
 }
 
 const copyViaFallback = (text: string): boolean => {
@@ -104,6 +106,8 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
   printerSize,
   testFit,
   onTestFitChange,
+  estimateSettings,
+  onEstimateSettingsChange,
 }) => {
   const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -166,7 +170,10 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
     }
     return [...merged.values()];
   }, [testFit, parts, testParts]);
-  const estimate = useMemo(() => estimatePrint(copyParts), [copyParts]);
+  const estimate = useMemo(
+    () => estimatePrint(copyParts, estimateSettings),
+    [copyParts, estimateSettings]
+  );
   const byKey = useMemo(
     () =>
       new Map(
@@ -253,15 +260,19 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
           />
         ))}
       </ol>
-      <p className="mt-4 text-[13px] tabular-nums text-muted-foreground">
-        ~{formatEstimateDuration(estimate.minutes)} · ~
-        {formatEstimateGrams(estimate.grams)} PLA · ~
-        {formatEstimateCost(estimate.costUsd)}
-      </p>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="text-[13px] tabular-nums text-muted-foreground">
+          ~{formatEstimateDuration(estimate.minutes)} · ~
+          {formatEstimateGrams(estimate.grams)} {estimateSettings.material} · ~
+          {formatEstimateCost(estimate.costUsd)}
+        </p>
+        <EstimateSettingsPanel settings={estimateSettings} onChange={onEstimateSettingsChange} />
+      </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        Rough estimate — PLA at {PLA_DENSITY_G_PER_CM3} g/cm³, $
-        {FILAMENT_PRICE_USD_PER_KG}/kg, ~{EFFECTIVE_FLOW_MM3_PER_S} mm³/s. Your
-        slicer, infill, and material change the real numbers.
+        Rough estimate — {estimateSettings.material} at{" "}
+        {ESTIMATE_MATERIAL_DENSITY_G_PER_CM3[estimateSettings.material]} g/cm³, $
+        {estimateSettings.priceUsdPerKg}/kg, ~{estimateSettings.flowMm3PerS} mm³/s.
+        Your slicer, infill, and material change the real numbers.
       </p>
     </Card>
   );

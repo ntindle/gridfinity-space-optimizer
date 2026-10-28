@@ -144,7 +144,23 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 | Export task | supported | supported |
 | Share task | 1 click, 97 ms | 1 click, 87 ms |
 
-Verdict: no credible regression. The n=15 input-to-preview gap (+72.4 ms) did not reproduce in the reversed-order `--n=30 --lh=1` pair (36.4 vs 35.3 ms, +1.1 ms), and layout (475 vs 476.5 ms) and share (83 vs 79.5 ms) are identical there; Lighthouse (71 vs 77 at lh=1) and TTI (3628 vs 3553 ms) overlap the bands seen all week. The diff touches no measured code path (drawer-width edit → preview piece list is unchanged code; the new work is one `useMemo` over the already-grouped print parts — analytic volumes from the part geometry — plus one text line in the Print plan card). Parity +2.0pp (F31 ❌→✅); Job 3 gains rough print estimates on the Print plan card: ~time · ~grams PLA · ~$cost from the analytic volumes of the generated parts (default 15×12in layout: ~4 h 2 min · ~144 g PLA · ~$2.88), with the fixed assumptions (PLA 1.24 g/cm³, $20/kg, ~8 mm³/s) stated on the card. Bundle delta: index chunk 228,122 → 231,700 B (+1.6%); the lazy export chunk is unchanged (21.89 → 21.44 kB) because the profile constants moved into a light shared module while the mesh builders stay lazy.
+Verdict: no credible regression. The n=15 input-to-preview gap (+72.4 ms) did not reproduce in the reversed-order `--n=30 --lh=1` pair (36.4 vs 35.3 ms, +1.1 ms), and layout (475 vs 476.5 ms) and share (83 vs 79.5 ms) are identical there; Lighthouse (71 vs 77 at lh=1) and TTI (3628 vs 3553 ms) overlap the bands seen all week. The diff touches no measured code path (drawer-width edit → preview piece list is unchanged code; the new work is one `useMemo` over the already-grouped print parts — analytic volumes from the part geometry — plus one text line in the Print plan card). Parity +2.0pp (F31 ❌→✅); Job 3 gains rough print estimates on the Print plan card: ~time · ~grams PLA · ~$cost from the analytic volumes of the generated parts (default 15×12in layout: ~4 h 2 min · ~144 g PLA · ~$2.88), with the fixed assumptions (PLA 1.24 g/cm³, $20/kg, ~8 mm³/s) stated on the card. Bundle delta: index chunk 228,122 → 231,700 B (+1.6%); the lazy export chunk decreased (21.89 → 21.44 kB) because the profile constants moved into a light shared module while the mesh builders stay lazy.
+
+## 2026-10-28, PR #156 (configurable estimate settings, F31 follow-up)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order `--n=30 --lh=1` pair and a second `--n=15 --lh=3` pair to check a load-metric gap).
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 47.0% (22 ✅ + 3 🟡 / 50) | 47.0% |
+| Lighthouse perf | 68 | 73 |
+| TTI | 3933 ms | 3665 ms |
+| Input-to-preview (median) | 36.7 ms | 43.1 ms |
+| Layout task | 4 steps, 553 ms | 4 steps, 536 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 85 ms | 1 click, 82 ms |
+
+Verdict: no credible regression. The first pair's load-metric gap (Lighthouse −5, TTI +268 ms) reproduced in the reversed-order `--n=30 --lh=1` pair (71 vs 77, 3732 vs 3499 ms) but FLIPPED in the second `--n=15 --lh=3` pair (72 vs 67, 3743 vs 3972 ms) — the sign flip is the signature of box noise, not a branch cost; trunk alone swung Lighthouse 73 → 77 → 67 and TTI 3665 → 3499 → 3972 ms across its three runs, and branch medians sit inside those bands (Lighthouse 71 vs 73, TTI 3743 vs 3665 ms). Interaction metrics overlap in every pair (layout, input-to-preview, and share all at or faster than trunk in at least one pair). The diff touches no measured code path (drawer-width edit → preview piece list is unchanged code; the new work is one persisted settings key, a popover that renders only when opened, and an `estimatePrint` call that now takes the settings). Parity unchanged (F31 stays ✅; the settings complete the feature); Job 3 gains estimates that match the user's filament: material (PLA/PETG/ABS), price ($/kg), and print speed (mm³/s) configurable on the Print plan card, persisted as `gridfinity_estimateSettings`. Bundle delta: index chunk 231,700 → 235,321 B (+1.6%); the lazy export chunk is unchanged (21,444 B).
 
 ## 2026-10-23, PR #148 (print plan card, F28)
 
