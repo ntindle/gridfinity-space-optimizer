@@ -4,12 +4,15 @@
 import { useState, type FC } from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { calculateGrids } from '@/utils/gridfinityUtils';
 import { collectPrintParts, testFitParts } from '@/utils/printParts';
 import {
+  DEFAULT_ESTIMATE_SETTINGS,
   estimatePrint,
   formatEstimateDuration,
   formatEstimateGrams,
+  type EstimateSettings,
 } from '@/utils/partVolumes';
 import PrintPlanCard from './PrintPlanCard';
 import { buildPrintListText } from '@/utils/printList';
@@ -32,9 +35,18 @@ const props = {
 const StatefulCard: FC<{
   initialTestFit?: boolean;
   onTestFitChange?: (value: boolean) => void;
+  initialEstimateSettings?: EstimateSettings;
+  onEstimateSettingsChange?: (settings: EstimateSettings) => void;
   overrides?: Partial<typeof props>;
-}> = ({ initialTestFit = false, onTestFitChange, overrides = {} }) => {
+}> = ({
+  initialTestFit = false,
+  onTestFitChange,
+  initialEstimateSettings = DEFAULT_ESTIMATE_SETTINGS,
+  onEstimateSettingsChange,
+  overrides = {},
+}) => {
   const [testFit, setTestFit] = useState(initialTestFit);
+  const [estimateSettings, setEstimateSettings] = useState(initialEstimateSettings);
   return (
     <PrintPlanCard
       {...props}
@@ -43,6 +55,11 @@ const StatefulCard: FC<{
       onTestFitChange={(value) => {
         setTestFit(value);
         onTestFitChange?.(value);
+      }}
+      estimateSettings={estimateSettings}
+      onEstimateSettingsChange={(settings) => {
+        setEstimateSettings(settings);
+        onEstimateSettingsChange?.(settings);
       }}
     />
   );
@@ -110,6 +127,43 @@ describe('PrintPlanCard', () => {
     expect(
       screen.getByText(new RegExp(`~${formatEstimateGrams(estimate.grams)} PLA`))
     ).toBeInTheDocument();
+  });
+
+  it('recomputes the estimate from the chosen material, price, and flow', async () => {
+    const user = userEvent.setup();
+    render(
+      <StatefulCard
+        initialEstimateSettings={{
+          material: 'PETG',
+          priceUsdPerKg: 25,
+          flowMm3PerS: 10,
+        }}
+      />
+    );
+    const { parts } = collectPrintParts({ layout, bins: [], numDrawers: 1, printerSize: A1 });
+    const estimate = estimatePrint(parts, {
+      material: 'PETG',
+      priceUsdPerKg: 25,
+      flowMm3PerS: 10,
+    });
+    expect(
+      screen.getByText(new RegExp(`~${formatEstimateDuration(estimate.minutes)}`))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(`~${formatEstimateGrams(estimate.grams)} PETG`))
+    ).toBeInTheDocument();
+    expect(screen.getByText(/PETG at 1\.27 g\/cm³, \$25\/kg, ~10 mm³\/s/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Estimate settings' }));
+    await user.click(screen.getByRole('button', { name: 'ABS' }));
+    const absEstimate = estimatePrint(parts, {
+      material: 'ABS',
+      priceUsdPerKg: 25,
+      flowMm3PerS: 10,
+    });
+    expect(
+      screen.getByText(new RegExp(`~${formatEstimateGrams(absEstimate.grams)} ABS`))
+    ).toBeInTheDocument();
+    expect(screen.getByText(/ABS at 1\.04 g\/cm³, \$25\/kg, ~10 mm³\/s/)).toBeInTheDocument();
   });
 
   it('copies one line per part and shows confirmation', async () => {
