@@ -203,6 +203,18 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(readme).toMatch(/2\s+Baseplate 1 × 1\s+42 × 42 × 5 mm\s+stl\/baseplate-1x1-x2\.stl/);
   });
 
+  it('adds the tab note and keeps the same parts when label tabs are on', () => {
+    const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
+    const tabbed = createPrintFiles(
+      request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })], labelTabs: true })
+    );
+    expect(tabbed.parts).toBe(base.parts);
+    expect(tabbed.plates).toBe(base.plates);
+    expect(strFromU8(files(tabbed)['README.txt'])).toContain('Label tabs:');
+    expect(strFromU8(files(base)['README.txt'])).not.toContain('Label tabs:');
+    expect(Object.keys(files(tabbed))).toContain('stl/bin-2x1-6u-x2.stl');
+  });
+
   it('leaves the zip unchanged when test fit is off', () => {
     const bundle = createPrintFiles(request({ testFit: false }));
     const names = Object.keys(files(bundle));

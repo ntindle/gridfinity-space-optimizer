@@ -11,6 +11,7 @@ import type { Bin, DrawerSize, PrinterSize } from '@/types';
 
 export const TEST_FIT_STORAGE_KEY = 'gridfinity_testFit';
 export const ESTIMATE_SETTINGS_STORAGE_KEY = 'gridfinity_estimateSettings';
+export const LABEL_TABS_STORAGE_KEY = 'gridfinity_labelTabs';
 
 const estimateSettingsStorage = {
   deserialize: (value: string): EstimateSettings =>
@@ -49,6 +50,9 @@ export interface GridfinitySettings {
 
   testFit: boolean;
   setTestFit: (value: boolean) => void;
+
+  labelTabs: boolean;
+  setLabelTabs: (value: boolean) => void;
 
   estimateSettings: EstimateSettings;
   setEstimateSettings: (settings: EstimateSettings) => void;
@@ -102,6 +106,8 @@ export const useGridfinitySettings = (): GridfinitySettings => {
   const [bins, setBins] = usePersistedState<Bin[]>('gridfinity_bins', [], binStorage);
 
   const [testFit, setTestFit] = usePersistedState<boolean>(TEST_FIT_STORAGE_KEY, false);
+
+  const [labelTabs, setLabelTabs] = usePersistedState<boolean>(LABEL_TABS_STORAGE_KEY, false);
 
   const [estimateSettings, setEstimateSettings] = usePersistedState<EstimateSettings>(
     ESTIMATE_SETTINGS_STORAGE_KEY,
@@ -159,6 +165,9 @@ export const useGridfinitySettings = (): GridfinitySettings => {
 
     testFit,
     setTestFit,
+
+    labelTabs,
+    setLabelTabs,
 
     estimateSettings,
     setEstimateSettings,

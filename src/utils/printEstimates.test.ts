@@ -122,6 +122,19 @@ describe('partVolumeMm3', () => {
     );
     expect(partVolumeMm3(spacerPart(25.5, 252, 1))).toBeCloseTo(25.5 * 252 * 5, 6);
   });
+
+  it('adds the tab volume to a tabbed bin and matches the tabbed mesh', () => {
+    const tabbed = binPart(2, 1, 42, 6, 1);
+    tabbed.binGeometry = { ...tabbed.binGeometry, labelTab: true };
+    expect(partVolumeMm3(tabbed)).toBeCloseTo(
+      binVolumeMm3(2, 1, 42, 6) + 36 * 1.2 * 20,
+      6
+    );
+    expect(partVolumeMm3(tabbed)).toBeCloseTo(
+      meshVolume(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, labelTab: true })),
+      0
+    );
+  });
 });
 
 describe('estimatePrint', () => {

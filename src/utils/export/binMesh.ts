@@ -1,4 +1,13 @@
-import { MIN_BIN_HEIGHT } from "@/utils/bins";
+import {
+  BIN_HEIGHT_UNIT_MM,
+  LABEL_TAB_ABOVE_LIP_MM,
+  LABEL_TAB_FUSE_MM,
+  LABEL_TAB_MAX_WIDTH_MM,
+  LABEL_TAB_SIDE_MARGIN_MM,
+  LABEL_TAB_THICKNESS_MM,
+  MIN_BIN_HEIGHT,
+  STACKING_LIP_HEIGHT_MM,
+} from "@/utils/bins";
 import { createMeshBuilder, type Mesh, type Vec3 } from "./mesh";
 import {
   BIN_BASE_HEIGHT,
@@ -24,7 +33,38 @@ export interface BinShape {
   rows: number;
   cellSize: number;
   height: number;
+  labelTab?: boolean;
 }
+
+export const labelTabWidthMm = (columns: number, cellSize: number): number => {
+  const outerWidth = columns * cellSize - 2 * BIN_GAP;
+  return Math.min(outerWidth - 2 * LABEL_TAB_SIDE_MARGIN_MM, LABEL_TAB_MAX_WIDTH_MM);
+};
+
+const labelTabBox = (
+  builder: ReturnType<typeof createMeshBuilder>,
+  columns: number,
+  cellSize: number,
+  height: number
+): void => {
+  const width = columns * cellSize;
+  const outerWidth = width - 2 * BIN_GAP;
+  const tabWidth = labelTabWidthMm(columns, cellSize);
+  const x0 = (outerWidth - tabWidth) / 2;
+  const x1 = x0 + tabWidth;
+  const y0 = -LABEL_TAB_THICKNESS_MM;
+  const y1 = 0;
+  const lipTop = height * BIN_HEIGHT_UNIT_MM + STACKING_LIP_HEIGHT_MM;
+  const z0 = lipTop - LABEL_TAB_FUSE_MM;
+  const z1 = lipTop + LABEL_TAB_ABOVE_LIP_MM;
+  const point = (x: number, y: number, z: number): Vec3 => [x, y, z];
+  builder.quad(point(x0, y0, z0), point(x1, y0, z0), point(x1, y0, z1), point(x0, y0, z1), [0, -1, 0]);
+  builder.quad(point(x1, y1, z0), point(x0, y1, z0), point(x0, y1, z1), point(x1, y1, z1), [0, 1, 0]);
+  builder.quad(point(x0, y1, z0), point(x0, y0, z0), point(x0, y0, z1), point(x0, y1, z1), [-1, 0, 0]);
+  builder.quad(point(x1, y0, z0), point(x1, y1, z0), point(x1, y1, z1), point(x1, y0, z1), [1, 0, 0]);
+  builder.quad(point(x0, y1, z0), point(x1, y1, z0), point(x1, y0, z0), point(x0, y0, z0), DOWN);
+  builder.quad(point(x0, y0, z1), point(x1, y0, z1), point(x1, y1, z1), point(x0, y1, z1), UP);
+};
 
 const FOOT_TOP = FOOT_PROFILE[FOOT_PROFILE.length - 1].z;
 const CORNER_INSET = BIN_GAP + BIN_TOP_RADIUS;
@@ -71,7 +111,7 @@ const outwardFacing = (center: Point, a: Point, b: Point, lower: ProfilePoint, u
   ];
 };
 
-export const binMesh = ({ columns, rows, cellSize, height }: BinShape): Mesh => {
+export const binMesh = ({ columns, rows, cellSize, height, labelTab }: BinShape): Mesh => {
   if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns < 1 || rows < 1) {
     throw new Error("A bin needs a whole number of cells");
   }
@@ -181,6 +221,8 @@ export const binMesh = ({ columns, rows, cellSize, height }: BinShape): Mesh => 
     loft(rings[band], rings[band + 1], profile[band], profile[band + 1], binCenter);
   }
   fan(binCenter, rings[rings.length - 1], BIN_BASE_HEIGHT, UP);
+
+  if (labelTab) labelTabBox(builder, columns, cellSize, height);
 
   return builder.build();
 };

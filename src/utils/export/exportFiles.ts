@@ -25,6 +25,7 @@ export interface ExportRequest {
   printerName: string;
   printerSize: PrinterSize;
   testFit?: boolean;
+  labelTabs?: boolean;
 }
 
 export interface ExportBundle {
@@ -49,6 +50,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     bins: request.bins,
     numDrawers: request.numDrawers,
     printerSize: request.printerSize,
+    labelTabs: request.labelTabs,
   });
   if (parts.length === 0) throw new Error("There is nothing to print yet");
 
@@ -166,6 +168,9 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       "- Spacers are solid 5 mm blocks that fill the gap between the grid and the drawer wall.",
     bins.length > 0 &&
       "- Bins follow the Gridfinity spec: 7 mm height units plus a stacking lip, 0.95 mm walls, no magnet holes.",
+    bins.length > 0 &&
+      request.labelTabs &&
+      "- Label tabs: every bin has a raised tab above the stacking lip for a stuck-on label; another bin cannot stack on top of a tabbed bin.",
     bins.some((part) => part.label.includes("half-grid")) &&
       "- Bins marked half-grid feet sit on half-size baseplates.",
     skippedBins > 0 &&
