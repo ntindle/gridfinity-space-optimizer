@@ -30,6 +30,7 @@ const props = {
   useMm: false,
   printerName: 'Bambu Lab A1',
   printerSize: A1,
+  labelTabs: false,
 };
 
 const StatefulCard: FC<{

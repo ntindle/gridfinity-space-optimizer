@@ -9,6 +9,8 @@ interface BinOptionsProps {
   setPreferHalfSize: (value: boolean) => void;
   preferUniformBaseplates: boolean;
   setPreferUniformBaseplates: (value: boolean) => void;
+  labelTabs: boolean;
+  setLabelTabs: (value: boolean) => void;
 }
 
 const BinOptions: React.FC<BinOptionsProps> = ({
@@ -18,6 +20,8 @@ const BinOptions: React.FC<BinOptionsProps> = ({
   setPreferHalfSize,
   preferUniformBaseplates,
   setPreferUniformBaseplates,
+  labelTabs,
+  setLabelTabs,
 }) => {
   return (
     <div className="-my-1 divide-y divide-border/70">
@@ -52,6 +56,13 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         checked={preferUniformBaseplates && !useHalfSize}
         disabled={useHalfSize}
         onCheckedChange={setPreferUniformBaseplates}
+      />
+      <OptionRow
+        id="label-tabs"
+        title="Label tabs on bins"
+        description="Printed bins get a raised tab above the stacking lip for a stuck-on label. Another bin cannot stack on top of a tabbed bin."
+        checked={labelTabs}
+        onCheckedChange={setLabelTabs}
       />
     </div>
   );

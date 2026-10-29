@@ -1,8 +1,10 @@
 # Bins (F15, F16, F17, F18, F19, F34, F20)
 
 **Status:** placing and printing bins shipped: bins are drawn in the drawing, sized, given a height
-and contents, labelled, shared in links, and exported as spec STL and 3MF (F15 partial). Not started:
-dividers F18, scoop and label tab F19/F34, magnets and screws F17, lids F16, vase mode F20.
+and contents, labelled, shared in links, and exported as spec STL and 3MF (F15 partial). Label tabs
+shipped (F34): a Bin options switch adds a raised tab above the stacking lip to every generated bin
+STL, for a stuck-on label. Not started:
+dividers F18, scoop F19, magnets and screws F17, lids F16, vase mode F20.
 **Demand:** D1 (bins), D2 (lids, label tabs), D3–D4 (the rest). **Slots:** S3 (toolbar), S4 (bin panel).
 
 The job: decide which bins go where in the drawer, and get files to print them. A bin is something
@@ -34,7 +36,7 @@ per placed bin per drawer. New bin options become switch rows in the bin panel, 
 │ │ 125.5 × 83.5 mm · 45.6 mm tall with the stacking lip               │           │
 │ │ Contents [Screws                                  ]                │           │
 │ │ [Duplicate] [Delete]                                               │           │
-│ │ later: Dividers · Scoop · Label tab · Magnets · Lid (switch rows)  │           │
+│ │ later: Dividers · Scoop · Magnets · Lid (switch rows)              │           │
 │ └────────────────────────────────────────────────────────────────────┘           │
 │ Parts to print: bin rows first (grouped by size and height), then                │
 │ baseplates and spacers                                                           │

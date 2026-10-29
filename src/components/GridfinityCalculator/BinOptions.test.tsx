@@ -15,6 +15,8 @@ const renderOptions = (overrides: Partial<ComponentProps<typeof BinOptions>> = {
     setPreferHalfSize: vi.fn(),
     preferUniformBaseplates: false,
     setPreferUniformBaseplates: vi.fn(),
+    labelTabs: false,
+    setLabelTabs: vi.fn(),
     ...overrides,
   };
   render(<BinOptions {...props} />);
@@ -38,6 +40,18 @@ describe('BinOptions', () => {
 
     expect(props.setUseHalfSize).toHaveBeenCalledWith(true);
     expect(props.setPreferHalfSize).toHaveBeenCalledWith(false);
+  });
+
+  it('toggles label tabs on bins', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Label tabs on bins' }));
+
+    expect(props.setLabelTabs).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toHaveAccessibleDescription(
+      /raised tab above the stacking lip/
+    );
   });
 
   it('disables uniform baseplates on a half-size grid, since it has no effect', () => {

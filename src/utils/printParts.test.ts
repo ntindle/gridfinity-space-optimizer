@@ -66,6 +66,47 @@ describe('collectPrintParts', () => {
     expect(parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6 });
   });
 
+  it('marks tabbed bins with the tab flag and the taller printed height', () => {
+    const plain = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+    });
+    const tabbed = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+      labelTabs: true,
+    });
+    expect(plain.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6 });
+    expect(tabbed.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6, labelTab: true });
+    expect(tabbed.parts[0].height - plain.parts[0].height).toBeCloseTo(12, 6);
+    expect(tabbed.parts[0].key).toBe(plain.parts[0].key);
+    expect(tabbed.parts[0].stem).toBe(plain.parts[0].stem);
+  });
+
+  it('skips a tall bin on a short printer only when tabs are on', () => {
+    const short: PrinterSize = { x: 256, y: 256, z: 50 };
+    const plain = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one' })],
+      numDrawers: 1,
+      printerSize: short,
+    });
+    const tabbed = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one' })],
+      numDrawers: 1,
+      printerSize: short,
+      labelTabs: true,
+    });
+    expect(plain.skippedBins).toBe(0);
+    expect(tabbed.skippedBins).toBe(1);
+    expect(tabbed.parts.some((part) => part.kind === 'bin')).toBe(false);
+  });
+
   it('leaves out bins that do not fit and counts them as skipped', () => {
     const { parts, skippedBins } = collectPrintParts({
       layout,

@@ -162,6 +162,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression. The first pair's load-metric gap (Lighthouse −5, TTI +268 ms) reproduced in the reversed-order `--n=30 --lh=1` pair (71 vs 77, 3732 vs 3499 ms) but FLIPPED in the second `--n=15 --lh=3` pair (72 vs 67, 3743 vs 3972 ms) — the sign flip is the signature of box noise, not a branch cost; trunk alone swung Lighthouse 73 → 77 → 67 and TTI 3665 → 3499 → 3972 ms across its three runs, and branch medians sit inside those bands (Lighthouse 71 vs 73, TTI 3743 vs 3665 ms). Interaction metrics overlap in every pair (layout, input-to-preview, and share all at or faster than trunk in at least one pair). The diff touches no measured code path (drawer-width edit → preview piece list is unchanged code; the new work is one persisted settings key, a popover that renders only when opened, and an `estimatePrint` call that now takes the settings). Parity unchanged (F31 stays ✅; the settings complete the feature); Job 3 gains estimates that match the user's filament: material (PLA/PETG/ABS), price ($/kg), and print speed (mm³/s) configurable on the Print plan card, persisted as `gridfinity_estimateSettings`. Bundle delta: index chunk 231,700 → 235,321 B (+1.6%); the lazy export chunk is unchanged (21,444 B).
 
+## 2026-10-29, PR #157 (label tabs on bins, F34)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair to check a load-metric gap).
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 49.0% (23 ✅ + 3 🟡 / 50) | 47.0% |
+| Lighthouse perf | 71 / 74 | 78 / 76 |
+| TTI | 3766 / 3630 ms | 3519 / 3612 ms |
+| Input-to-preview (median) | 40.5 / 43.1 ms | 45.4 / 42.0 ms |
+| Layout task | 4 steps, 482 / 531 ms | 4 steps, 492 / 486 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 78 / 89 ms | 1 click, 87 / 88 ms |
+
+Verdict: no credible regression. The first pair's load-metric gap (Lighthouse −7, TTI +247 ms) did not reproduce in the reversed-order pair (Lighthouse −2, TTI +18 ms) — the sign and magnitude collapsed, and trunk alone swung Lighthouse 78 → 76 and TTI 3519 → 3612 ms across its two runs. Interaction metrics overlap in both pairs (layout branch 482 → 531 ms vs trunk 492 → 486 ms; adjust-grid and share within a few ms throughout). The diff touches no measured code path (drawer-width edit → preview piece list is unchanged code; the new work is one switch, one persisted settings key, and export code behind a lazy `import()` that only runs on download). Parity +2.0pp (F34 ❌→✅); Job 4 gains a place for labels on the bins themselves: a Bin options switch adds a raised tab above the stacking lip to every generated bin STL (12 mm above the lip, 1.2 mm thick, up to 36 mm wide), persisted as `gridfinity_labelTabs` and local-only. Bundle delta: index chunk 235,321 → 236,207 B (+0.4%); the lazy export chunk 21,444 → 22,147 B (+3.3%) for the tab-box mesh code.
+
 ## 2026-10-23, PR #148 (print plan card, F28)
 
 Catch-up: main moved twice since the 2026-10-22 entry — arena PRs #146 (UI redesign + 18 bug fixes) and #147 (placed bins + STL/3MF export) merged 2026-10-22, moving the map from 34.0% to 42.0% (F6, F14, F25, F27 → ✅; F15 → 🟡; F30 stays 🟡 with plate packing; F10/F45/F46 cell updates). The scoreboard entries between 2026-10-22 and this one record only this run's slice; the map's honesty log carries the #146/#147 detail.

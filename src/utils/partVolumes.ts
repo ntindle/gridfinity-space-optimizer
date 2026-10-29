@@ -1,5 +1,12 @@
 import { unitMath } from "@/services/unitMath";
 import {
+  LABEL_TAB_ABOVE_LIP_MM,
+  LABEL_TAB_FUSE_MM,
+  LABEL_TAB_MAX_WIDTH_MM,
+  LABEL_TAB_SIDE_MARGIN_MM,
+  LABEL_TAB_THICKNESS_MM,
+} from "@/utils/bins";
+import {
   ARC_SEGMENTS,
   BASEPLATE_CORNER_RADIUS,
   BIN_BASE_HEIGHT,
@@ -231,14 +238,43 @@ export const spacerVolumeMm3 = (
   height: number
 ): number => unitMath.multiply(unitMath.multiply(width, depth), height);
 
+export const labelTabWidthMm = (columns: number, cellSize: number): number => {
+  const outerWidth = unitMath.subtract(
+    unitMath.multiply(columns, cellSize),
+    unitMath.multiply(2, BIN_GAP)
+  );
+  return unitMath.min(
+    unitMath.subtract(outerWidth, unitMath.multiply(2, LABEL_TAB_SIDE_MARGIN_MM)),
+    LABEL_TAB_MAX_WIDTH_MM
+  );
+};
+
+export const labelTabVolumeMm3 = (columns: number, cellSize: number): number =>
+  unitMath.multiply(
+    unitMath.multiply(
+      labelTabWidthMm(columns, cellSize),
+      LABEL_TAB_THICKNESS_MM
+    ),
+    unitMath.add(LABEL_TAB_ABOVE_LIP_MM, LABEL_TAB_FUSE_MM)
+  );
+
 export const partVolumeMm3 = (part: PrintPartSummary): number => {
   if (part.kind === "bin" && part.binGeometry) {
-    return binVolumeMm3(
+    const bin = binVolumeMm3(
       part.binGeometry.columns,
       part.binGeometry.rows,
       part.binGeometry.cellSize,
       part.binGeometry.height
     );
+    return part.binGeometry.labelTab
+      ? unitMath.add(
+          bin,
+          labelTabVolumeMm3(
+            part.binGeometry.columns,
+            part.binGeometry.cellSize
+          )
+        )
+      : bin;
   }
   if (part.kind === "baseplate" && part.gridGeometry) {
     return baseplateVolumeMm3(

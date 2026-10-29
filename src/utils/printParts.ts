@@ -1,13 +1,16 @@
 import { unitMath } from "@/services/unitMath";
 import { FULL_GRID_SIZE, HALF_GRID_SIZE } from "@/utils/gridfinityUtils";
 import {
+  BIN_HEIGHT_UNIT_MM,
+  LABEL_TAB_ABOVE_LIP_MM,
+  MAX_BIN_HEIGHT,
+  STACKING_LIP_HEIGHT_MM,
   binIssues,
   binOuterSize,
   binSizeLabel,
   gridCells,
   groupBins,
   indexCells,
-  maxBinHeight,
 } from "@/utils/bins";
 import { usableBed } from "@/utils/printPlan";
 import type { Bin, LayoutItem, PrinterSize } from "@/types";
@@ -26,7 +29,13 @@ export interface PrintPartSummary {
   depth: number;
   height: number;
   count: number;
-  binGeometry?: { columns: number; rows: number; cellSize: number; height: number };
+  binGeometry?: {
+    columns: number;
+    rows: number;
+    cellSize: number;
+    height: number;
+    labelTab?: boolean;
+  };
   gridGeometry?: { columns: number; rows: number; cellSize: number };
 }
 
@@ -35,6 +44,7 @@ export interface CollectPrintPartsRequest {
   bins: Bin[];
   numDrawers: number;
   printerSize: PrinterSize;
+  labelTabs?: boolean;
 }
 
 export const slug = (text: string): string =>
@@ -51,11 +61,25 @@ const binParts = (
   layout: LayoutItem[],
   bins: Bin[],
   numDrawers: number,
-  printerSize: PrinterSize
+  printerSize: PrinterSize,
+  labelTabs: boolean
 ): { parts: PrintPartSummary[]; skipped: number } => {
   const index = indexCells(gridCells(layout));
   const bed = usableBed(printerSize);
-  const limits = { ...bed, height: maxBinHeight(printerSize.z) };
+  const tabAllowance = labelTabs ? LABEL_TAB_ABOVE_LIP_MM : 0;
+  const maxUnits = unitMath.min(
+    MAX_BIN_HEIGHT,
+    unitMath.floor(
+      unitMath.divide(
+        unitMath.subtract(
+          unitMath.subtract(printerSize.z, STACKING_LIP_HEIGHT_MM),
+          tabAllowance
+        ),
+        BIN_HEIGHT_UNIT_MM
+      )
+    )
+  );
+  const limits = { ...bed, height: maxUnits };
   const skipped = binIssues(bins, index, limits).size;
   const parts = groupBins(bins, index, limits).map((group): PrintPartSummary => {
     const half = group.cellSize === HALF_GRID_SIZE;
@@ -70,13 +94,14 @@ const binParts = (
       stem: slug(`bin ${size} ${group.height}u${half ? " half grid" : ""}`),
       width: outer.width,
       depth: outer.depth,
-      height: outer.height,
+      height: unitMath.add(outer.height, tabAllowance),
       count: unitMath.multiply(group.bins.length, numDrawers),
       binGeometry: {
         columns: unitMath.round(unitMath.divide(group.width, group.cellSize), 0),
         rows: unitMath.round(unitMath.divide(group.depth, group.cellSize), 0),
         cellSize: group.cellSize,
         height: group.height,
+        ...(labelTabs ? { labelTab: true as const } : {}),
       },
     };
   });
@@ -141,7 +166,8 @@ export const collectPrintParts = (
     request.layout,
     request.bins,
     request.numDrawers,
-    request.printerSize
+    request.printerSize,
+    request.labelTabs === true
   );
   const grid = gridParts(request.layout, request.numDrawers);
   return { parts: [...bins, ...grid], skippedBins: skipped };
