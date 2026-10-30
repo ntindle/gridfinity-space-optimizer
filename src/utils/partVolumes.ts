@@ -1,5 +1,7 @@
 import { unitMath } from "@/services/unitMath";
 import {
+  BIN_HEIGHT_UNIT_MM,
+  DIVIDER_THICKNESS_MM,
   LABEL_TAB_ABOVE_LIP_MM,
   LABEL_TAB_FUSE_MM,
   LABEL_TAB_MAX_WIDTH_MM,
@@ -258,23 +260,52 @@ export const labelTabVolumeMm3 = (columns: number, cellSize: number): number =>
     unitMath.add(LABEL_TAB_ABOVE_LIP_MM, LABEL_TAB_FUSE_MM)
   );
 
+export const dividerVolumeMm3 = (
+  columns: number,
+  rows: number,
+  cellSize: number,
+  height: number
+): number =>
+  unitMath.multiply(
+    unitMath.multiply(
+      unitMath.subtract(
+        unitMath.multiply(unitMath.max(columns, rows), cellSize),
+        unitMath.multiply(2, BIN_GAP)
+      ),
+      DIVIDER_THICKNESS_MM
+    ),
+    unitMath.subtract(
+      unitMath.multiply(height, BIN_HEIGHT_UNIT_MM),
+      BIN_BASE_HEIGHT
+    )
+  );
+
 export const partVolumeMm3 = (part: PrintPartSummary): number => {
   if (part.kind === "bin" && part.binGeometry) {
-    const bin = binVolumeMm3(
+    let bin = binVolumeMm3(
       part.binGeometry.columns,
       part.binGeometry.rows,
       part.binGeometry.cellSize,
       part.binGeometry.height
     );
-    return part.binGeometry.labelTab
-      ? unitMath.add(
-          bin,
-          labelTabVolumeMm3(
-            part.binGeometry.columns,
-            part.binGeometry.cellSize
-          )
+    if (part.binGeometry.labelTab) {
+      bin = unitMath.add(
+        bin,
+        labelTabVolumeMm3(part.binGeometry.columns, part.binGeometry.cellSize)
+      );
+    }
+    if (part.binGeometry.divider) {
+      bin = unitMath.add(
+        bin,
+        dividerVolumeMm3(
+          part.binGeometry.columns,
+          part.binGeometry.rows,
+          part.binGeometry.cellSize,
+          part.binGeometry.height
         )
-      : bin;
+      );
+    }
+    return bin;
   }
   if (part.kind === "baseplate" && part.gridGeometry) {
     return baseplateVolumeMm3(

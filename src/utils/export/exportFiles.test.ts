@@ -215,6 +215,18 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(Object.keys(files(tabbed))).toContain('stl/bin-2x1-6u-x2.stl');
   });
 
+  it('adds the divider note and keeps the same parts when dividers are on', () => {
+    const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
+    const divided = createPrintFiles(
+      request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })], dividers: true })
+    );
+    expect(divided.parts).toBe(base.parts);
+    expect(divided.plates).toBe(base.plates);
+    expect(strFromU8(files(divided)['README.txt'])).toContain('Dividers:');
+    expect(strFromU8(files(base)['README.txt'])).not.toContain('Dividers:');
+    expect(Object.keys(files(divided))).toContain('stl/bin-2x1-6u-x2.stl');
+  });
+
   it('leaves the zip unchanged when test fit is off', () => {
     const bundle = createPrintFiles(request({ testFit: false }));
     const names = Object.keys(files(bundle));

@@ -87,6 +87,27 @@ describe('collectPrintParts', () => {
     expect(tabbed.parts[0].stem).toBe(plain.parts[0].stem);
   });
 
+  it('marks divided bins with the divider flag and the same printed height', () => {
+    const plain = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+    });
+    const divided = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+      dividers: true,
+    });
+    expect(plain.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6 });
+    expect(divided.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6, divider: true });
+    expect(divided.parts[0].height).toBe(plain.parts[0].height);
+    expect(divided.parts[0].key).toBe(plain.parts[0].key);
+    expect(divided.parts[0].stem).toBe(plain.parts[0].stem);
+  });
+
   it('skips a tall bin on a short printer only when tabs are on', () => {
     const short: PrinterSize = { x: 256, y: 256, z: 50 };
     const plain = collectPrintParts({

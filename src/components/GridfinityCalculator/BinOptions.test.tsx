@@ -17,6 +17,8 @@ const renderOptions = (overrides: Partial<ComponentProps<typeof BinOptions>> = {
     setPreferUniformBaseplates: vi.fn(),
     labelTabs: false,
     setLabelTabs: vi.fn(),
+    dividers: false,
+    setDividers: vi.fn(),
     ...overrides,
   };
   render(<BinOptions {...props} />);
@@ -51,6 +53,18 @@ describe('BinOptions', () => {
     expect(props.setLabelTabs).toHaveBeenCalledWith(true);
     expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toHaveAccessibleDescription(
       /raised tab above the stacking lip/
+    );
+  });
+
+  it('toggles dividers in bins', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Dividers in bins' }));
+
+    expect(props.setDividers).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Dividers in bins' })).toHaveAccessibleDescription(
+      /down the middle of its long side/
     );
   });
 

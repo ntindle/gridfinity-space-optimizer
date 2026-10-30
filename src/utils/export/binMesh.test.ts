@@ -4,7 +4,7 @@ import {
   labelTabWidthMm,
 } from './binMesh';
 import { binWallProfile } from './gridfinityProfiles';
-import { binVolumeMm3, labelTabVolumeMm3 } from '@/utils/partVolumes';
+import { binVolumeMm3, dividerVolumeMm3, labelTabVolumeMm3 } from '@/utils/partVolumes';
 import { meshBounds, meshVolume, type Mesh } from './mesh';
 import { binTotalHeight } from '@/utils/bins';
 
@@ -109,6 +109,60 @@ describe('binMesh', () => {
     expect(bounds.max[0]).toEqual(83.5);
     expect(labelTabWidthMm(2, 42)).toBe(36);
     expect(labelTabWidthMm(1, 21)).toBe(14.5);
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+  ])('builds a closed, outward-facing divided %i × %i bin on %i mm cells, %iu tall', (columns, rows, cellSize, height) => {
+    const mesh = binMesh({ columns, rows, cellSize, height, divider: true });
+    expect(edgeProblems(mesh)).toEqual([]);
+    expect(meshVolume(mesh)).toBeGreaterThan(meshVolume(binMesh({ columns, rows, cellSize, height })));
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+  ])('matches the Gridfinity bin volume plus the divider for %i × %i on %i mm, %iu', (columns, rows, cellSize, height) => {
+    const volume = meshVolume(binMesh({ columns, rows, cellSize, height, divider: true }));
+    const expected = binVolumeMm3(columns, rows, cellSize, height) + dividerVolumeMm3(columns, rows, cellSize, height);
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+  });
+
+  it('runs the divider down the long side, below the stacking lip, inside the footprint', () => {
+    const alongX = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, divider: true });
+    expect(meshBounds(alongX)).toEqual({
+      min: [0, 0, 0],
+      max: [83.5, 41.5, expect.closeTo(binTotalHeight(6), 5)],
+    });
+    const topVertices = new Set<string>();
+    for (let index = 0; index < alongX.positions.length; index += 3) {
+      if (alongX.positions[index + 2] === 42) {
+        topVertices.add(`${alongX.positions[index]},${alongX.positions[index + 1]}`);
+      }
+    }
+    expect(topVertices.has('0,20.15')).toBe(true);
+    expect(topVertices.has('83.5,21.35')).toBe(true);
+    const alongY = binMesh({ columns: 1, rows: 2, cellSize: 42, height: 6, divider: true });
+    const alongYVertices = new Set<string>();
+    for (let index = 0; index < alongY.positions.length; index += 3) {
+      if (alongY.positions[index + 2] === 42) {
+        alongYVertices.add(`${alongY.positions[index]},${alongY.positions[index + 1]}`);
+      }
+    }
+    expect(alongYVertices.has('20.15,0')).toBe(true);
+    expect(alongYVertices.has('21.35,83.5')).toBe(true);
+    expect(dividerVolumeMm3(2, 1, 42, 6)).toBeCloseTo(83.5 * 1.2 * (42 - 7), 6);
+  });
+
+  it('builds a closed tabbed and divided bin', () => {
+    const mesh = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, labelTab: true, divider: true });
+    expect(edgeProblems(mesh)).toEqual([]);
+    expect(meshBounds(mesh).max[2]).toBeCloseTo(binTotalHeight(6) + 12, 5);
   });
 
   it('rejects shapes that cannot be printed', () => {

@@ -211,6 +211,8 @@ const GridfinityCalculator: React.FC = () => {
                 setPreferUniformBaseplates={settings.setPreferUniformBaseplates}
                 labelTabs={settings.labelTabs}
                 setLabelTabs={settings.setLabelTabs}
+                dividers={settings.dividers}
+                setDividers={settings.setDividers}
               />
             </CollapsibleCard>
           </Card>
@@ -246,6 +248,7 @@ const GridfinityCalculator: React.FC = () => {
                       printerSize={printerSize}
                       testFit={settings.testFit}
                       labelTabs={settings.labelTabs}
+                      dividers={settings.dividers}
                     />
                     <ShareLayoutButton />
                   </div>
@@ -277,6 +280,7 @@ const GridfinityCalculator: React.FC = () => {
               testFit={settings.testFit}
               onTestFitChange={settings.setTestFit}
               labelTabs={settings.labelTabs}
+              dividers={settings.dividers}
               estimateSettings={settings.estimateSettings}
               onEstimateSettingsChange={settings.setEstimateSettings}
             />
