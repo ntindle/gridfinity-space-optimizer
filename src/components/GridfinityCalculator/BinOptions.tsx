@@ -11,6 +11,8 @@ interface BinOptionsProps {
   setPreferUniformBaseplates: (value: boolean) => void;
   labelTabs: boolean;
   setLabelTabs: (value: boolean) => void;
+  dividers: boolean;
+  setDividers: (value: boolean) => void;
 }
 
 const BinOptions: React.FC<BinOptionsProps> = ({
@@ -22,6 +24,8 @@ const BinOptions: React.FC<BinOptionsProps> = ({
   setPreferUniformBaseplates,
   labelTabs,
   setLabelTabs,
+  dividers,
+  setDividers,
 }) => {
   return (
     <div className="-my-1 divide-y divide-border/70">
@@ -63,6 +67,13 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         description="Printed bins get a raised tab above the stacking lip for a stuck-on label. Another bin cannot stack on top of a tabbed bin."
         checked={labelTabs}
         onCheckedChange={setLabelTabs}
+      />
+      <OptionRow
+        id="dividers"
+        title="Dividers in bins"
+        description="Every printed bin gets one divider down the middle of its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack."
+        checked={dividers}
+        onCheckedChange={setDividers}
       />
     </div>
   );

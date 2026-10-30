@@ -1,5 +1,6 @@
 import {
   BIN_HEIGHT_UNIT_MM,
+  DIVIDER_THICKNESS_MM,
   LABEL_TAB_ABOVE_LIP_MM,
   LABEL_TAB_FUSE_MM,
   LABEL_TAB_MAX_WIDTH_MM,
@@ -34,6 +35,7 @@ export interface BinShape {
   cellSize: number;
   height: number;
   labelTab?: boolean;
+  divider?: boolean;
 }
 
 export const labelTabWidthMm = (columns: number, cellSize: number): number => {
@@ -64,6 +66,34 @@ const labelTabBox = (
   builder.quad(point(x1, y0, z0), point(x1, y1, z0), point(x1, y1, z1), point(x1, y0, z1), [1, 0, 0]);
   builder.quad(point(x0, y1, z0), point(x1, y1, z0), point(x1, y0, z0), point(x0, y0, z0), DOWN);
   builder.quad(point(x0, y0, z1), point(x1, y0, z1), point(x1, y1, z1), point(x0, y1, z1), UP);
+};
+
+const dividerBox = (
+  builder: ReturnType<typeof createMeshBuilder>,
+  columns: number,
+  rows: number,
+  cellSize: number,
+  height: number
+): void => {
+  const width = columns * cellSize;
+  const depth = rows * cellSize;
+  const half = DIVIDER_THICKNESS_MM / 2;
+  const alongX = columns >= rows;
+  const xCenter = width / 2 - BIN_GAP;
+  const yCenter = depth / 2 - BIN_GAP;
+  const x0 = alongX ? 0 : xCenter - half;
+  const x1 = alongX ? width - 2 * BIN_GAP : xCenter + half;
+  const y0 = alongX ? yCenter - half : 0;
+  const y1 = alongX ? yCenter + half : depth - 2 * BIN_GAP;
+  const z0 = BIN_BASE_HEIGHT;
+  const z1 = height * BIN_HEIGHT_UNIT_MM;
+  const point = (x: number, y: number, z: number): Vec3 => [x, y, z];
+  builder.quad(point(x0, y0, z0), point(x1, y0, z0), point(x1, y1, z0), point(x0, y1, z0), DOWN);
+  builder.quad(point(x0, y0, z1), point(x1, y0, z1), point(x1, y1, z1), point(x0, y1, z1), UP);
+  builder.quad(point(x0, y0, z0), point(x0, y1, z0), point(x0, y1, z1), point(x0, y0, z1), [-1, 0, 0]);
+  builder.quad(point(x1, y0, z0), point(x1, y1, z0), point(x1, y1, z1), point(x1, y0, z1), [1, 0, 0]);
+  builder.quad(point(x0, y0, z0), point(x1, y0, z0), point(x1, y0, z1), point(x0, y0, z1), [0, -1, 0]);
+  builder.quad(point(x0, y1, z0), point(x1, y1, z0), point(x1, y1, z1), point(x0, y1, z1), [0, 1, 0]);
 };
 
 const FOOT_TOP = FOOT_PROFILE[FOOT_PROFILE.length - 1].z;
@@ -111,7 +141,7 @@ const outwardFacing = (center: Point, a: Point, b: Point, lower: ProfilePoint, u
   ];
 };
 
-export const binMesh = ({ columns, rows, cellSize, height, labelTab }: BinShape): Mesh => {
+export const binMesh = ({ columns, rows, cellSize, height, labelTab, divider }: BinShape): Mesh => {
   if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns < 1 || rows < 1) {
     throw new Error("A bin needs a whole number of cells");
   }
@@ -223,6 +253,7 @@ export const binMesh = ({ columns, rows, cellSize, height, labelTab }: BinShape)
   fan(binCenter, rings[rings.length - 1], BIN_BASE_HEIGHT, UP);
 
   if (labelTab) labelTabBox(builder, columns, cellSize, height);
+  if (divider) dividerBox(builder, columns, rows, cellSize, height);
 
   return builder.build();
 };

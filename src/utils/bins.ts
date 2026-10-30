@@ -7,6 +7,7 @@ export const LABEL_TAB_THICKNESS_MM = 1.2;
 export const LABEL_TAB_ABOVE_LIP_MM = 12;
 export const LABEL_TAB_FUSE_MM = 8;
 export const LABEL_TAB_MAX_WIDTH_MM = 36;
+export const DIVIDER_THICKNESS_MM = 1.2;
 export const LABEL_TAB_SIDE_MARGIN_MM = 3;
 export const MIN_BIN_HEIGHT = 2;
 export const MAX_BIN_HEIGHT = 20;

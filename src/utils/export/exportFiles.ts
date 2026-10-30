@@ -26,6 +26,7 @@ export interface ExportRequest {
   printerSize: PrinterSize;
   testFit?: boolean;
   labelTabs?: boolean;
+  dividers?: boolean;
 }
 
 export interface ExportBundle {
@@ -51,6 +52,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     numDrawers: request.numDrawers,
     printerSize: request.printerSize,
     labelTabs: request.labelTabs,
+    dividers: request.dividers,
   });
   if (parts.length === 0) throw new Error("There is nothing to print yet");
 
@@ -171,6 +173,9 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     bins.length > 0 &&
       request.labelTabs &&
       "- Label tabs: every bin has a raised tab above the stacking lip for a stuck-on label; another bin cannot stack on top of a tabbed bin.",
+    bins.length > 0 &&
+      request.dividers &&
+      "- Dividers: every bin has one divider down the middle of its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack.",
     bins.some((part) => part.label.includes("half-grid")) &&
       "- Bins marked half-grid feet sit on half-size baseplates.",
     skippedBins > 0 &&
