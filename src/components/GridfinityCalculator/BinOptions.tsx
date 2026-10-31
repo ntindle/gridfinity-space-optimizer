@@ -13,6 +13,8 @@ interface BinOptionsProps {
   setLabelTabs: (value: boolean) => void;
   dividers: boolean;
   setDividers: (value: boolean) => void;
+  lids: boolean;
+  setLids: (value: boolean) => void;
 }
 
 const BinOptions: React.FC<BinOptionsProps> = ({
@@ -26,6 +28,8 @@ const BinOptions: React.FC<BinOptionsProps> = ({
   setLabelTabs,
   dividers,
   setDividers,
+  lids,
+  setLids,
 }) => {
   return (
     <div className="-my-1 divide-y divide-border/70">
@@ -74,6 +78,13 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         description="Every printed bin gets one divider down the middle of its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack."
         checked={dividers}
         onCheckedChange={setDividers}
+      />
+      <OptionRow
+        id="lids"
+        title="Lids for bins"
+        description="Every printed bin gets a flat 3 mm cover lid that sits on the stacking lip. Lids have no snap lip, hinge, or handle."
+        checked={lids}
+        onCheckedChange={setLids}
       />
     </div>
   );

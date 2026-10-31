@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { baseplateMesh, spacerMesh } from './export/gridfinityMesh';
 import { binMesh } from './export/binMesh';
+import { lidMesh } from './export/lidMesh';
 import { meshVolume } from './export/mesh';
 import {
   baseplateVolumeMm3,
@@ -134,6 +135,22 @@ describe('partVolumeMm3', () => {
       meshVolume(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, labelTab: true })),
       0
     );
+  });
+
+  it('prices a lid as its flat plate volume and matches the lid mesh', () => {
+    const lid: PrintPartSummary = {
+      key: 'lid-2x1',
+      kind: 'lid',
+      swatch: 'bin',
+      label: 'Lid 2 × 1',
+      stem: 'lid-2x1',
+      width: 83.5,
+      depth: 41.5,
+      height: 3,
+      count: 1,
+    };
+    expect(partVolumeMm3(lid)).toBeCloseTo(83.5 * 41.5 * 3, 6);
+    expect(partVolumeMm3(lid)).toBeCloseTo(meshVolume(lidMesh(83.5, 41.5)), 6);
   });
 });
 

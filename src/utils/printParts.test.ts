@@ -139,6 +139,63 @@ describe('collectPrintParts', () => {
     expect(parts.some((part) => part.kind === 'bin')).toBe(false);
   });
 
+  it('adds no lid parts when lids are off', () => {
+    const { parts } = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one' })],
+      numDrawers: 1,
+      printerSize: A1,
+    });
+    expect(parts.some((part) => part.kind === 'lid')).toBe(false);
+  });
+
+  it('adds one flat lid per bin footprint when lids are on', () => {
+    const { parts } = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one' })],
+      numDrawers: 1,
+      printerSize: A1,
+      lids: true,
+    });
+    const lids = parts.filter((part) => part.kind === 'lid');
+    expect(lids).toHaveLength(1);
+    expect(lids[0].label).toBe('Lid 2 × 1');
+    expect(lids[0].stem).toBe('lid-2x1');
+    expect(lids[0].width).toBeCloseTo(83.5, 6);
+    expect(lids[0].depth).toBeCloseTo(41.5, 6);
+    expect(lids[0].height).toBe(3);
+    expect(lids[0].count).toBe(1);
+    expect(lids[0].swatch).toBe('bin');
+  });
+
+  it('shares one lid across bins with the same footprint but different heights', () => {
+    const { parts } = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', height: 3 }), bin({ id: 'two', x: 84, height: 6 })],
+      numDrawers: 1,
+      printerSize: A1,
+      lids: true,
+    });
+    const lids = parts.filter((part) => part.kind === 'lid');
+    expect(lids).toHaveLength(1);
+    expect(lids[0].count).toBe(2);
+    expect(parts.filter((part) => part.kind === 'bin')).toHaveLength(2);
+  });
+
+  it('multiplies lid counts by the drawer count and leaves out lids for skipped bins', () => {
+    const { parts, skippedBins } = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one' }), bin({ id: 'far', x: 10_000, y: 10_000 })],
+      numDrawers: 2,
+      printerSize: A1,
+      lids: true,
+    });
+    expect(skippedBins).toBe(1);
+    const lids = parts.filter((part) => part.kind === 'lid');
+    expect(lids).toHaveLength(1);
+    expect(lids[0].count).toBe(2);
+  });
+
   it('groups identical bins into one part with a multiplied count', () => {
     const { parts, skippedBins } = collectPrintParts({
       layout,

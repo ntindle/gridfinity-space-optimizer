@@ -19,6 +19,8 @@ const renderOptions = (overrides: Partial<ComponentProps<typeof BinOptions>> = {
     setLabelTabs: vi.fn(),
     dividers: false,
     setDividers: vi.fn(),
+    lids: false,
+    setLids: vi.fn(),
     ...overrides,
   };
   render(<BinOptions {...props} />);
@@ -65,6 +67,18 @@ describe('BinOptions', () => {
     expect(props.setDividers).toHaveBeenCalledWith(true);
     expect(screen.getByRole('switch', { name: 'Dividers in bins' })).toHaveAccessibleDescription(
       /down the middle of its long side/
+    );
+  });
+
+  it('toggles lids for bins', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Lids for bins' }));
+
+    expect(props.setLids).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Lids for bins' })).toHaveAccessibleDescription(
+      /flat 3 mm cover lid/
     );
   });
 

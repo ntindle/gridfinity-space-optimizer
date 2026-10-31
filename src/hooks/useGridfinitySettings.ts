@@ -13,6 +13,7 @@ export const TEST_FIT_STORAGE_KEY = 'gridfinity_testFit';
 export const ESTIMATE_SETTINGS_STORAGE_KEY = 'gridfinity_estimateSettings';
 export const LABEL_TABS_STORAGE_KEY = 'gridfinity_labelTabs';
 export const DIVIDERS_STORAGE_KEY = 'gridfinity_dividers';
+export const LIDS_STORAGE_KEY = 'gridfinity_lids';
 
 const estimateSettingsStorage = {
   deserialize: (value: string): EstimateSettings =>
@@ -57,6 +58,9 @@ export interface GridfinitySettings {
 
   dividers: boolean;
   setDividers: (value: boolean) => void;
+
+  lids: boolean;
+  setLids: (value: boolean) => void;
 
   estimateSettings: EstimateSettings;
   setEstimateSettings: (settings: EstimateSettings) => void;
@@ -114,6 +118,8 @@ export const useGridfinitySettings = (): GridfinitySettings => {
   const [labelTabs, setLabelTabs] = usePersistedState<boolean>(LABEL_TABS_STORAGE_KEY, false);
 
   const [dividers, setDividers] = usePersistedState<boolean>(DIVIDERS_STORAGE_KEY, false);
+
+  const [lids, setLids] = usePersistedState<boolean>(LIDS_STORAGE_KEY, false);
 
   const [estimateSettings, setEstimateSettings] = usePersistedState<EstimateSettings>(
     ESTIMATE_SETTINGS_STORAGE_KEY,
@@ -177,6 +183,9 @@ export const useGridfinitySettings = (): GridfinitySettings => {
 
     dividers,
     setDividers,
+
+    lids,
+    setLids,
 
     estimateSettings,
     setEstimateSettings,

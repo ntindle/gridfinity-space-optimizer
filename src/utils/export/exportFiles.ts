@@ -11,6 +11,7 @@ import {
 import type { Bin, DrawerSize, LayoutItem, PrinterSize } from "@/types";
 import { baseplateMesh, spacerMesh } from "./gridfinityMesh";
 import { binMesh } from "./binMesh";
+import { lidMesh } from "./lidMesh";
 import { meshToStl } from "./stl";
 import { createThreeMf, quarterTurn, translation } from "./threeMf";
 import { createZip, type ZipEntry } from "./zip";
@@ -27,6 +28,7 @@ export interface ExportRequest {
   testFit?: boolean;
   labelTabs?: boolean;
   dividers?: boolean;
+  lids?: boolean;
 }
 
 export interface ExportBundle {
@@ -53,6 +55,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     printerSize: request.printerSize,
     labelTabs: request.labelTabs,
     dividers: request.dividers,
+    lids: request.lids,
   });
   if (parts.length === 0) throw new Error("There is nothing to print yet");
 
@@ -76,6 +79,8 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     let mesh: Mesh;
     if (part.binGeometry) {
       mesh = binMesh(part.binGeometry);
+    } else if (part.kind === "lid") {
+      mesh = lidMesh(part.width, part.depth);
     } else if (part.kind === "spacer") {
       mesh = spacerMesh(part.width, part.depth);
     } else if (part.gridGeometry) {
@@ -101,14 +106,15 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
 
   const byKey = new Map(exportParts.map((part) => [part.key, part]));
   const labels = new Map(exportParts.map((part) => [part.key, part.label]));
-  const plan = (kind: "grid" | "bin", members: PrintPartSummary[]) =>
+  const plan = (kind: "grid" | "bin" | "lid", members: PrintPartSummary[]) =>
     planPlates(
       members.map(({ key, width, depth, count }) => ({ key, width, depth, count })),
       request.printerSize
     ).map((plate) => ({ kind, plate }));
-  const grid = parts.filter((part) => part.kind !== "bin");
+  const grid = parts.filter((part) => part.kind === "baseplate" || part.kind === "spacer");
   const bins = parts.filter((part) => part.kind === "bin");
-  const mainPlates = [...plan("grid", grid), ...plan("bin", bins)];
+  const lids = parts.filter((part) => part.kind === "lid");
+  const mainPlates = [...plan("grid", grid), ...plan("bin", bins), ...plan("lid", lids)];
   const plates = [
     ...(testPlate ? [{ kind: "grid" as const, plate: testPlate, number: 0 }] : []),
     ...mainPlates.map((entry, index) => ({
@@ -123,7 +129,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     const file =
       number === 0
         ? "3mf/plate-0-test-fit.3mf"
-        : `3mf/plate-${number}-${kind === "bin" ? "bins" : "baseplates"}${copies}.3mf`;
+        : `3mf/plate-${number}-${kind === "bin" ? "bins" : kind === "lid" ? "lids" : "baseplates"}${copies}.3mf`;
     const members = plate.parts.flatMap(({ key }) => {
       const part = byKey.get(key);
       return part ? [part] : [];
@@ -176,6 +182,8 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     bins.length > 0 &&
       request.dividers &&
       "- Dividers: every bin has one divider down the middle of its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack.",
+    lids.length > 0 &&
+      "- Lids: every bin gets a flat 3 mm cover lid that sits on the stacking lip; lids have no snap lip, hinge, or handle.",
     bins.some((part) => part.label.includes("half-grid")) &&
       "- Bins marked half-grid feet sit on half-size baseplates.",
     skippedBins > 0 &&

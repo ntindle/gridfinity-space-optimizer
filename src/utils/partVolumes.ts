@@ -314,6 +314,9 @@ export const partVolumeMm3 = (part: PrintPartSummary): number => {
       part.gridGeometry.cellSize
     );
   }
+  if (part.kind === "lid") {
+    return spacerVolumeMm3(part.width, part.depth, part.height);
+  }
   return spacerVolumeMm3(part.width, part.depth, part.height);
 };
 
