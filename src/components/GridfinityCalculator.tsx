@@ -213,6 +213,8 @@ const GridfinityCalculator: React.FC = () => {
                 setLabelTabs={settings.setLabelTabs}
                 dividers={settings.dividers}
                 setDividers={settings.setDividers}
+                lids={settings.lids}
+                setLids={settings.setLids}
               />
             </CollapsibleCard>
           </Card>
@@ -249,6 +251,7 @@ const GridfinityCalculator: React.FC = () => {
                       testFit={settings.testFit}
                       labelTabs={settings.labelTabs}
                       dividers={settings.dividers}
+                      lids={settings.lids}
                     />
                     <ShareLayoutButton />
                   </div>
@@ -281,6 +284,7 @@ const GridfinityCalculator: React.FC = () => {
               onTestFitChange={settings.setTestFit}
               labelTabs={settings.labelTabs}
               dividers={settings.dividers}
+              lids={settings.lids}
               estimateSettings={settings.estimateSettings}
               onEstimateSettingsChange={settings.setEstimateSettings}
             />

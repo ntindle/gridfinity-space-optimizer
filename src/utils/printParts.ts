@@ -3,6 +3,7 @@ import { FULL_GRID_SIZE, HALF_GRID_SIZE } from "@/utils/gridfinityUtils";
 import {
   BIN_HEIGHT_UNIT_MM,
   LABEL_TAB_ABOVE_LIP_MM,
+  LID_THICKNESS_MM,
   MAX_BIN_HEIGHT,
   STACKING_LIP_HEIGHT_MM,
   binIssues,
@@ -17,7 +18,7 @@ import type { Bin, LayoutItem, PrinterSize } from "@/types";
 
 export const BASEPLATE_HEIGHT_MM = 5;
 
-export type PrintPartKind = "bin" | "baseplate" | "spacer";
+export type PrintPartKind = "bin" | "baseplate" | "spacer" | "lid";
 
 export interface PrintPartSummary {
   key: string;
@@ -47,6 +48,7 @@ export interface CollectPrintPartsRequest {
   printerSize: PrinterSize;
   labelTabs?: boolean;
   dividers?: boolean;
+  lids?: boolean;
 }
 
 export const slug = (text: string): string =>
@@ -65,7 +67,8 @@ const binParts = (
   numDrawers: number,
   printerSize: PrinterSize,
   labelTabs: boolean,
-  dividers: boolean
+  dividers: boolean,
+  lids: boolean
 ): { parts: PrintPartSummary[]; skipped: number } => {
   const index = indexCells(gridCells(layout));
   const bed = usableBed(printerSize);
@@ -84,7 +87,8 @@ const binParts = (
   );
   const limits = { ...bed, height: maxUnits };
   const skipped = binIssues(bins, index, limits).size;
-  const parts = groupBins(bins, index, limits).map((group): PrintPartSummary => {
+  const groups = groupBins(bins, index, limits);
+  const parts = groups.map((group): PrintPartSummary => {
     const half = group.cellSize === HALF_GRID_SIZE;
     const size = binSizeLabel(group);
     const label = `Bin ${size} · ${group.height}u${half ? " · half-grid feet" : ""}`;
@@ -109,7 +113,32 @@ const binParts = (
       },
     };
   });
-  return { parts, skipped };
+  if (!lids) return { parts, skipped };
+  const lidsByFootprint = new Map<string, PrintPartSummary>();
+  for (const group of groups) {
+    const half = group.cellSize === HALF_GRID_SIZE;
+    const size = binSizeLabel(group);
+    const outer = binOuterSize(group);
+    const key = `lid:${group.cellSize}:${group.width}x${group.depth}`;
+    const existing = lidsByFootprint.get(key);
+    const count = unitMath.multiply(group.bins.length, numDrawers);
+    if (existing) {
+      existing.count = unitMath.add(existing.count, count);
+    } else {
+      lidsByFootprint.set(key, {
+        key,
+        kind: "lid",
+        swatch: "bin",
+        label: `Lid ${size}${half ? " · half-grid" : ""}`,
+        stem: slug(`lid ${size}${half ? " half-grid" : ""}`),
+        width: outer.width,
+        depth: outer.depth,
+        height: LID_THICKNESS_MM,
+        count,
+      });
+    }
+  }
+  return { parts: [...parts, ...lidsByFootprint.values()], skipped };
 };
 
 const gridParts = (
@@ -172,7 +201,8 @@ export const collectPrintParts = (
     request.numDrawers,
     request.printerSize,
     request.labelTabs === true,
-    request.dividers === true
+    request.dividers === true,
+    request.lids === true
   );
   const grid = gridParts(request.layout, request.numDrawers);
   return { parts: [...bins, ...grid], skippedBins: skipped };

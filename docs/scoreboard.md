@@ -194,6 +194,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression. The first pair's interaction gaps (input-to-preview +24.1 ms, share +22 ms, both trunk-favoring) did not reproduce in the reversed-order pair (input-to-preview branch faster by 3.5 ms, share gap collapsed to +3 ms); trunk alone swung input-to-preview 38.4 -> 47.2 ms and branch 62.5 -> 43.7 ms. Layout within-pair gaps are +4/+6 ms noise, and both sides ran faster in pair 2. Load metrics favor the branch in both pairs, and trunk alone swung Lighthouse 72 -> 65 and TTI 3696 -> 4127 ms across pairs — wider than any branch-trunk gap. The diff touches no measured code path (drawer-width edit -> preview piece list is unchanged code; the new work is one switch, one persisted settings key, and export code behind a lazy `import()` that only runs on download). Parity +1.0pp (F18 ❌→🟡); Job 2 gains compartments: a Bin options switch adds one center divider down the middle of each bin's long side to every generated bin STL (1.2 mm thick, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack), persisted as `gridfinity_dividers` and local-only; configurable divider counts and positions remain open. Bundle delta: index chunk 236,207 → 237,001 B (+0.3%); the lazy export chunk 22,147 → 22,830 B (+3.1%) for the divider-box mesh code.
 
+## 2026-10-31, PR #160 (lids for bins, F16)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair to check the first pair's load gap).
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 51.0% (23 ✅ + 5 🟡 / 50) | 50.0% |
+| Lighthouse perf | 68 / 77 | 77 / 72 |
+| TTI | 3958 / 3479 ms | 3514 / 3724 ms |
+| Input-to-preview (median) | 41.9 / 32.7 ms | 40.2 / 186.5 ms |
+| Layout task | 4 steps, 490 / 503 ms | 4 steps, 496 / 795 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 83 / 79 ms | 1 click, 117 / 73 ms |
+
+Verdict: no credible regression. Pair 1's load gap (Lighthouse -9, TTI +444 ms, both trunk-favoring) did not reproduce in the reversed-order pair (branch leads Lighthouse +5, TTI -245 ms); trunk alone swung Lighthouse 77 -> 72 and TTI 3514 -> 3724 ms, branch Lighthouse 68 -> 77 and TTI 3958 -> 3479 ms, and the load gaps reverse between pairs. Pair 2's trunk interaction numbers (input-to-preview 186.5 ms, layout 795 ms) are outliers against all three other runs (input-to-preview 32.7–41.9 ms, layout 490–503 ms) and that run overlapped the reviewer's concurrent test run; even taken at face value they favor the branch, so they cannot hide a branch regression. The diff touches no measured code path (drawer-width edit -> preview piece list is unchanged code; the new work is one switch, one persisted settings key, and export code behind a lazy `import()` that only runs on download). Parity +1.0pp (F16 ❌→🟡); Job 2 gains lids: a Bin options switch adds a flat 3 mm cover lid per placed bin as its own STL in the Download files zip (one per distinct bin footprint, shared across heights, counted in the Print plan card and estimates, with its own 3MF lid plates), persisted as `gridfinity_lids` and local-only; snap lip, hinge, and handle remain open. Bundle delta: index chunk 237,001 → 237,798 B (+0.3%); the lazy export chunk 22,830 → 23,535 B (+3.1%) for the lid mesh and lid plate planning.
+
 ## 2026-10-23, PR #148 (print plan card, F28)
 
 Catch-up: main moved twice since the 2026-10-22 entry — arena PRs #146 (UI redesign + 18 bug fixes) and #147 (placed bins + STL/3MF export) merged 2026-10-22, moving the map from 34.0% to 42.0% (F6, F14, F25, F27 → ✅; F15 → 🟡; F30 stays 🟡 with plate packing; F10/F45/F46 cell updates). The scoreboard entries between 2026-10-22 and this one record only this run's slice; the map's honesty log carries the #146/#147 detail.

@@ -36,7 +36,8 @@ per placed bin per drawer. New bin options become switch rows in the bin panel, 
 │ │ 125.5 × 83.5 mm · 45.6 mm tall with the stacking lip               │           │
 │ │ Contents [Screws                                  ]                │           │
 │ │ [Duplicate] [Delete]                                               │           │
-│ │ later: Dividers · Scoop · Magnets · Lid (switch rows)              │           │
+│ │ shipped: Label tabs · Dividers · Lids (Bin options switches)     │           │
+│ │ later: Scoop · Magnets                                            │           │
 │ └────────────────────────────────────────────────────────────────────┘           │
 │ Parts to print: bin rows first (grouped by size and height), then                │
 │ baseplates and spacers                                                           │

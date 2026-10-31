@@ -227,6 +227,29 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(Object.keys(files(divided))).toContain('stl/bin-2x1-6u-x2.stl');
   });
 
+  it('adds the lid STL, its own 3MF lid plate, and the lid note when lids are on', () => {
+    const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
+    const lidded = createPrintFiles(
+      request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })], lids: true })
+    );
+    expect(lidded.parts).toBe(base.parts + 1);
+    expect(lidded.plates).toBe(base.plates + 1);
+    const names = Object.keys(files(lidded));
+    expect(names).toContain('stl/lid-2x1-x2.stl');
+    expect(names.filter((name) => name.startsWith('3mf/') && name.includes('-lids'))).toHaveLength(1);
+    const readme = strFromU8(files(lidded)['README.txt']);
+    expect(readme).toContain('Lids:');
+    expect(readme).toMatch(/2\s+Lid 2 × 1\s+83\.5 × 41\.5 × 3 mm\s+stl\/lid-2x1-x2\.stl/);
+    expect(strFromU8(files(base)['README.txt'])).not.toContain('Lids:');
+    const lidPlate = Object.entries(files(lidded)).find(
+      ([name]) => name.startsWith('3mf/') && name.includes('-lids')
+    );
+    expect(lidPlate).toBeDefined();
+    const doc = model(lidPlate![1]);
+    expect(doc.getElementsByTagName('parsererror')).toHaveLength(0);
+    expect(doc.getElementsByTagName('item').length).toBeGreaterThan(0);
+  });
+
   it('leaves the zip unchanged when test fit is off', () => {
     const bundle = createPrintFiles(request({ testFit: false }));
     const names = Object.keys(files(bundle));

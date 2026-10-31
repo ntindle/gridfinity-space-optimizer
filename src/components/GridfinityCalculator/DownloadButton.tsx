@@ -17,6 +17,7 @@ interface DownloadButtonProps {
   testFit: boolean;
   labelTabs: boolean;
   dividers: boolean;
+  lids: boolean;
 }
 
 const DownloadButton: React.FC<DownloadButtonProps> = ({
@@ -30,6 +31,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
   testFit,
   labelTabs,
   dividers,
+  lids,
 }) => {
   const [busy, setBusy] = useState(false);
 
@@ -52,6 +54,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
         testFit,
         labelTabs,
         dividers,
+        lids,
       });
       saveFile(bundle.filename, bundle.data, "application/zip");
       const skipped =

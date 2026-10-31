@@ -17,7 +17,7 @@ import {
 import PrintPlanCard from './PrintPlanCard';
 import { buildPrintListText } from '@/utils/printList';
 import { planPlates } from '@/utils/printPlan';
-import type { DrawerSize, PrinterSize } from '@/types';
+import type { Bin, DrawerSize, PrinterSize } from '@/types';
 
 const A1: PrinterSize = { x: 256, y: 256, z: 256 };
 const drawer: DrawerSize = { width: 8, height: 4 };
@@ -32,6 +32,7 @@ const props = {
   printerSize: A1,
   labelTabs: false,
   dividers: false,
+  lids: false,
 };
 
 const StatefulCard: FC<{
@@ -87,6 +88,17 @@ describe('PrintPlanCard', () => {
     const rows = screen.getAllByRole('listitem');
     expect(rows.length).toBeGreaterThan(0);
     expect(screen.getByText(/Baseplate/)).toBeInTheDocument();
+  });
+
+  it('lists a lid row for placed bins when lids are on', () => {
+    const bin: Bin = { id: 'one', x: 0, y: 0, width: 84, depth: 42, height: 6, label: '' };
+    const { unmount } = render(
+      <StatefulCard overrides={{ bins: [bin], lids: true }} />
+    );
+    expect(screen.getByText(/Lid 2 × 1/)).toBeInTheDocument();
+    unmount();
+    render(<StatefulCard overrides={{ bins: [bin], lids: false }} />);
+    expect(screen.queryByText(/Lid 2 × 1/)).not.toBeInTheDocument();
   });
 
   it('numbers plates and notes repeated prints', () => {
