@@ -80,7 +80,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
       onClick={handleDownload}
       aria-busy={busy}
       data-tour="download"
-      title="Every bin, baseplate, and spacer as STL files and ready-to-slice 3MF plates"
+      title="Every bin, baseplate, and spacer as STL files and ready-to-slice 3MF plates, plus a to-scale SVG plan of the drawer"
     >
       {busy ? (
         <LoaderCircle className="animate-spin motion-reduce:animate-none" />
@@ -88,7 +88,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
         <Download />
       )}
       Download files
-      <span className="sr-only"> (STL and 3MF, zipped)</span>
+      <span className="sr-only"> (STL, 3MF, and SVG plan, zipped)</span>
     </Button>
   );
 };
