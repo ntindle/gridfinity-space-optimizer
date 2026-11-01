@@ -10,6 +10,7 @@ import {
 } from "@/utils/printParts";
 import type { Bin, DrawerSize, LayoutItem, PrinterSize } from "@/types";
 import { baseplateMesh, spacerMesh } from "./gridfinityMesh";
+import { layoutSvgPlan } from "./layoutSvg";
 import { binMesh } from "./binMesh";
 import { lidMesh } from "./lidMesh";
 import { meshToStl } from "./stl";
@@ -190,6 +191,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       `- ${pluralize(skippedBins, "bin")} that ${skippedBins === 1 ? "doesn't" : "don't"} fit the grid or the printer ${skippedBins === 1 ? "was" : "were"} left out.`,
     testPlate &&
       `- Test fit first: print the test-fit plate first (${describePlate(testPlate, labels)}) to check the fit before the rest.`,
+    "- Layout plan: layout.svg is a to-scale top view of this drawer (baseplates, spacers, and bins, including any bins left out of the print files) in millimetres, for laser or cutting workflows.",
     "- Print the bin labels from the Bin labels section of the page.",
   ].filter(Boolean);
 
@@ -214,6 +216,16 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     "Made with Gridfinity Layout, https://gridfinitylayout.com/",
     "",
   ].join("\n");
+
+  entries.push([
+    "layout.svg",
+    layoutSvgPlan({
+      drawerWidth: drawer.width,
+      drawerHeight: drawer.height,
+      layout: request.layout,
+      bins: request.bins,
+    }),
+  ]);
 
   const drawerSlug = slug(formatDrawerSize(request.drawerSize, request.useMm));
   return {

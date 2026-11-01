@@ -59,6 +59,18 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     ]);
   });
 
+  it('bundles a to-scale SVG plan of the drawer and documents it in the README', () => {
+    const bundle = createPrintFiles(request({ bins: [bin({ id: 'a', label: 'Screws' })] }));
+    const entries = files(bundle);
+    expect(Object.keys(entries)).toContain('layout.svg');
+    const svg = strFromU8(entries['layout.svg']);
+    expect(svg).toContain('viewBox="0 0 203.2 101.6"');
+    expect(svg).toContain('width="203.2mm"');
+    expect(svg).toContain('<rect x="0" y="0" width="84" height="42" fill="#dbeafe"');
+    expect(svg).toContain('>Screws</text>');
+    expect(strFromU8(entries['README.txt'])).toContain('Layout plan: layout.svg');
+  });
+
   it('lays each plate out inside the printer bed', () => {
     const bundle = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
     const plates = Object.entries(files(bundle)).filter(([name]) => name.endsWith('.3mf'));
