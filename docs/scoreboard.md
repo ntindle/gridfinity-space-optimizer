@@ -226,6 +226,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression. Pair 1's load gap (Lighthouse -3, TTI +118 ms, both trunk-favoring) reversed in pair 2 (branch leads Lighthouse +3, TTI -131 ms); within-side swings (trunk Lighthouse 78 -> 76, TTI 3446 -> 3552 ms; branch Lighthouse 75 -> 79, TTI 3564 -> 3421 ms) exceed every branch-trunk gap, and interaction metrics overlap across all four runs (input-to-preview 30.5-48.6 ms, layout 480-503 ms, share 73-82 ms). The diff touches no measured code path (drawer-width edit -> preview piece list is unchanged code; the new work is a pure function in the lazy export chunk that only runs on download, plus a title and screen-reader string change). Parity +1.0pp (F33 ❌→🟡); Job 3 gains an SVG plan: the Download files zip gains layout.svg, a real-scale millimetre top-view plan of the drawer (drawer outline, baseplate, spacer, and half-size rects, placed-bin rects with labels), documented in the zip README; DXF remains open. Bundle delta: index chunk 237,798 -> 237,857 B (+0.02%); the lazy export chunk 23,535 -> 25,153 B (+6.9%) for the SVG generator.
 
+## 2026-11-02, PR #164 (DXF plan export, F33)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).
+
+| Metric | Branch | Trunk (same box/day) |
+| --- | --- | --- |
+| Parity | 53.0% (24 ✅ + 5 🟡 / 50) | 52.0% |
+| Lighthouse perf | 73 / 76 | 70 / 75 |
+| TTI | 3650 / 3443 ms | 3759 / 3610 ms |
+| Input-to-preview (median) | 31.4 / 37.1 ms | 39.3 / 39.2 ms |
+| Layout task | 4 steps, 479 / 507 ms | 4 steps, 480 / 497 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 76 / 78 ms | 1 click, 80 / 75 ms |
+
+Verdict: no credible regression. The branch leads Lighthouse, TTI, and input-to-preview in both pairs; the pair-2 layout (+10 ms) and share (+3 ms) trunk-favoring gaps sit inside the four-run bands (layout 479-507 ms, share 75-80 ms) and reverse pair 1. The diff touches no measured code path (drawer-width edit -> preview piece list is unchanged code; the new work is a pure function pair in the lazy export chunk that only runs on download, plus a title and screen-reader string change). Parity +1.0pp (F33 🟡→✅); Job 3 completes the vector plan: the Download files zip gains layout.dxf alongside layout.svg, a millimetre ASCII DXF with LWPOLYLINE rects on DRAWER/BASEPLATE/SPACER/HALF/BIN layers and TEXT labels, CAD Y-up, built from the same plan geometry as the SVG generator. Bundle delta: index chunk 237,857 -> 237,869 B (+0.01%); the lazy export chunk 25,153 -> 27,457 B (+9.2%) for the DXF generator and the shared plan module.
+
 ## 2026-10-23, PR #148 (print plan card, F28)
 
 Catch-up: main moved twice since the 2026-10-22 entry — arena PRs #146 (UI redesign + 18 bug fixes) and #147 (placed bins + STL/3MF export) merged 2026-10-22, moving the map from 34.0% to 42.0% (F6, F14, F25, F27 → ✅; F15 → 🟡; F30 stays 🟡 with plate packing; F10/F45/F46 cell updates). The scoreboard entries between 2026-10-22 and this one record only this run's slice; the map's honesty log carries the #146/#147 detail.
