@@ -71,6 +71,17 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(strFromU8(entries['README.txt'])).toContain('Layout plan: layout.svg');
   });
 
+  it('bundles a millimetre DXF plan of the drawer next to the SVG plan', () => {
+    const bundle = createPrintFiles(request({ bins: [bin({ id: 'a', label: 'Screws' })] }));
+    const entries = files(bundle);
+    expect(Object.keys(entries)).toContain('layout.dxf');
+    const dxf = strFromU8(entries['layout.dxf']);
+    expect(dxf).toContain('  9\n$INSUNITS\n 70\n4');
+    expect(dxf).toContain('  8\nBIN\n 90\n4\n 70\n1\n 10\n0\n 20\n59.6\n 10\n84\n 20\n59.6\n 10\n84\n 20\n101.6\n 10\n0\n 20\n101.6');
+    expect(dxf).toContain('  0\nTEXT\n  8\nBIN\n 10\n42\n 20\n80.6\n 40\n6\n  1\nScrews');
+    expect(strFromU8(entries['README.txt'])).toContain('layout.svg and layout.dxf');
+  });
+
   it('lays each plate out inside the printer bed', () => {
     const bundle = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
     const plates = Object.entries(files(bundle)).filter(([name]) => name.endsWith('.3mf'));
