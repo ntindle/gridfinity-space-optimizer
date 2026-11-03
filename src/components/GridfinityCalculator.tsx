@@ -22,6 +22,8 @@ import DownloadButton from "@/components/GridfinityCalculator/DownloadButton";
 import { binIssues, gridCells, indexCells, maxBinHeight } from "@/utils/bins";
 import { usableBed } from "@/utils/printPlan";
 import GuidedTour from "@/components/GuidedTour";
+import SavedLayouts from "@/components/SavedLayouts";
+import type { SavedLayoutSnapshot } from "@/utils/savedLayouts";
 import CollapsibleCard from "@/components/CollapsibleCard";
 import MobileResultsBar from "@/components/MobileResultsBar";
 
@@ -121,6 +123,40 @@ const GridfinityCalculator: React.FC = () => {
       .filter(Boolean)
       .join(" · ") || "Standard";
 
+  const restoreSavedLayout = (snapshot: SavedLayoutSnapshot) => {
+    settings.setDrawerSize(snapshot.drawerSize);
+    settings.setSelectedPrinter(snapshot.selectedPrinter);
+    settings.setUseHalfSize(snapshot.useHalfSize);
+    settings.setPreferHalfSize(snapshot.preferHalfSize);
+    settings.setPreferUniformBaseplates(snapshot.preferUniformBaseplates);
+    settings.setNumDrawers(snapshot.numDrawers);
+    settings.setUseMm(snapshot.useMm);
+    settings.setCustomPrinterSize(snapshot.customPrinterSize);
+    settings.setBins(snapshot.bins);
+    settings.setTestFit(snapshot.testFit);
+    settings.setLabelTabs(snapshot.labelTabs);
+    settings.setDividers(snapshot.dividers);
+    settings.setLids(snapshot.lids);
+    settings.setEstimateSettings(snapshot.estimateSettings);
+  };
+
+  const savedLayoutSnapshot: SavedLayoutSnapshot = {
+    drawerSize: settings.drawerSize,
+    selectedPrinter: settings.selectedPrinter,
+    useHalfSize: settings.useHalfSize,
+    preferHalfSize: settings.preferHalfSize,
+    preferUniformBaseplates: settings.preferUniformBaseplates,
+    numDrawers: settings.numDrawers,
+    useMm: settings.useMm,
+    customPrinterSize: settings.customPrinterSize,
+    bins: settings.bins,
+    testFit: settings.testFit,
+    labelTabs: settings.labelTabs,
+    dividers: settings.dividers,
+    lids: settings.lids,
+    estimateSettings: settings.estimateSettings,
+  };
+
   return (
     <div className="mx-auto grid w-full max-w-[1320px] gap-x-8 gap-y-6 px-4 pb-16 pt-6 sm:px-6 lg:grid-cols-[minmax(0,22.5rem)_minmax(0,1fr)] lg:pt-10">
       <aside className="min-w-0">
@@ -217,6 +253,11 @@ const GridfinityCalculator: React.FC = () => {
                 setLids={settings.setLids}
               />
             </CollapsibleCard>
+
+            <SavedLayouts
+              snapshot={savedLayoutSnapshot}
+              onRestore={restoreSavedLayout}
+            />
           </Card>
         </div>
 

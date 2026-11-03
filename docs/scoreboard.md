@@ -230,9 +230,9 @@ Verdict: no credible regression. Pair 1's load gap (Lighthouse -3, TTI +118 ms, 
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).
 
-| Metric | Branch | Trunk (same box/day) |
+| Metric | Branch (pair 1 / pair 2) | Trunk (pair 1 / pair 2) |
 | --- | --- | --- |
-| Parity | 53.0% (24 ✅ + 5 🟡 / 50) | 52.0% |
+| Parity | 54.0% (25 ✅ + 4 🟡 / 50) | 53.0% |
 | Lighthouse perf | 73 / 76 | 70 / 75 |
 | TTI | 3650 / 3443 ms | 3759 / 3610 ms |
 | Input-to-preview (median) | 31.4 / 37.1 ms | 39.3 / 39.2 ms |
@@ -240,7 +240,23 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 | Export task | supported | supported |
 | Share task | 1 click, 76 / 78 ms | 1 click, 80 / 75 ms |
 
-Verdict: no credible regression. The branch leads Lighthouse, TTI, and input-to-preview in both pairs; the pair-2 layout (+10 ms) and share (+3 ms) trunk-favoring gaps sit inside the four-run bands (layout 479-507 ms, share 75-80 ms) and reverse pair 1. The diff touches no measured code path (drawer-width edit -> preview piece list is unchanged code; the new work is a pure function pair in the lazy export chunk that only runs on download, plus a title and screen-reader string change). Parity +1.0pp (F33 🟡→✅); Job 3 completes the vector plan: the Download files zip gains layout.dxf alongside layout.svg, a millimetre ASCII DXF with LWPOLYLINE rects on DRAWER/BASEPLATE/SPACER/HALF/BIN layers and TEXT labels, CAD Y-up, built from the same plan geometry as the SVG generator. Bundle delta: index chunk 237,857 -> 237,869 B (+0.01%); the lazy export chunk 25,153 -> 27,457 B (+9.2%) for the DXF generator and the shared plan module.
+Verdict: no credible regression. The branch leads Lighthouse, TTI, and input-to-preview in both pairs; the pair-2 layout (+10 ms) and share (+3 ms) trunk-favoring gaps sit inside the four-run bands (layout 479-507 ms, share 75-80 ms) and reverse pair 1. The diff touches no measured code path (drawer-width edit -> preview piece list is unchanged code; the new work is a pure function pair in the lazy export chunk that only runs on download, plus a title and screen-reader string change). Parity +1.0pp (F33 🟡→✅); Job 3 completes the vector plan: the Download files zip gains layout.dxf alongside layout.svg, a millimetre ASCII DXF with LWPOLYLINE rects on DRAWER/BASEPLATE/SPACER/HALF/BIN layers and TEXT labels, CAD Y-up, built from the same plan geometry as the SVG generator. Bundle delta: index chunk 237,857 -> 237,869 B (+0.01%); the lazy export chunk 25,153 -> 27,462 B (+9.2%) for the DXF generator and the shared plan module.
+
+## 2026-11-03, PR #165 (saved layouts, F41)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).
+
+| Metric | Branch (pair 1 / pair 2) | Trunk (pair 1 / pair 2) |
+| --- | --- | --- |
+| Parity | 54.0% (25 ✅ + 4 🟡 / 50) | 53.0% |
+| Lighthouse perf | 74 / 75 | 76 / 73 |
+| TTI | 3608 / 3464 ms | 3560 / 3644 ms |
+| Input-to-preview (median) | 33.7 / 51.5 ms | 32.4 / 33.7 ms |
+| Layout task | 4 steps, 481 / 493 ms | 4 steps, 487 / 479 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 64 / 81 ms | 1 click, 78 / 77 ms |
+
+Verdict: no credible regression. Load metrics flip between pairs (pair 1 trunk-favoring Lighthouse -2, TTI +48 ms; pair 2 branch-favoring Lighthouse +2, TTI -180 ms), the sign flip being the signature of box noise rather than a branch cost. Interaction metrics overlap except pair 2's branch input-to-preview (51.5 ms), an outlier against the other three runs (32.4-33.7 ms) that did not reproduce in pair 1 (+1.3 ms); the pair-2 layout (+14 ms) and share (+4 ms) trunk-favoring gaps reverse pair 1 (-6 ms, -14 ms). The diff touches no measured code path (drawer-width edit -> preview piece list is unchanged code; the new work is a settings card plus localStorage snapshot code that runs on save and load, and a mount-time parse of an empty saved list in the harness, which runs with cleared storage). Parity +1.0pp (F41 🟡→✅); Job 5 gains named saved layouts: a Saved layouts section in the calculator saves the current layout under a name, loads it back, and deletes it, with the snapshot covering drawer, printer, grid options, bins with labels, print-plan switches, and estimate settings, saved on this device only and not in share links. Bundle delta: index chunk 237,869 -> 243,213 B (+2.2%); the lazy export chunk is unchanged (27,462 B).
 
 ## 2026-10-23, PR #148 (print plan card, F28)
 
