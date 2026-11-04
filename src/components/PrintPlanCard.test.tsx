@@ -31,7 +31,7 @@ const props = {
   printerName: 'Bambu Lab A1',
   printerSize: A1,
   labelTabs: false,
-  dividers: false,
+  dividerCount: 0,
   lids: false,
 };
 

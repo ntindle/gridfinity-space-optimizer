@@ -16,6 +16,7 @@ import {
   indexCells,
   maxBinHeight,
   sanitizeBins,
+  sanitizeDividerCount,
   snapMove,
   snapResize,
   spanRect,
@@ -205,5 +206,17 @@ describe('sanitizeBins', () => {
     expect(bins[1].id).not.toBe('keep');
     expect(bins[1].height).toBe(MAX_BIN_HEIGHT);
     expect(sanitizeBins('nope')).toEqual([]);
+  });
+});
+
+describe("sanitizeDividerCount", () => {
+  it("maps legacy booleans and clamps numbers to the supported range", () => {
+    expect(sanitizeDividerCount(true)).toBe(1);
+    expect(sanitizeDividerCount(false)).toBe(0);
+    expect(sanitizeDividerCount(2)).toBe(2);
+    expect(sanitizeDividerCount(9)).toBe(3);
+    expect(sanitizeDividerCount(-1)).toBe(0);
+    expect(sanitizeDividerCount("two")).toBe(0);
+    expect(sanitizeDividerCount(Number.NaN)).toBe(0);
   });
 });

@@ -135,7 +135,7 @@ const GridfinityCalculator: React.FC = () => {
     settings.setBins(snapshot.bins);
     settings.setTestFit(snapshot.testFit);
     settings.setLabelTabs(snapshot.labelTabs);
-    settings.setDividers(snapshot.dividers);
+    settings.setDividerCount(snapshot.dividerCount);
     settings.setLids(snapshot.lids);
     settings.setEstimateSettings(snapshot.estimateSettings);
   };
@@ -152,7 +152,7 @@ const GridfinityCalculator: React.FC = () => {
     bins: settings.bins,
     testFit: settings.testFit,
     labelTabs: settings.labelTabs,
-    dividers: settings.dividers,
+    dividerCount: settings.dividerCount,
     lids: settings.lids,
     estimateSettings: settings.estimateSettings,
   };
@@ -247,8 +247,8 @@ const GridfinityCalculator: React.FC = () => {
                 setPreferUniformBaseplates={settings.setPreferUniformBaseplates}
                 labelTabs={settings.labelTabs}
                 setLabelTabs={settings.setLabelTabs}
-                dividers={settings.dividers}
-                setDividers={settings.setDividers}
+                dividerCount={settings.dividerCount}
+                setDividerCount={settings.setDividerCount}
                 lids={settings.lids}
                 setLids={settings.setLids}
               />
@@ -291,7 +291,7 @@ const GridfinityCalculator: React.FC = () => {
                       printerSize={printerSize}
                       testFit={settings.testFit}
                       labelTabs={settings.labelTabs}
-                      dividers={settings.dividers}
+                      dividerCount={settings.dividerCount}
                       lids={settings.lids}
                     />
                     <ShareLayoutButton />
@@ -324,7 +324,7 @@ const GridfinityCalculator: React.FC = () => {
               testFit={settings.testFit}
               onTestFitChange={settings.setTestFit}
               labelTabs={settings.labelTabs}
-              dividers={settings.dividers}
+              dividerCount={settings.dividerCount}
               lids={settings.lids}
               estimateSettings={settings.estimateSettings}
               onEstimateSettingsChange={settings.setEstimateSettings}

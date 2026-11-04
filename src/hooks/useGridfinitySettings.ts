@@ -1,7 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { usePersistedState } from './usePersistedState';
 import { migrateLegacySettings } from './useLegacyMigration';
-import { sanitizeBins } from '@/utils/bins';
+import { sanitizeBins, sanitizeDividerCount } from '@/utils/bins';
 import {
   DEFAULT_ESTIMATE_SETTINGS,
   sanitizeEstimateSettings,
@@ -56,8 +56,8 @@ export interface GridfinitySettings {
   labelTabs: boolean;
   setLabelTabs: (value: boolean) => void;
 
-  dividers: boolean;
-  setDividers: (value: boolean) => void;
+  dividerCount: number;
+  setDividerCount: (value: number) => void;
 
   lids: boolean;
   setLids: (value: boolean) => void;
@@ -117,7 +117,11 @@ export const useGridfinitySettings = (): GridfinitySettings => {
 
   const [labelTabs, setLabelTabs] = usePersistedState<boolean>(LABEL_TABS_STORAGE_KEY, false);
 
-  const [dividers, setDividers] = usePersistedState<boolean>(DIVIDERS_STORAGE_KEY, false);
+  const [dividerCount, setDividerCount] = usePersistedState<number>(
+    DIVIDERS_STORAGE_KEY,
+    0,
+    { deserialize: (value: string): number => sanitizeDividerCount(JSON.parse(value)) }
+  );
 
   const [lids, setLids] = usePersistedState<boolean>(LIDS_STORAGE_KEY, false);
 
@@ -181,8 +185,8 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     labelTabs,
     setLabelTabs,
 
-    dividers,
-    setDividers,
+    dividerCount,
+    setDividerCount,
 
     lids,
     setLids,

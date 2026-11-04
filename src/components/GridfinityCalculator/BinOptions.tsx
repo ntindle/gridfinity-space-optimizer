@@ -1,5 +1,7 @@
 import React, { useId } from "react";
 import { Switch } from "@/components/ui/switch";
+import Stepper from "@/components/Stepper";
+import { MAX_DIVIDER_COUNT } from "@/utils/bins";
 import { cn } from "@/lib/utils";
 
 interface BinOptionsProps {
@@ -11,8 +13,8 @@ interface BinOptionsProps {
   setPreferUniformBaseplates: (value: boolean) => void;
   labelTabs: boolean;
   setLabelTabs: (value: boolean) => void;
-  dividers: boolean;
-  setDividers: (value: boolean) => void;
+  dividerCount: number;
+  setDividerCount: (value: number) => void;
   lids: boolean;
   setLids: (value: boolean) => void;
 }
@@ -26,8 +28,8 @@ const BinOptions: React.FC<BinOptionsProps> = ({
   setPreferUniformBaseplates,
   labelTabs,
   setLabelTabs,
-  dividers,
-  setDividers,
+  dividerCount,
+  setDividerCount,
   lids,
   setLids,
 }) => {
@@ -72,13 +74,24 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         checked={labelTabs}
         onCheckedChange={setLabelTabs}
       />
-      <OptionRow
-        id="dividers"
-        title="Dividers in bins"
-        description="Every printed bin gets one divider down the middle of its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack."
-        checked={dividers}
-        onCheckedChange={setDividers}
-      />
+      <div className="relative flex items-start justify-between gap-4 py-2.5">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">Dividers in bins</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Every printed bin gets evenly spaced dividers down its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack.
+          </p>
+        </div>
+        <Stepper
+          label="Dividers in bins"
+          value={String(dividerCount)}
+          canDecrease={dividerCount > 0}
+          canIncrease={dividerCount < MAX_DIVIDER_COUNT}
+          onDecrease={() => setDividerCount(dividerCount - 1)}
+          onIncrease={() => setDividerCount(dividerCount + 1)}
+          decreaseLabel="Fewer dividers"
+          increaseLabel="More dividers"
+        />
+      </div>
       <OptionRow
         id="lids"
         title="Lids for bins"

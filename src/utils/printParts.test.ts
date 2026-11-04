@@ -87,7 +87,7 @@ describe('collectPrintParts', () => {
     expect(tabbed.parts[0].stem).toBe(plain.parts[0].stem);
   });
 
-  it('marks divided bins with the divider flag and the same printed height', () => {
+  it('marks divided bins with the divider count and the same printed height', () => {
     const plain = collectPrintParts({
       layout,
       bins: [bin({ id: 'one', label: 'Screws' })],
@@ -99,10 +99,10 @@ describe('collectPrintParts', () => {
       bins: [bin({ id: 'one', label: 'Screws' })],
       numDrawers: 1,
       printerSize: A1,
-      dividers: true,
+      dividerCount: 2,
     });
     expect(plain.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6 });
-    expect(divided.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6, divider: true });
+    expect(divided.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6, dividerCount: 2 });
     expect(divided.parts[0].height).toBe(plain.parts[0].height);
     expect(divided.parts[0].key).toBe(plain.parts[0].key);
     expect(divided.parts[0].stem).toBe(plain.parts[0].stem);

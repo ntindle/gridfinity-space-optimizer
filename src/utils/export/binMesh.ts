@@ -35,7 +35,7 @@ export interface BinShape {
   cellSize: number;
   height: number;
   labelTab?: boolean;
-  divider?: boolean;
+  dividerCount?: number;
 }
 
 export const labelTabWidthMm = (columns: number, cellSize: number): number => {
@@ -73,14 +73,15 @@ const dividerBox = (
   columns: number,
   rows: number,
   cellSize: number,
-  height: number
+  height: number,
+  center: number
 ): void => {
   const width = columns * cellSize;
   const depth = rows * cellSize;
   const half = DIVIDER_THICKNESS_MM / 2;
   const alongX = columns >= rows;
-  const xCenter = width / 2 - BIN_GAP;
-  const yCenter = depth / 2 - BIN_GAP;
+  const xCenter = center;
+  const yCenter = center;
   const x0 = alongX ? 0 : xCenter - half;
   const x1 = alongX ? width - 2 * BIN_GAP : xCenter + half;
   const y0 = alongX ? yCenter - half : 0;
@@ -141,7 +142,7 @@ const outwardFacing = (center: Point, a: Point, b: Point, lower: ProfilePoint, u
   ];
 };
 
-export const binMesh = ({ columns, rows, cellSize, height, labelTab, divider }: BinShape): Mesh => {
+export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCount }: BinShape): Mesh => {
   if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns < 1 || rows < 1) {
     throw new Error("A bin needs a whole number of cells");
   }
@@ -253,7 +254,13 @@ export const binMesh = ({ columns, rows, cellSize, height, labelTab, divider }: 
   fan(binCenter, rings[rings.length - 1], BIN_BASE_HEIGHT, UP);
 
   if (labelTab) labelTabBox(builder, columns, cellSize, height);
-  if (divider) dividerBox(builder, columns, rows, cellSize, height);
+  if (dividerCount) {
+    const alongX = columns >= rows;
+    const span = (alongX ? depth : width) - 2 * BIN_GAP;
+    for (let index = 0; index < dividerCount; index += 1) {
+      dividerBox(builder, columns, rows, cellSize, height, (span * (index + 1)) / (dividerCount + 1));
+    }
+  }
 
   return builder.build();
 };

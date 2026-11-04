@@ -36,7 +36,7 @@ export interface PrintPartSummary {
     cellSize: number;
     height: number;
     labelTab?: boolean;
-    divider?: boolean;
+    dividerCount?: number;
   };
   gridGeometry?: { columns: number; rows: number; cellSize: number };
 }
@@ -47,7 +47,7 @@ export interface CollectPrintPartsRequest {
   numDrawers: number;
   printerSize: PrinterSize;
   labelTabs?: boolean;
-  dividers?: boolean;
+  dividerCount?: number;
   lids?: boolean;
 }
 
@@ -67,7 +67,7 @@ const binParts = (
   numDrawers: number,
   printerSize: PrinterSize,
   labelTabs: boolean,
-  dividers: boolean,
+  dividerCount: number,
   lids: boolean
 ): { parts: PrintPartSummary[]; skipped: number } => {
   const index = indexCells(gridCells(layout));
@@ -109,7 +109,7 @@ const binParts = (
         cellSize: group.cellSize,
         height: group.height,
         ...(labelTabs ? { labelTab: true as const } : {}),
-        ...(dividers ? { divider: true as const } : {}),
+        ...(dividerCount ? { dividerCount } : {}),
       },
     };
   });
@@ -201,7 +201,7 @@ export const collectPrintParts = (
     request.numDrawers,
     request.printerSize,
     request.labelTabs === true,
-    request.dividers === true,
+    request.dividerCount ?? 0,
     request.lids === true
   );
   const grid = gridParts(request.layout, request.numDrawers);

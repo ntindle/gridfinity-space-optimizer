@@ -1,4 +1,4 @@
-import { sanitizeBins } from "@/utils/bins";
+import { sanitizeBins, sanitizeDividerCount } from "@/utils/bins";
 import { formatDrawerSize } from "@/utils/format";
 import {
   sanitizeEstimateSettings,
@@ -20,7 +20,7 @@ export interface SavedLayoutSnapshot {
   bins: Bin[];
   testFit: boolean;
   labelTabs: boolean;
-  dividers: boolean;
+  dividerCount: number;
   lids: boolean;
   estimateSettings: EstimateSettings;
 }
@@ -69,7 +69,9 @@ const isSnapshot = (value: unknown): value is SavedLayoutSnapshot => {
     Array.isArray(record.bins) &&
     typeof record.testFit === "boolean" &&
     typeof record.labelTabs === "boolean" &&
-    typeof record.dividers === "boolean" &&
+    (isFiniteNumber(record.dividerCount) ||
+      typeof record.dividers === "boolean" ||
+      isFiniteNumber(record.dividers)) &&
     typeof record.lids === "boolean"
   );
 };
@@ -108,7 +110,11 @@ const sanitizeSnapshot = (value: unknown): SavedLayoutSnapshot | null => {
     bins: sanitizeBins(value.bins),
     testFit: value.testFit,
     labelTabs: value.labelTabs,
-    dividers: value.dividers,
+    dividerCount: sanitizeDividerCount(
+      isFiniteNumber(value.dividerCount)
+        ? value.dividerCount
+        : (value as unknown as Record<string, unknown>).dividers
+    ),
     lids: value.lids,
     estimateSettings: sanitizeEstimateSettings(value.estimateSettings),
   };

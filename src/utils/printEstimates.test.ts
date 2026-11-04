@@ -7,6 +7,7 @@ import {
   baseplateVolumeMm3,
   binVolumeMm3,
   DEFAULT_ESTIMATE_SETTINGS,
+  dividerVolumeMm3,
   estimatePrint,
   formatEstimateCost,
   formatEstimateDuration,
@@ -240,5 +241,35 @@ describe('estimate formatting', () => {
     expect(formatEstimateCost(0)).toBe('$0.00');
     expect(formatEstimateCost(12.05)).toBe('$12.05');
     expect(formatEstimateCost(0.865)).toBe('$0.87');
+  });
+});
+
+describe("partVolumeMm3 divider counts", () => {
+  it.each([
+    [0, 42],
+    [1, 42],
+    [2, 42],
+    [3, 42],
+    [0, 21],
+    [1, 21],
+    [2, 21],
+    [3, 21],
+  ])("adds count × divider volume for %i dividers on %i mm cells", (count, cellSize) => {
+    const part = binPart(2, 1, cellSize, 6, 1);
+    part.binGeometry = { ...part.binGeometry, dividerCount: count };
+    const expected =
+      binVolumeMm3(2, 1, cellSize, 6) + count * dividerVolumeMm3(2, 1, cellSize, 6);
+    expect(relativeError(partVolumeMm3(part), expected)).toBeLessThan(1e-9);
+  });
+
+  it("scales the estimate with the number of printed divided bins", () => {
+    const single = binPart(2, 1, 42, 6, 1);
+    single.binGeometry = { ...single.binGeometry, dividerCount: 2 };
+    const pair = binPart(2, 1, 42, 6, 2);
+    pair.binGeometry = { ...pair.binGeometry, dividerCount: 2 };
+    const one = estimatePrint([single]);
+    const two = estimatePrint([pair]);
+    expect(relativeError(two.grams, 2 * one.grams)).toBeLessThan(1e-9);
+    expect(relativeError(two.minutes, 2 * one.minutes)).toBeLessThan(1e-9);
   });
 });

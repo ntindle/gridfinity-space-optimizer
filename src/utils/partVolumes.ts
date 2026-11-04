@@ -294,14 +294,17 @@ export const partVolumeMm3 = (part: PrintPartSummary): number => {
         labelTabVolumeMm3(part.binGeometry.columns, part.binGeometry.cellSize)
       );
     }
-    if (part.binGeometry.divider) {
+    if (part.binGeometry.dividerCount) {
       bin = unitMath.add(
         bin,
-        dividerVolumeMm3(
-          part.binGeometry.columns,
-          part.binGeometry.rows,
-          part.binGeometry.cellSize,
-          part.binGeometry.height
+        unitMath.multiply(
+          dividerVolumeMm3(
+            part.binGeometry.columns,
+            part.binGeometry.rows,
+            part.binGeometry.cellSize,
+            part.binGeometry.height
+          ),
+          part.binGeometry.dividerCount
         )
       );
     }
