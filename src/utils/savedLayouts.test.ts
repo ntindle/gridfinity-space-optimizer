@@ -22,7 +22,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   bins: [{ id: "b1", x: 0, y: 0, width: 2, depth: 1, height: 3, label: "Screws" }],
   testFit: false,
   labelTabs: false,
-  dividers: false,
+  dividerCount: 0,
   lids: false,
   estimateSettings: { material: "PLA", priceUsdPerKg: 20, flowMm3PerS: 8 },
 });
@@ -165,5 +165,25 @@ describe("defaultSavedLayoutName", () => {
 describe("createSavedLayoutId", () => {
   it("generates distinct ids", () => {
     expect(createSavedLayoutId()).not.toBe(createSavedLayoutId());
+  });
+});
+
+describe("parseSavedLayouts divider-count migration", () => {
+  it("maps a legacy boolean divider snapshot to a count", () => {
+    const legacy = entry({
+      snapshot: { ...snapshot(), dividerCount: undefined, dividers: true } as unknown as SavedLayoutSnapshot,
+    });
+    const parsed = parseSavedLayouts(JSON.stringify([legacy]));
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].snapshot.dividerCount).toBe(1);
+  });
+
+  it("clamps a legacy numeric divider snapshot to the supported range", () => {
+    const legacy = entry({
+      snapshot: { ...snapshot(), dividerCount: undefined, dividers: 9 } as unknown as SavedLayoutSnapshot,
+    });
+    const parsed = parseSavedLayouts(JSON.stringify([legacy]));
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].snapshot.dividerCount).toBe(3);
   });
 });

@@ -117,7 +117,7 @@ describe('binMesh', () => {
     [3, 2, 42, 2],
     [2, 3, 21, 4],
   ])('builds a closed, outward-facing divided %i × %i bin on %i mm cells, %iu tall', (columns, rows, cellSize, height) => {
-    const mesh = binMesh({ columns, rows, cellSize, height, divider: true });
+    const mesh = binMesh({ columns, rows, cellSize, height, dividerCount: 1 });
     expect(edgeProblems(mesh)).toEqual([]);
     expect(meshVolume(mesh)).toBeGreaterThan(meshVolume(binMesh({ columns, rows, cellSize, height })));
   });
@@ -128,13 +128,13 @@ describe('binMesh', () => {
     [3, 2, 42, 2],
     [2, 3, 21, 4],
   ])('matches the Gridfinity bin volume plus the divider for %i × %i on %i mm, %iu', (columns, rows, cellSize, height) => {
-    const volume = meshVolume(binMesh({ columns, rows, cellSize, height, divider: true }));
+    const volume = meshVolume(binMesh({ columns, rows, cellSize, height, dividerCount: 1 }));
     const expected = binVolumeMm3(columns, rows, cellSize, height) + dividerVolumeMm3(columns, rows, cellSize, height);
     expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
   });
 
   it('runs the divider down the long side, below the stacking lip, inside the footprint', () => {
-    const alongX = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, divider: true });
+    const alongX = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, dividerCount: 1 });
     expect(meshBounds(alongX)).toEqual({
       min: [0, 0, 0],
       max: [83.5, 41.5, expect.closeTo(binTotalHeight(6), 5)],
@@ -147,7 +147,7 @@ describe('binMesh', () => {
     }
     expect(topVertices.has('0,20.15')).toBe(true);
     expect(topVertices.has('83.5,21.35')).toBe(true);
-    const alongY = binMesh({ columns: 1, rows: 2, cellSize: 42, height: 6, divider: true });
+    const alongY = binMesh({ columns: 1, rows: 2, cellSize: 42, height: 6, dividerCount: 1 });
     const alongYVertices = new Set<string>();
     for (let index = 0; index < alongY.positions.length; index += 3) {
       if (alongY.positions[index + 2] === 42) {
@@ -159,8 +159,33 @@ describe('binMesh', () => {
     expect(dividerVolumeMm3(2, 1, 42, 6)).toBeCloseTo(83.5 * 1.2 * (42 - 7), 6);
   });
 
+  it('places two dividers at even thirds and adds twice the divider volume', () => {
+    const mesh = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, dividerCount: 2 });
+    expect(edgeProblems(mesh)).toEqual([]);
+    const volume = meshVolume(mesh);
+    const expected = binVolumeMm3(2, 1, 42, 6) + 2 * dividerVolumeMm3(2, 1, 42, 6);
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+    const span = 42 - 2 * 0.25;
+    const yEdges: number[] = [];
+    for (let index = 0; index < mesh.positions.length; index += 3) {
+      if (mesh.positions[index] === 0 && mesh.positions[index + 2] === 42) {
+        yEdges.push(mesh.positions[index + 1]);
+      }
+    }
+    for (const third of [1, 2]) {
+      const center = (span * third) / 3;
+      expect(yEdges.some((y) => Math.abs(y - (center - 0.6)) < 1e-6)).toBe(true);
+      expect(yEdges.some((y) => Math.abs(y - (center + 0.6)) < 1e-6)).toBe(true);
+    }
+  });
+
+  it('builds an undivided bin when the divider count is zero', () => {
+    const mesh = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, dividerCount: 0 });
+    expect(meshVolume(mesh)).toBeCloseTo(meshVolume(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6 })), 6);
+  });
+
   it('builds a closed tabbed and divided bin', () => {
-    const mesh = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, labelTab: true, divider: true });
+    const mesh = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, labelTab: true, dividerCount: 1 });
     expect(edgeProblems(mesh)).toEqual([]);
     expect(meshBounds(mesh).max[2]).toBeCloseTo(binTotalHeight(6) + 12, 5);
   });

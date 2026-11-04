@@ -17,8 +17,8 @@ const renderOptions = (overrides: Partial<ComponentProps<typeof BinOptions>> = {
     setPreferUniformBaseplates: vi.fn(),
     labelTabs: false,
     setLabelTabs: vi.fn(),
-    dividers: false,
-    setDividers: vi.fn(),
+    dividerCount: 0,
+    setDividerCount: vi.fn(),
     lids: false,
     setLids: vi.fn(),
     ...overrides,
@@ -58,16 +58,20 @@ describe('BinOptions', () => {
     );
   });
 
-  it('toggles dividers in bins', async () => {
+  it('steps the divider count up and down', async () => {
     const user = userEvent.setup();
-    const props = renderOptions();
+    const props = renderOptions({ dividerCount: 1 });
 
-    await user.click(screen.getByRole('switch', { name: 'Dividers in bins' }));
+    await user.click(screen.getByRole('button', { name: 'More dividers' }));
+    expect(props.setDividerCount).toHaveBeenCalledWith(2);
+    await user.click(screen.getByRole('button', { name: 'Fewer dividers' }));
+    expect(props.setDividerCount).toHaveBeenCalledWith(0);
+  });
 
-    expect(props.setDividers).toHaveBeenCalledWith(true);
-    expect(screen.getByRole('switch', { name: 'Dividers in bins' })).toHaveAccessibleDescription(
-      /down the middle of its long side/
-    );
+  it('disables the divider stepper at the bounds', () => {
+    renderOptions({ dividerCount: 0 });
+    expect(screen.getByRole('button', { name: 'Fewer dividers' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'More dividers' })).toBeEnabled();
   });
 
   it('toggles lids for bins', async () => {

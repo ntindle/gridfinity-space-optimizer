@@ -21,7 +21,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   bins: [{ id: "b1", x: 0, y: 0, width: 2, depth: 1, height: 3, label: "Screws" }],
   testFit: false,
   labelTabs: false,
-  dividers: false,
+  dividerCount: 0,
   lids: false,
   estimateSettings: { material: "PLA", priceUsdPerKg: 20, flowMm3PerS: 8 },
 });

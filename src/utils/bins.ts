@@ -8,6 +8,16 @@ export const LABEL_TAB_ABOVE_LIP_MM = 12;
 export const LABEL_TAB_FUSE_MM = 8;
 export const LABEL_TAB_MAX_WIDTH_MM = 36;
 export const DIVIDER_THICKNESS_MM = 1.2;
+export const MAX_DIVIDER_COUNT = 3;
+
+export const sanitizeDividerCount = (value: unknown): number => {
+  if (typeof value === "boolean") return value ? 1 : 0;
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  return unitMath.min(
+    MAX_DIVIDER_COUNT,
+    unitMath.max(0, unitMath.round(value, 0))
+  );
+};
 export const LID_THICKNESS_MM = 3;
 export const LABEL_TAB_SIDE_MARGIN_MM = 3;
 export const MIN_BIN_HEIGHT = 2;

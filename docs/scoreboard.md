@@ -258,6 +258,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression. Load metrics flip between pairs (pair 1 trunk-favoring Lighthouse -2, TTI +48 ms; pair 2 branch-favoring Lighthouse +2, TTI -180 ms), the sign flip being the signature of box noise rather than a branch cost. Interaction metrics overlap except pair 2's branch input-to-preview (51.5 ms), an outlier against the other three runs (32.4-33.7 ms) that did not reproduce in pair 1 (+1.3 ms); the pair-2 layout (+14 ms) and share (+4 ms) trunk-favoring gaps reverse pair 1 (-6 ms, -14 ms). The diff touches no measured code path (drawer-width edit -> preview piece list is unchanged code; the new work is a settings card plus localStorage snapshot code that runs on save and load, and a mount-time parse of an empty saved list in the harness, which runs with cleared storage). Parity +1.0pp (F41 🟡→✅); Job 5 gains named saved layouts: a Saved layouts section in the calculator saves the current layout under a name, loads it back, and deletes it, with the snapshot covering drawer, printer, grid options, bins with labels, print-plan switches, and estimate settings, saved on this device only and not in share links. Bundle delta: index chunk 237,869 -> 243,213 B (+2.2%); the lazy export chunk is unchanged (27,462 B).
 
+## 2026-11-04, PR #166 (divider counts, F18)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).
+
+| Metric | Branch (pair 1 / pair 2) | Trunk (pair 1 / pair 2) |
+| --- | --- | --- |
+| Parity | 54.0% (25 ✅ + 4 🟡 / 50) | 54.0% |
+| Lighthouse perf | 75 / 70 | 73 / 75 |
+| TTI | 3600 / 3844 ms | 3584 / 3547 ms |
+| Input-to-preview (median) | 55.9 / 32.6 ms | 34.5 / 36.3 ms |
+| Layout task | 4 steps, 495 / 497 ms | 4 steps, 502 / 489 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 76 / 79 ms | 1 click, 71 / 81 ms |
+
+Verdict: no credible regression. Load metrics flip between pairs (pair 1 branch-favoring Lighthouse +2, TTI +16 ms; pair 2 trunk-favoring Lighthouse -5, TTI +297 ms), the sign flip being the signature of box noise rather than a branch cost; the four-run TTI band is 3547–3844 ms. Pair 1's branch input-to-preview (55.9 ms) is an outlier against the other three runs (32.6–36.3 ms) and did not reproduce in pair 2 (branch faster by 3.7 ms); layout and share gaps reverse between pairs. The diff touches no measured code path (drawer-width edit -> preview piece list is unchanged code; the new work is a Bin options stepper plus a settings/snapshot count that runs on change and load, and mesh/volume code behind the lazy export chunk that only runs on download). Parity unchanged at 54.0% (F18 stays 🟡); Job 2 gains configurable divider counts: Bin options now offers 0–3 evenly spaced dividers per bin instead of an on/off switch, with estimates, the print plan, and the download README following the count and legacy on/off storage and saved layouts migrating to 1/0. Bundle delta: index chunk 243,213 -> 243,960 B (+0.3%); the lazy export chunk 27,462 -> 27,602 B (+0.5%) for the multi-divider mesh loop and the count-aware README line.
+
 ## 2026-10-23, PR #148 (print plan card, F28)
 
 Catch-up: main moved twice since the 2026-10-22 entry — arena PRs #146 (UI redesign + 18 bug fixes) and #147 (placed bins + STL/3MF export) merged 2026-10-22, moving the map from 34.0% to 42.0% (F6, F14, F25, F27 → ✅; F15 → 🟡; F30 stays 🟡 with plate packing; F10/F45/F46 cell updates). The scoreboard entries between 2026-10-22 and this one record only this run's slice; the map's honesty log carries the #146/#147 detail.

@@ -241,7 +241,7 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
   it('adds the divider note and keeps the same parts when dividers are on', () => {
     const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
     const divided = createPrintFiles(
-      request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })], dividers: true })
+      request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })], dividerCount: 2 })
     );
     expect(divided.parts).toBe(base.parts);
     expect(divided.plates).toBe(base.plates);
