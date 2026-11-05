@@ -95,7 +95,7 @@ const BinOptions: React.FC<BinOptionsProps> = ({
       <OptionRow
         id="lids"
         title="Lids for bins"
-        description="Every printed bin gets a flat 3 mm cover lid that sits on the stacking lip. Lids have no snap lip, hinge, or handle."
+        description="Every printed bin gets a flat 3 mm cover lid with a locating lip that nests inside the bin mouth so the lid stays put; print it lip-up and flip it onto the bin. Lids have no hinge or handle."
         checked={lids}
         onCheckedChange={setLids}
       />

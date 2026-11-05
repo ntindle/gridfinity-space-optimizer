@@ -7,6 +7,10 @@ import {
   LABEL_TAB_MAX_WIDTH_MM,
   LABEL_TAB_SIDE_MARGIN_MM,
   LABEL_TAB_THICKNESS_MM,
+  LID_LIP_CLEARANCE_MM,
+  LID_LIP_DEPTH_MM,
+  LID_LIP_THICKNESS_MM,
+  LID_THICKNESS_MM,
 } from "@/utils/bins";
 import {
   ARC_SEGMENTS,
@@ -16,6 +20,7 @@ import {
   BIN_TOP_RADIUS,
   FOOT_PROFILE,
   POCKET_PROFILE,
+  STACKING_LIP_INNER_INSET_MM,
   binWallProfile,
 } from "@/utils/export/gridfinityProfiles";
 import { BASEPLATE_HEIGHT_MM } from "@/utils/printParts";
@@ -280,6 +285,47 @@ export const dividerVolumeMm3 = (
     )
   );
 
+export const lidLipVolumeMm3 = (width: number, depth: number): number => {
+  const outerInset = unitMath.add(
+    STACKING_LIP_INNER_INSET_MM,
+    LID_LIP_CLEARANCE_MM
+  );
+  const outerRadius = unitMath.subtract(
+    unitMath.subtract(BIN_TOP_RADIUS, STACKING_LIP_INNER_INSET_MM),
+    LID_LIP_CLEARANCE_MM
+  );
+  const innerRadius = unitMath.subtract(outerRadius, LID_LIP_THICKNESS_MM);
+  const outerArea = roundedArea(
+    unitMath.subtract(width, unitMath.multiply(2, outerInset)),
+    unitMath.subtract(depth, unitMath.multiply(2, outerInset)),
+    outerRadius
+  );
+  const innerArea = roundedArea(
+    unitMath.subtract(
+      width,
+      unitMath.multiply(2, unitMath.add(outerInset, LID_LIP_THICKNESS_MM))
+    ),
+    unitMath.subtract(
+      depth,
+      unitMath.multiply(2, unitMath.add(outerInset, LID_LIP_THICKNESS_MM))
+    ),
+    innerRadius
+  );
+  return unitMath.multiply(
+    unitMath.subtract(outerArea, innerArea),
+    LID_LIP_DEPTH_MM
+  );
+};
+
+export const lidVolumeMm3 = (width: number, depth: number): number =>
+  unitMath.add(
+    unitMath.multiply(
+      unitMath.multiply(width, depth),
+      LID_THICKNESS_MM
+    ),
+    lidLipVolumeMm3(width, depth)
+  );
+
 export const partVolumeMm3 = (part: PrintPartSummary): number => {
   if (part.kind === "bin" && part.binGeometry) {
     let bin = binVolumeMm3(
@@ -318,7 +364,7 @@ export const partVolumeMm3 = (part: PrintPartSummary): number => {
     );
   }
   if (part.kind === "lid") {
-    return spacerVolumeMm3(part.width, part.depth, part.height);
+    return lidVolumeMm3(part.width, part.depth);
   }
   return spacerVolumeMm3(part.width, part.depth, part.height);
 };

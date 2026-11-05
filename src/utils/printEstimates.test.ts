@@ -12,6 +12,7 @@ import {
   formatEstimateCost,
   formatEstimateDuration,
   formatEstimateGrams,
+  lidVolumeMm3,
   partVolumeMm3,
   sanitizeEstimateSettings,
   spacerVolumeMm3,
@@ -138,7 +139,7 @@ describe('partVolumeMm3', () => {
     );
   });
 
-  it('prices a lid as its flat plate volume and matches the lid mesh', () => {
+  it('prices a lid as its cover plus locating lip and matches the lid mesh', () => {
     const lid: PrintPartSummary = {
       key: 'lid-2x1',
       kind: 'lid',
@@ -147,11 +148,14 @@ describe('partVolumeMm3', () => {
       stem: 'lid-2x1',
       width: 83.5,
       depth: 41.5,
-      height: 3,
+      height: 5.5,
       count: 1,
     };
-    expect(partVolumeMm3(lid)).toBeCloseTo(83.5 * 41.5 * 3, 6);
-    expect(partVolumeMm3(lid)).toBeCloseTo(meshVolume(lidMesh(83.5, 41.5)), 6);
+    expect(partVolumeMm3(lid)).toBeCloseTo(lidVolumeMm3(83.5, 41.5), 6);
+    expect(
+      Math.abs(partVolumeMm3(lid) - meshVolume(lidMesh(83.5, 41.5))) /
+        partVolumeMm3(lid)
+    ).toBeLessThan(1e-6);
   });
 });
 

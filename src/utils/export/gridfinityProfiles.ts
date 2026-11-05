@@ -19,6 +19,7 @@ export const POCKET_PROFILE = [
 ] as const;
 
 export const BIN_BASE_HEIGHT = 7;
+export const STACKING_LIP_INNER_INSET_MM = 1.9;
 export const FOOT_PROFILE: readonly ProfilePoint[] = [
   { inset: 2.95, z: 0 },
   { inset: 2.15, z: 0.8 },
@@ -44,8 +45,8 @@ export const binWallProfile = (height: number): ProfilePoint[] => {
   return [
     { inset: 0, z: FOOT_TOP },
     ...fillet,
-    { inset: 1.9, z: top + 2.5 },
-    { inset: 1.9, z: top + 0.7 },
+    { inset: STACKING_LIP_INNER_INSET_MM, z: top + 2.5 },
+    { inset: STACKING_LIP_INNER_INSET_MM, z: top + 0.7 },
     { inset: 2.6, z: top },
     { inset: 2.6, z: top - 1.2 },
     { inset: BIN_WALL, z: top - 1.2 - (2.6 - BIN_WALL) },
