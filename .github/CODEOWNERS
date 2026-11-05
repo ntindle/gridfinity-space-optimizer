@@ -1,0 +1,5 @@
+# Changes to CI, release config and security docs need a maintainer's review.
+# Pair this with a ruleset that requires code owner review.
+# In an organization, use the team that maintains this repo (for example @org/maintainers).
+/.github/        @ntindle
+/SECURITY.md     @ntindle
