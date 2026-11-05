@@ -19,6 +19,9 @@ export const sanitizeDividerCount = (value: unknown): number => {
   );
 };
 export const LID_THICKNESS_MM = 3;
+export const LID_LIP_DEPTH_MM = 2.5;
+export const LID_LIP_THICKNESS_MM = 1.2;
+export const LID_LIP_CLEARANCE_MM = 0.2;
 export const LABEL_TAB_SIDE_MARGIN_MM = 3;
 export const MIN_BIN_HEIGHT = 2;
 export const MAX_BIN_HEIGHT = 20;

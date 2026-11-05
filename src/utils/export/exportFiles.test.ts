@@ -262,7 +262,7 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(names.filter((name) => name.startsWith('3mf/') && name.includes('-lids'))).toHaveLength(1);
     const readme = strFromU8(files(lidded)['README.txt']);
     expect(readme).toContain('Lids:');
-    expect(readme).toMatch(/2\s+Lid 2 × 1\s+83\.5 × 41\.5 × 3 mm\s+stl\/lid-2x1-x2\.stl/);
+    expect(readme).toMatch(/2\s+Lid 2 × 1\s+83\.5 × 41\.5 × 5.5 mm\s+stl\/lid-2x1-x2\.stl/);
     expect(strFromU8(files(base)['README.txt'])).not.toContain('Lids:');
     const lidPlate = Object.entries(files(lidded)).find(
       ([name]) => name.startsWith('3mf/') && name.includes('-lids')

@@ -149,7 +149,7 @@ describe('collectPrintParts', () => {
     expect(parts.some((part) => part.kind === 'lid')).toBe(false);
   });
 
-  it('adds one flat lid per bin footprint when lids are on', () => {
+  it('adds one lid per bin footprint when lids are on', () => {
     const { parts } = collectPrintParts({
       layout,
       bins: [bin({ id: 'one' })],
@@ -163,7 +163,7 @@ describe('collectPrintParts', () => {
     expect(lids[0].stem).toBe('lid-2x1');
     expect(lids[0].width).toBeCloseTo(83.5, 6);
     expect(lids[0].depth).toBeCloseTo(41.5, 6);
-    expect(lids[0].height).toBe(3);
+    expect(lids[0].height).toBe(5.5);
     expect(lids[0].count).toBe(1);
     expect(lids[0].swatch).toBe('bin');
   });

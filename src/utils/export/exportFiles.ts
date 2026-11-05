@@ -185,7 +185,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       (request.dividerCount ?? 0) > 0 &&
       `- Dividers: every bin has ${request.dividerCount === 1 ? "one divider down the middle" : `${request.dividerCount} evenly spaced dividers`} of its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack.`,
     lids.length > 0 &&
-      "- Lids: every bin gets a flat 3 mm cover lid that sits on the stacking lip; lids have no snap lip, hinge, or handle.",
+      "- Lids: every bin gets a flat 3 mm cover lid with a locating lip that nests inside the bin mouth so the lid stays put; print the lid lip-up and flip it onto the bin; lids have no hinge or handle.",
     bins.some((part) => part.label.includes("half-grid")) &&
       "- Bins marked half-grid feet sit on half-size baseplates.",
     skippedBins > 0 &&

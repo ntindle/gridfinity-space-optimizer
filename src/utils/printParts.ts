@@ -3,6 +3,7 @@ import { FULL_GRID_SIZE, HALF_GRID_SIZE } from "@/utils/gridfinityUtils";
 import {
   BIN_HEIGHT_UNIT_MM,
   LABEL_TAB_ABOVE_LIP_MM,
+  LID_LIP_DEPTH_MM,
   LID_THICKNESS_MM,
   MAX_BIN_HEIGHT,
   STACKING_LIP_HEIGHT_MM,
@@ -133,7 +134,7 @@ const binParts = (
         stem: slug(`lid ${size}${half ? " half-grid" : ""}`),
         width: outer.width,
         depth: outer.depth,
-        height: LID_THICKNESS_MM,
+        height: unitMath.add(LID_THICKNESS_MM, LID_LIP_DEPTH_MM),
         count,
       });
     }
