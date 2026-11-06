@@ -10,6 +10,7 @@ import {
   binIssues,
   binOuterSize,
   binSizeLabel,
+  dividerPositionsText,
   gridCells,
   groupBins,
   indexCells,
@@ -38,6 +39,7 @@ export interface PrintPartSummary {
     height: number;
     labelTab?: boolean;
     dividerCount?: number;
+    dividerPositions?: number[];
   };
   gridGeometry?: { columns: number; rows: number; cellSize: number };
 }
@@ -88,18 +90,24 @@ const binParts = (
   );
   const limits = { ...bed, height: maxUnits };
   const skipped = binIssues(bins, index, limits).size;
-  const groups = groupBins(bins, index, limits);
+  const groups = groupBins(bins, index, limits, dividerCount);
   const parts = groups.map((group): PrintPartSummary => {
     const half = group.cellSize === HALF_GRID_SIZE;
     const size = binSizeLabel(group);
-    const label = `Bin ${size} · ${group.height}u${half ? " · half-grid feet" : ""}`;
+    const label = `Bin ${size} · ${group.height}u${half ? " · half-grid feet" : ""}${
+      group.dividerPositions ? ` · dividers at ${dividerPositionsText(group.dividerPositions)}` : ""
+    }`;
     const outer = binOuterSize(group);
     return {
       key: group.key,
       kind: "bin",
       swatch: "bin",
       label,
-      stem: slug(`bin ${size} ${group.height}u${half ? " half grid" : ""}`),
+      stem: slug(
+        `bin ${size} ${group.height}u${half ? " half grid" : ""}${
+          group.dividerPositions ? ` dividers ${dividerPositionsText(group.dividerPositions)}` : ""
+        }`
+      ),
       width: outer.width,
       depth: outer.depth,
       height: unitMath.add(outer.height, tabAllowance),
@@ -111,6 +119,7 @@ const binParts = (
         height: group.height,
         ...(labelTabs ? { labelTab: true as const } : {}),
         ...(dividerCount ? { dividerCount } : {}),
+        ...(group.dividerPositions ? { dividerPositions: group.dividerPositions } : {}),
       },
     };
   });

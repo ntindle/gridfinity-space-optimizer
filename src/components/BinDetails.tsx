@@ -6,10 +6,15 @@ import BinContentsInput from "@/components/BinContentsInput";
 import { unitMath } from "@/services/unitMath";
 import { formatLength, formatSize } from "@/utils/format";
 import {
+  DIVIDER_POSITION_MAX_FRACTION,
+  DIVIDER_POSITION_MIN_FRACTION,
+  DIVIDER_POSITION_MIN_GAP_FRACTION,
   MIN_BIN_HEIGHT,
   binOuterSize,
   binSizeLabel,
+  effectiveDividerPositions,
   formatUnits,
+  sanitizeDividerPositions,
   type BinIssue,
 } from "@/utils/bins";
 import type { Bin } from "@/types";
@@ -27,6 +32,7 @@ interface BinDetailsProps {
   step: number;
   maxHeight: number;
   useMm: boolean;
+  dividerCount: number;
   canResize: (width: number, depth: number) => boolean;
   onChange: (bin: Bin) => void;
   onDuplicate: () => void;
@@ -40,6 +46,7 @@ const BinDetails: React.FC<BinDetailsProps> = ({
   step,
   maxHeight,
   useMm,
+  dividerCount,
   canResize,
   onChange,
   onDuplicate,
@@ -52,6 +59,16 @@ const BinDetails: React.FC<BinDetailsProps> = ({
   const narrower = unitMath.subtract(bin.width, step);
   const deeper = unitMath.add(bin.depth, step);
   const shallower = unitMath.subtract(bin.depth, step);
+  const dividerPositions = effectiveDividerPositions(bin, dividerCount);
+  const dividerReferenceEdge =
+    bin.width >= bin.depth ? "the label-tab edge" : "the left edge in the preview";
+  const setDividerPosition = (index: number, next: number) => {
+    const updated = dividerPositions.map((position, current) =>
+      current === index ? next : position
+    );
+    const normalized = sanitizeDividerPositions(updated, dividerCount);
+    if (normalized) onChange({ ...bin, dividerPositions: normalized });
+  };
 
   return (
     <section
@@ -119,6 +136,61 @@ const BinDetails: React.FC<BinDetailsProps> = ({
           onCommit={(label) => onChange({ ...bin, label })}
         />
       </div>
+      {dividerCount > 0 ? (
+        <div className="mt-3">
+          <p className="text-[13px] font-medium">Divider positions</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Measured across the bin&apos;s short side, from {dividerReferenceEdge}.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-3">
+            {dividerPositions.map((position, index) => {
+              const lower =
+                index === 0
+                  ? DIVIDER_POSITION_MIN_FRACTION
+                  : unitMath.add(
+                      dividerPositions[index - 1],
+                      DIVIDER_POSITION_MIN_GAP_FRACTION
+                    );
+              const upper =
+                index === dividerPositions.length - 1
+                  ? DIVIDER_POSITION_MAX_FRACTION
+                  : unitMath.subtract(
+                      dividerPositions[index + 1],
+                      DIVIDER_POSITION_MIN_GAP_FRACTION
+                    );
+              return (
+                <Stepper
+                  key={index}
+                  label={`Divider ${index + 1}`}
+                  value={`${unitMath.round(unitMath.multiply(position, 100), 0)}%`}
+                  canDecrease={unitMath.subtract(position, lower) > 0}
+                  canIncrease={unitMath.subtract(upper, position) > 0}
+                  onDecrease={() =>
+                    setDividerPosition(
+                      index,
+                      unitMath.max(
+                        lower,
+                        unitMath.round(unitMath.subtract(position, 0.05), 2)
+                      )
+                    )
+                  }
+                  onIncrease={() =>
+                    setDividerPosition(
+                      index,
+                      unitMath.min(
+                        upper,
+                        unitMath.round(unitMath.add(position, 0.05), 2)
+                      )
+                    )
+                  }
+                  decreaseLabel={`Divider ${index + 1} toward ${dividerReferenceEdge}`}
+                  increaseLabel={`Divider ${index + 1} away from ${dividerReferenceEdge}`}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
       <div className="mt-3 flex flex-wrap gap-2">
         <Button type="button" variant="outline" size="sm" onClick={onDuplicate}>
           <Copy />

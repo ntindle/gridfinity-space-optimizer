@@ -9,6 +9,10 @@ export const LABEL_TAB_FUSE_MM = 8;
 export const LABEL_TAB_MAX_WIDTH_MM = 36;
 export const DIVIDER_THICKNESS_MM = 1.2;
 export const MAX_DIVIDER_COUNT = 3;
+export const DIVIDER_POSITION_MIN_FRACTION = 0.1;
+export const DIVIDER_POSITION_MAX_FRACTION = 0.9;
+export const DIVIDER_POSITION_MIN_GAP_FRACTION = 0.05;
+export const DIVIDER_POSITION_EPSILON = 0.005;
 
 export const sanitizeDividerCount = (value: unknown): number => {
   if (typeof value === "boolean") return value ? 1 : 0;
@@ -18,6 +22,72 @@ export const sanitizeDividerCount = (value: unknown): number => {
     unitMath.max(0, unitMath.round(value, 0))
   );
 };
+
+export const evenDividerPositions = (count: number): number[] =>
+  Array.from({ length: unitMath.max(0, count) }, (_, index) =>
+    unitMath.divide(index + 1, count + 1)
+  );
+
+export const sanitizeDividerPositions = (
+  value: unknown,
+  count: number
+): number[] | undefined => {
+  if (!Number.isInteger(count) || count < 1 || count > MAX_DIVIDER_COUNT) return undefined;
+  if (!Array.isArray(value) || value.length !== count) return undefined;
+  if (value.some((entry) => typeof entry !== "number" || !Number.isFinite(entry))) {
+    return undefined;
+  }
+  const positions = (value as number[])
+    .map((entry) =>
+      unitMath.round(
+        unitMath.min(
+          DIVIDER_POSITION_MAX_FRACTION,
+          unitMath.max(DIVIDER_POSITION_MIN_FRACTION, entry)
+        ),
+        2
+      )
+    )
+    .sort((a, b) => a - b);
+  for (let index = 1; index < positions.length; index += 1) {
+    positions[index] = unitMath.max(
+      positions[index],
+      unitMath.add(positions[index - 1], DIVIDER_POSITION_MIN_GAP_FRACTION)
+    );
+  }
+  positions[positions.length - 1] = unitMath.min(
+    positions[positions.length - 1],
+    DIVIDER_POSITION_MAX_FRACTION
+  );
+  for (let index = positions.length - 2; index >= 0; index -= 1) {
+    positions[index] = unitMath.min(
+      positions[index],
+      unitMath.subtract(positions[index + 1], DIVIDER_POSITION_MIN_GAP_FRACTION)
+    );
+  }
+  return positions;
+};
+
+export const effectiveDividerPositions = (bin: Bin, dividerCount: number): number[] =>
+  sanitizeDividerPositions(bin.dividerPositions, dividerCount) ??
+  evenDividerPositions(dividerCount);
+
+export const isCustomDividerPositions = (bin: Bin, dividerCount: number): boolean => {
+  if (dividerCount < 1) return false;
+  const effective = effectiveDividerPositions(bin, dividerCount);
+  const even = evenDividerPositions(dividerCount);
+  return effective.some(
+    (position, index) =>
+      unitMath.max(
+        unitMath.subtract(position, even[index]),
+        unitMath.subtract(even[index], position)
+      ) > DIVIDER_POSITION_EPSILON
+  );
+};
+
+export const dividerPositionsText = (positions: number[]): string =>
+  positions
+    .map((position) => `${unitMath.round(unitMath.multiply(position, 100), 0)}%`)
+    .join(", ");
 export const LID_THICKNESS_MM = 3;
 export const LID_LIP_DEPTH_MM = 2.5;
 export const LID_LIP_THICKNESS_MM = 1.2;
@@ -58,6 +128,7 @@ export interface BinGroup {
   height: number;
   cellSize: number;
   bins: Bin[];
+  dividerPositions?: number[];
 }
 
 const cellKey = (x: number, y: number): string => `${x},${y}`;
@@ -364,7 +435,8 @@ export const maxBinHeight = (printerZ: number): number =>
 export const groupBins = (
   bins: Bin[],
   index: CellIndex,
-  limits?: BinLimits
+  limits?: BinLimits,
+  dividerCount = 0
 ): BinGroup[] => {
   const issues = binIssues(bins, index, limits);
   const groups = new Map<string, BinGroup>();
@@ -373,12 +445,28 @@ export const groupBins = (
     const cellSize = binTileSize(index, bin) ?? FULL_GRID_SIZE;
     const width = unitMath.max(bin.width, bin.depth);
     const depth = unitMath.min(bin.width, bin.depth);
-    const key = `bin:${cellSize}:${width}x${depth}x${bin.height}`;
+    const custom = isCustomDividerPositions(bin, dividerCount);
+    const positions = custom ? effectiveDividerPositions(bin, dividerCount) : undefined;
+    const key = `bin:${cellSize}:${width}x${depth}x${bin.height}${
+      positions
+        ? `:${positions
+            .map((position) => unitMath.round(unitMath.multiply(position, 100), 0))
+            .join("-")}`
+        : ""
+    }`;
     const group = groups.get(key);
     if (group) {
       group.bins.push(bin);
     } else {
-      groups.set(key, { key, width, depth, height: bin.height, cellSize, bins: [bin] });
+      groups.set(key, {
+        key,
+        width,
+        depth,
+        height: bin.height,
+        cellSize,
+        bins: [bin],
+        ...(positions ? { dividerPositions: positions } : {}),
+      });
     }
   }
   return [...groups.values()].sort(
@@ -416,6 +504,14 @@ export const sanitizeBins = (value: unknown): Bin[] => {
       depth: raw.depth,
       height,
       label: typeof raw.label === "string" ? raw.label.slice(0, MAX_LABEL_LENGTH) : "",
+      ...(Array.isArray(raw.dividerPositions) &&
+      raw.dividerPositions.length >= 1 &&
+      raw.dividerPositions.length <= MAX_DIVIDER_COUNT &&
+      raw.dividerPositions.every(
+        (entry) => typeof entry === "number" && Number.isFinite(entry) && entry > 0 && entry < 1
+      )
+        ? { dividerPositions: [...(raw.dividerPositions as number[])] }
+        : {}),
     });
   }
   return bins;

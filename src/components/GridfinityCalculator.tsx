@@ -307,6 +307,7 @@ const GridfinityCalculator: React.FC = () => {
                   bins={settings.bins}
                   onBinsChange={settings.setBins}
                   printerSize={printerSize}
+                  dividerCount={settings.dividerCount}
                 />
               </div>
             </Card>

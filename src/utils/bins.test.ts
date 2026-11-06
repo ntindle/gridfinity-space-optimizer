@@ -9,14 +9,19 @@ import {
   binTotalHeight,
   canPlace,
   cellAt,
+  dividerPositionsText,
+  effectiveDividerPositions,
+  evenDividerPositions,
   fillEmpty,
   findFreeSpot,
   gridCells,
   groupBins,
   indexCells,
+  isCustomDividerPositions,
   maxBinHeight,
   sanitizeBins,
   sanitizeDividerCount,
+  sanitizeDividerPositions,
   snapMove,
   snapResize,
   spanRect,
@@ -189,6 +194,41 @@ describe('groupBins', () => {
       ['bin:42:42x42x6', ['c']],
     ]);
   });
+
+  it('splits same-footprint bins by custom divider positions and merges identical ones', () => {
+    const groups = groupBins(
+      [
+        bin({ id: 'a', width: 84 }),
+        bin({ id: 'b', x: 84, width: 84, dividerPositions: [0.25] }),
+        bin({ id: 'c', x: 168, width: 84, dividerPositions: [0.25] }),
+        bin({ id: 'd', x: 252, width: 84, dividerPositions: [0.75] }),
+      ],
+      index,
+      undefined,
+      1
+    );
+    expect(groups.map((group) => [group.key, group.bins.map((item) => item.id)])).toEqual([
+      ['bin:42:84x42x3', ['a']],
+      ['bin:42:84x42x3:25', ['b', 'c']],
+      ['bin:42:84x42x3:75', ['d']],
+    ]);
+    expect(groups[1].dividerPositions).toEqual([0.25]);
+    expect(groups[0].dividerPositions).toBeUndefined();
+  });
+
+  it('keeps default bins in one group when the count is zero', () => {
+    const groups = groupBins(
+      [
+        bin({ id: 'a', width: 84 }),
+        bin({ id: 'b', x: 84, width: 84, dividerPositions: [0.25] }),
+      ],
+      index,
+      undefined,
+      0
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0].bins.map((item) => item.id)).toEqual(['a', 'b']);
+  });
 });
 
 describe('sanitizeBins', () => {
@@ -207,9 +247,26 @@ describe('sanitizeBins', () => {
     expect(bins[1].height).toBe(MAX_BIN_HEIGHT);
     expect(sanitizeBins('nope')).toEqual([]);
   });
+
+  it('carries valid divider positions and drops invalid ones', () => {
+    const bins = sanitizeBins([
+      bin({ id: 'a', dividerPositions: [0.25, 0.75] }),
+      bin({ id: 'b', dividerPositions: [0, 0.5] }),
+      bin({ id: 'c', dividerPositions: [1.5] }),
+      bin({ id: 'd', dividerPositions: [0.25, 0.5, 0.75, 0.9] }),
+      bin({ id: 'e', dividerPositions: 'half' as unknown as number[] }),
+    ]);
+    expect(bins.map((item) => [item.id, item.dividerPositions])).toEqual([
+      ['a', [0.25, 0.75]],
+      ['b', undefined],
+      ['c', undefined],
+      ['d', undefined],
+      ['e', undefined],
+    ]);
+  });
 });
 
-describe("sanitizeDividerCount", () => {
+describe('sanitizeDividerCount', () => {
   it("maps legacy booleans and clamps numbers to the supported range", () => {
     expect(sanitizeDividerCount(true)).toBe(1);
     expect(sanitizeDividerCount(false)).toBe(0);
@@ -218,5 +275,57 @@ describe("sanitizeDividerCount", () => {
     expect(sanitizeDividerCount(-1)).toBe(0);
     expect(sanitizeDividerCount("two")).toBe(0);
     expect(sanitizeDividerCount(Number.NaN)).toBe(0);
+  });
+});
+
+describe('sanitizeDividerPositions', () => {
+  it('rejects anything that is not a matching-length list of fractions', () => {
+    expect(sanitizeDividerPositions([0.5], 0)).toBeUndefined();
+    expect(sanitizeDividerPositions('half', 1)).toBeUndefined();
+    expect(sanitizeDividerPositions([0.25, 0.75], 1)).toBeUndefined();
+    expect(sanitizeDividerPositions([0.5, Number.NaN], 2)).toBeUndefined();
+    expect(sanitizeDividerPositions([0.5, 'x'], 2)).toBeUndefined();
+  });
+
+  it('clamps to the wall clearance, sorts, and keeps dividers apart', () => {
+    expect(sanitizeDividerPositions([0.02, 0.5], 2)).toEqual([0.1, 0.5]);
+    expect(sanitizeDividerPositions([0.75, 0.25], 2)).toEqual([0.25, 0.75]);
+    expect(sanitizeDividerPositions([0.5, 0.52], 2)).toEqual([0.5, 0.55]);
+    expect(sanitizeDividerPositions([0.89, 0.9, 0.9], 3)).toEqual([0.8, 0.85, 0.9]);
+    expect(sanitizeDividerPositions([0.5], 1)).toEqual([0.5]);
+  });
+
+  it('canonicalizes stored positions to two decimals', () => {
+    expect(sanitizeDividerPositions([0.251, 0.254], 2)).toEqual([0.25, 0.3]);
+    expect(sanitizeDividerPositions([0.333, 0.667], 2)).toEqual([0.33, 0.67]);
+  });
+});
+
+describe('divider positions', () => {
+  it('spaces dividers evenly by default', () => {
+    expect(evenDividerPositions(0)).toEqual([]);
+    expect(evenDividerPositions(1)).toEqual([0.5]);
+    expect(evenDividerPositions(2)).toEqual([1 / 3, 2 / 3]);
+    expect(evenDividerPositions(3)).toEqual([0.25, 0.5, 0.75]);
+  });
+
+  it('uses stored positions when they match the count and falls back otherwise', () => {
+    expect(effectiveDividerPositions(bin({ dividerPositions: [0.25] }), 1)).toEqual([0.25]);
+    expect(effectiveDividerPositions(bin({}), 1)).toEqual([0.5]);
+    expect(effectiveDividerPositions(bin({ dividerPositions: [0.25, 0.75] }), 1)).toEqual([0.5]);
+    expect(effectiveDividerPositions(bin({ dividerPositions: [0.02] }), 1)).toEqual([0.1]);
+  });
+
+  it('calls a bin custom only when a position moves off the even spacing', () => {
+    expect(isCustomDividerPositions(bin({}), 1)).toBe(false);
+    expect(isCustomDividerPositions(bin({ dividerPositions: [0.5] }), 1)).toBe(false);
+    expect(isCustomDividerPositions(bin({ dividerPositions: [0.25] }), 1)).toBe(true);
+    expect(isCustomDividerPositions(bin({ dividerPositions: [0.25, 0.75] }), 1)).toBe(false);
+    expect(isCustomDividerPositions(bin({ dividerPositions: [0.25] }), 0)).toBe(false);
+  });
+
+  it('formats positions as whole percents', () => {
+    expect(dividerPositionsText([0.25, 0.75])).toBe('25%, 75%');
+    expect(dividerPositionsText([1 / 3])).toBe('33%');
   });
 });

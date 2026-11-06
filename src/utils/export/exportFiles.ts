@@ -116,6 +116,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
   const grid = parts.filter((part) => part.kind === "baseplate" || part.kind === "spacer");
   const bins = parts.filter((part) => part.kind === "bin");
   const lids = parts.filter((part) => part.kind === "lid");
+  const customDividerPositions = bins.some((part) => part.binGeometry?.dividerPositions);
   const mainPlates = [...plan("grid", grid), ...plan("bin", bins), ...plan("lid", lids)];
   const plates = [
     ...(testPlate ? [{ kind: "grid" as const, plate: testPlate, number: 0 }] : []),
@@ -183,7 +184,9 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       "- Label tabs: every bin has a raised tab above the stacking lip for a stuck-on label; another bin cannot stack on top of a tabbed bin.",
     bins.length > 0 &&
       (request.dividerCount ?? 0) > 0 &&
-      `- Dividers: every bin has ${request.dividerCount === 1 ? "one divider down the middle" : `${request.dividerCount} evenly spaced dividers`} of its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack.`,
+      (customDividerPositions
+        ? `- Dividers: every bin has ${request.dividerCount === 1 ? "one divider" : `${request.dividerCount} dividers`} down its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack; bins with custom positions print with the dividers at the positions set in the piece details panel.`
+        : `- Dividers: every bin has ${request.dividerCount === 1 ? "one divider down the middle" : `${request.dividerCount} evenly spaced dividers`} of its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack.`),
     lids.length > 0 &&
       "- Lids: every bin gets a flat 3 mm cover lid with a locating lip that nests inside the bin mouth so the lid stays put; print the lid lip-up and flip it onto the bin; lids have no hinge or handle.",
     bins.some((part) => part.label.includes("half-grid")) &&

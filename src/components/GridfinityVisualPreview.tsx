@@ -18,6 +18,7 @@ import {
   canPlace,
   cellAt,
   createBinId,
+  dividerPositionsText,
   fillEmpty,
   findFreeSpot,
   fitsBed,
@@ -49,6 +50,7 @@ interface GridfinityVisualPreviewProps {
   bins: Bin[];
   onBinsChange: Dispatch<SetStateAction<Bin[]>>;
   printerSize: PrinterSize;
+  dividerCount?: number;
 }
 
 type Gesture =
@@ -120,6 +122,7 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
   bins,
   onBinsChange,
   printerSize,
+  dividerCount = 0,
 }) => {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [hoverKey, setHoverKey] = useState<string | null>(null);
@@ -158,7 +161,7 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
     [printerSize]
   );
   const issues = useMemo(() => binIssues(bins, index, limits), [bins, index, limits]);
-  const binGroups = useMemo(() => groupBins(bins, index, limits), [bins, index, limits]);
+  const binGroups = useMemo(() => groupBins(bins, index, limits, dividerCount), [bins, index, limits, dividerCount]);
   const binGroupKey = useMemo(() => {
     const keys = new Map<string, string>();
     binGroups.forEach((group) => group.bins.forEach((bin) => keys.set(bin.id, group.key)));
@@ -658,6 +661,7 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
             step={binStep(selectedBin, index, baseStep)}
             maxHeight={unitMath.max(maxHeight, selectedBin.height)}
             useMm={useMm}
+            dividerCount={dividerCount}
             canResize={(width, depth) =>
               fits({ x: selectedBin.x, y: selectedBin.y, width, depth }, selectedBin.id)
             }
@@ -707,6 +711,9 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
                       <span>Bin</span>{" "}
                       <span className="tabular-nums">
                         {binSizeLabel(group)} · {group.height}u
+                        {group.dividerPositions
+                          ? ` · dividers at ${dividerPositionsText(group.dividerPositions)}`
+                          : ""}
                       </span>{" "}
                       <span className="sr-only">
                         {`— ${count} in this drawer${note ? ` · ${note}` : ""}${numDrawers > 1 ? `, ${total} in total` : ""}`}
