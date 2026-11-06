@@ -9,6 +9,7 @@ import {
   MIN_BIN_HEIGHT,
   STACKING_LIP_HEIGHT_MM,
 } from "@/utils/bins";
+import { unitMath } from "@/services/unitMath";
 import { createMeshBuilder, type Mesh, type Vec3 } from "./mesh";
 import {
   BIN_BASE_HEIGHT,
@@ -36,6 +37,7 @@ export interface BinShape {
   height: number;
   labelTab?: boolean;
   dividerCount?: number;
+  dividerPositions?: number[];
 }
 
 export const labelTabWidthMm = (columns: number, cellSize: number): number => {
@@ -142,7 +144,7 @@ const outwardFacing = (center: Point, a: Point, b: Point, lower: ProfilePoint, u
   ];
 };
 
-export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCount }: BinShape): Mesh => {
+export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCount, dividerPositions }: BinShape): Mesh => {
   if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns < 1 || rows < 1) {
     throw new Error("A bin needs a whole number of cells");
   }
@@ -257,8 +259,13 @@ export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCoun
   if (dividerCount) {
     const alongX = columns >= rows;
     const span = (alongX ? depth : width) - 2 * BIN_GAP;
+    const positions =
+      dividerPositions && dividerPositions.length === dividerCount ? dividerPositions : null;
     for (let index = 0; index < dividerCount; index += 1) {
-      dividerBox(builder, columns, rows, cellSize, height, (span * (index + 1)) / (dividerCount + 1));
+      const fraction = positions
+        ? positions[index]
+        : unitMath.divide(index + 1, dividerCount + 1);
+      dividerBox(builder, columns, rows, cellSize, height, unitMath.multiply(span, fraction));
     }
   }
 

@@ -36,6 +36,7 @@ export interface Bin {
   depth: number;
   height: number;
   label: string;
+  dividerPositions?: number[];
 }
 
 export interface GridCell {

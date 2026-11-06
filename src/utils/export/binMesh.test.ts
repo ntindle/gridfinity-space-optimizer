@@ -179,6 +179,74 @@ describe('binMesh', () => {
     }
   });
 
+  it('places a divider at a custom position without changing its volume', () => {
+    const mesh = binMesh({
+      columns: 2,
+      rows: 1,
+      cellSize: 42,
+      height: 6,
+      dividerCount: 1,
+      dividerPositions: [0.25],
+    });
+    expect(edgeProblems(mesh)).toEqual([]);
+    const volume = meshVolume(mesh);
+    const expected = binVolumeMm3(2, 1, 42, 6) + dividerVolumeMm3(2, 1, 42, 6);
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+    const span = 42 - 2 * 0.25;
+    const center = span * 0.25;
+    const yEdges: number[] = [];
+    for (let index = 0; index < mesh.positions.length; index += 3) {
+      if (mesh.positions[index] === 0 && mesh.positions[index + 2] === 42) {
+        yEdges.push(mesh.positions[index + 1]);
+      }
+    }
+    expect(yEdges.some((y) => Math.abs(y - (center - 0.6)) < 1e-6)).toBe(true);
+    expect(yEdges.some((y) => Math.abs(y - (center + 0.6)) < 1e-6)).toBe(true);
+    expect(yEdges.some((y) => Math.abs(y - (span * 0.5 - 0.6)) < 1e-6)).toBe(false);
+  });
+
+  it('places two dividers at custom positions and adds twice the divider volume', () => {
+    const mesh = binMesh({
+      columns: 2,
+      rows: 1,
+      cellSize: 42,
+      height: 6,
+      dividerCount: 2,
+      dividerPositions: [0.25, 0.75],
+    });
+    expect(edgeProblems(mesh)).toEqual([]);
+    const volume = meshVolume(mesh);
+    const expected = binVolumeMm3(2, 1, 42, 6) + 2 * dividerVolumeMm3(2, 1, 42, 6);
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+    const span = 42 - 2 * 0.25;
+    const yEdges: number[] = [];
+    for (let index = 0; index < mesh.positions.length; index += 3) {
+      if (mesh.positions[index] === 0 && mesh.positions[index + 2] === 42) {
+        yEdges.push(mesh.positions[index + 1]);
+      }
+    }
+    for (const fraction of [0.25, 0.75]) {
+      const center = span * fraction;
+      expect(yEdges.some((y) => Math.abs(y - (center - 0.6)) < 1e-6)).toBe(true);
+      expect(yEdges.some((y) => Math.abs(y - (center + 0.6)) < 1e-6)).toBe(true);
+    }
+  });
+
+  it('falls back to even spacing when positions do not match the count', () => {
+    const mesh = binMesh({
+      columns: 2,
+      rows: 1,
+      cellSize: 42,
+      height: 6,
+      dividerCount: 2,
+      dividerPositions: [0.25],
+    });
+    const even = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, dividerCount: 2 });
+    expect(meshVolume(mesh)).toBeCloseTo(meshVolume(even), 6);
+    expect(mesh.positions).toEqual(even.positions);
+    expect(mesh.triangles).toEqual(even.triangles);
+  });
+
   it('builds an undivided bin when the divider count is zero', () => {
     const mesh = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, dividerCount: 0 });
     expect(meshVolume(mesh)).toBeCloseTo(meshVolume(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6 })), 6);

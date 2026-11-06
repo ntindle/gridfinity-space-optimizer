@@ -250,6 +250,29 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(Object.keys(files(divided))).toContain('stl/bin-2x1-6u-x2.stl');
   });
 
+  it('splits the bin STL and notes custom positions when dividers move off center', () => {
+    const base = createPrintFiles(
+      request({
+        bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })],
+        dividerCount: 1,
+      })
+    );
+    const divided = createPrintFiles(
+      request({
+        bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84, dividerPositions: [0.25] })],
+        dividerCount: 1,
+      })
+    );
+    expect(divided.parts).toBe(base.parts + 1);
+    const names = Object.keys(files(divided));
+    expect(names).toContain('stl/bin-2x1-6u-x1.stl');
+    expect(names).toContain('stl/bin-2x1-6u-dividers-25-x1.stl');
+    const readme = strFromU8(files(divided)['README.txt']);
+    expect(readme).toContain('Dividers:');
+    expect(readme).toContain('custom positions');
+    expect(readme).toContain('piece details panel');
+  });
+
   it('adds the lid STL, its own 3MF lid plate, and the lid note when lids are on', () => {
     const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
     const lidded = createPrintFiles(

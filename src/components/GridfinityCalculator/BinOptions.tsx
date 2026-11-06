@@ -78,7 +78,7 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         <div className="min-w-0">
           <p className="text-sm font-medium">Dividers in bins</p>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Every printed bin gets evenly spaced dividers down its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack.
+            Every printed bin gets dividers down its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack. Positions start evenly spaced and can be moved per bin in the piece details.
           </p>
         </div>
         <Stepper

@@ -108,6 +108,61 @@ describe('collectPrintParts', () => {
     expect(divided.parts[0].stem).toBe(plain.parts[0].stem);
   });
 
+  it('splits same-footprint bins by custom divider positions with distinct files', () => {
+    const oneCell = (overrides: Partial<Bin>): Bin => ({
+      ...bin(overrides),
+      width: 42,
+      depth: 42,
+    });
+    const { parts } = collectPrintParts({
+      layout,
+      bins: [
+        oneCell({ id: 'one' }),
+        oneCell({ id: 'two', x: 42, dividerPositions: [0.25] }),
+        oneCell({ id: 'three', x: 84, dividerPositions: [0.25] }),
+      ],
+      numDrawers: 1,
+      printerSize: A1,
+      dividerCount: 1,
+    });
+    const bins = parts.filter((part) => part.kind === 'bin');
+    expect(bins).toHaveLength(2);
+    expect(bins[0].label).toBe('Bin 1 × 1 · 6u');
+    expect(bins[0].stem).toBe('bin-1x1-6u');
+    expect(bins[0].count).toBe(1);
+    expect(bins[0].binGeometry).toEqual({ columns: 1, rows: 1, cellSize: 42, height: 6, dividerCount: 1 });
+    expect(bins[1].label).toBe('Bin 1 × 1 · 6u · dividers at 25%');
+    expect(bins[1].stem).toBe('bin-1x1-6u-dividers-25');
+    expect(bins[1].count).toBe(2);
+    expect(bins[1].binGeometry).toEqual({
+      columns: 1,
+      rows: 1,
+      cellSize: 42,
+      height: 6,
+      dividerCount: 1,
+      dividerPositions: [0.25],
+    });
+    expect(bins[0].key).not.toBe(bins[1].key);
+  });
+
+  it('keeps same-footprint bins in one part when positions match the even spacing', () => {
+    const { parts } = collectPrintParts({
+      layout,
+      bins: [
+        bin({ id: 'one', width: 42, depth: 42 }),
+        bin({ id: 'two', x: 42, width: 42, depth: 42, dividerPositions: [0.5] }),
+      ],
+      numDrawers: 1,
+      printerSize: A1,
+      dividerCount: 1,
+    });
+    const bins = parts.filter((part) => part.kind === 'bin');
+    expect(bins).toHaveLength(1);
+    expect(bins[0].count).toBe(2);
+    expect(bins[0].label).toBe('Bin 1 × 1 · 6u');
+    expect(bins[0].binGeometry).toEqual({ columns: 1, rows: 1, cellSize: 42, height: 6, dividerCount: 1 });
+  });
+
   it('skips a tall bin on a short printer only when tabs are on', () => {
     const short: PrinterSize = { x: 256, y: 256, z: 50 };
     const plain = collectPrintParts({
