@@ -1,8 +1,11 @@
 import React, { useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { ChevronDown, X } from "lucide-react";
+import { toast } from "sonner";
 import { unitMath } from "@/services/unitMath";
 import { cn } from "@/lib/utils";
 import { drawerSizeMm, formatLength, formatSize } from "@/utils/format";
+import { supportsWebGL } from "@/utils/webgl";
+import type { ThreeDPreviewProps } from "./ThreeDPreview";
 import {
   getPreviewPieceDetails,
   groupPreviewPieces,
@@ -37,7 +40,7 @@ import {
 import { usableBed } from "@/utils/printPlan";
 import { useBinHistory } from "@/hooks/useBinHistory";
 import BinDetails from "./BinDetails";
-import BinToolbar from "./BinToolbar";
+import BinToolbar, { type PreviewView } from "./BinToolbar";
 import PieceSwatch from "./PieceSwatch";
 import { PIECE_TYPE_CLASS } from "@/utils/pieceStyles";
 import type { Bin, DrawerSize, GridCell, LayoutItem, PrinterSize } from "@/types";
@@ -130,6 +133,11 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
   const [draft, setDraftState] = useState<Draft | null>(null);
   const [lastHeight, setLastHeight] = useState(DEFAULT_BIN_HEIGHT);
   const [prevLayout, setPrevLayout] = useState(layout);
+  const [view, setView] = useState<PreviewView>("2d");
+  const [threeDComponent, setThreeDComponent] =
+    useState<React.ComponentType<ThreeDPreviewProps> | null>(null);
+  const [threeDRequested, setThreeDRequested] = useState(false);
+  const [webglSupported] = useState(() => supportsWebGL());
   const rowRefs = useRef<Record<string, HTMLLIElement | null>>({});
   const binRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const floorRef = useRef<HTMLDivElement>(null);
@@ -269,6 +277,28 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
   const handleClear = () => {
     history.commit([]);
     setSelectedBinId(null);
+  };
+
+  const handleViewChange = (next: PreviewView) => {
+    if (next === "2d") {
+      setView("2d");
+      return;
+    }
+    if (threeDComponent) {
+      setView("3d");
+      return;
+    }
+    if (threeDRequested) return;
+    setThreeDRequested(true);
+    import("./ThreeDPreview")
+      .then((mod) => {
+        setThreeDComponent(() => mod.default);
+        setView("3d");
+      })
+      .catch(() => {
+        toast.error("3D preview couldn't load");
+        setThreeDRequested(false);
+      });
   };
 
   const pointerMm = (event: React.PointerEvent) => {
@@ -498,6 +528,7 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
   const pieceSelected = selectedKey !== null && !selectedKey.startsWith("bin:");
   const binGroupSelected = selectedKey !== null && selectedKey.startsWith("bin:");
   const binGap = `max(1.5px, ${percent(0.25, drawerMm.width)})`;
+  const ThreeD = threeDComponent;
 
   return (
     <div className="space-y-6">
@@ -511,6 +542,9 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
           onAdd={handleAdd}
           onFill={handleFill}
           onClear={handleClear}
+          view={view}
+          onViewChange={handleViewChange}
+          showViewToggle={webglSupported}
         />
         <figure className="space-y-3" data-tour="results">
           <h3 className="sr-only">Drawer layout</h3>
@@ -520,6 +554,25 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
           >
             <DimensionLine label={formatLength(drawerMm.width, useMm)} className="mr-6.5" />
             <div className="flex gap-2.5">
+              {view === "3d" && ThreeD ? (
+                <ThreeD
+                  layout={layout}
+                  bins={bins}
+                  drawerMm={drawerMm}
+                  binGroupKey={binGroupKey}
+                  selectedBinId={selectedBinId}
+                  selectedKey={selectedKey}
+                  aspectRatio={`${drawerSize.width} / ${drawerSize.height}`}
+                  onSelectBin={(id) => {
+                    setSelectedBinId(id);
+                    setSelectedKey(null);
+                  }}
+                  onSelectPiece={(key) => {
+                    toggle(key);
+                    setSelectedBinId(null);
+                  }}
+                />
+              ) : (
               <div
                 ref={floorRef}
                 className="drawer-floor relative min-w-0 flex-1 touch-manipulation select-none rounded-[3px]"
@@ -629,6 +682,7 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
                   </div>
                 ) : null}
               </div>
+              )}
               <DimensionLine label={formatLength(drawerMm.height, useMm)} vertical />
             </div>
           </div>
@@ -645,12 +699,25 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
                 </li>
               ))}
             </ul>
-            <span className="pointer-coarse:hidden">
-              Drag a bin to move it, or its corner to resize. Arrow keys move the selected bin.
-            </span>
-            <span className="hidden pointer-coarse:inline">
-              Tap a bin to select it, then drag it to move it.
-            </span>
+            {view === "2d" ? (
+              <>
+                <span className="pointer-coarse:hidden">
+                  Drag a bin to move it, or its corner to resize. Arrow keys move the selected bin.
+                </span>
+                <span className="hidden pointer-coarse:inline">
+                  Tap a bin to select it, then drag it to move it.
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="pointer-coarse:hidden">
+                  Drag to orbit, scroll to zoom. Click a bin to select it.
+                </span>
+                <span className="hidden pointer-coarse:inline">
+                  One finger orbits, two fingers zoom. Tap a bin to select it.
+                </span>
+              </>
+            )}
           </figcaption>
         </figure>
         {selectedBin ? (
