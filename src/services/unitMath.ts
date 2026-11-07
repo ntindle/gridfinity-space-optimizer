@@ -69,6 +69,26 @@ export const unitMath = {
 
   sqrt: (value: number): number => {
     return math.number(math.sqrt(math.bignumber(value)) as BigNumber);
+  },
+
+  pow: (a: number, b: number): number => {
+    return math.number(math.pow(math.bignumber(a), math.bignumber(b)) as BigNumber);
+  },
+  cos: (value: number): number => {
+    return math.number(math.cos(math.bignumber(value)) as BigNumber);
+  },
+
+  sin: (value: number): number => {
+    return math.number(math.sin(math.bignumber(value)) as BigNumber);
+  },
+
+  toRadians: (degrees: number): number => {
+    return math.number(
+      math.divide(
+        math.multiply(math.bignumber(degrees), math.bignumber(math.pi)) as BigNumber,
+        math.bignumber(180)
+      ) as BigNumber
+    );
   }
 } as const;
 

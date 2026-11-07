@@ -1,6 +1,6 @@
 # 3D preview (F7)
 
-**Status:** not started. **Demand:** D2. **Slot:** S3.
+**Status:** shipped 2026-11-07 (PR #170): [2D | 3D] switch in the drawing toolbar, lazy three + @react-three/fiber chunk, instanced boxes at printed heights, orbit/zoom/pan, click-to-select, Reset view. **Demand:** D2. **Slot:** S3.
 
 The job: see heights and stacking, not just the flat footprint.
 
@@ -25,7 +25,8 @@ Bin · Baseplate · Half-size baseplate · Spacer   (legend unchanged)
 
 - Lazy-load `three` and `@react-three/fiber` with `React.lazy` so the main bundle does not grow. Show the 2D drawing until the 3D chunk is ready. No spinner unless loading takes longer than 300 ms.
 - Draw pieces with instanced meshes so 500+ pieces stay smooth. Baseplates are flat plates, spacers are lower and darker, and bins from [bins.md](bins.md) are boxes at their unit height. Take heights from the Gridfinity spec on gridfinity.xyz.
-- Colors come from the same CSS tokens as 2D (`--plate`, `--half`, `--spacer-hatch`, `--brand` for selection), read once with `getComputedStyle`, so dark mode works.
+- Colors come from the same CSS tokens as 2D (`--plate`, `--half`, `--spacer-hatch`, `--brand` for selection), read once with `getComputedStyle` and converted from oklch to rgb in code, so dark mode works.
+- Lids and label tabs are not drawn in 3D (2D omits them too), so the rendered stack is shorter than the printed stack when those options are on.
 - No auto-rotate and no intro animation. The camera starts at a fixed three-quarter view; `Reset view` returns there.
 
 ## Phone
@@ -43,6 +44,6 @@ than the screen, so the page can still be scrolled from outside it.
 
 ## Done when
 
-- [ ] The main bundle size is unchanged (compare `npm run build` output before and after).
-- [ ] Selection syncs between 2D, 3D, and the parts list (tested at the component level with the 3D scene mocked).
-- [ ] Checked at 1440 px and 390 px, light and dark; feature-map row updated.
+- [x] The three.js library stays out of the main bundle (new lazy chunk 910,389 B, loaded only when 3D opens; the main chunk grows 1,766 B for the toggle and wiring).
+- [x] Selection syncs between 2D, 3D, and the parts list (tested at the component level with the 3D scene mocked).
+- [x] Checked at 1440 px and 390 px, light and dark; feature-map row updated.

@@ -274,6 +274,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression. Load metrics flip between pairs (pair 1 branch-favoring Lighthouse +2, TTI +16 ms; pair 2 trunk-favoring Lighthouse -5, TTI +297 ms), the sign flip being the signature of box noise rather than a branch cost; the four-run TTI band is 3547–3844 ms. Pair 1's branch input-to-preview (55.9 ms) is an outlier against the other three runs (32.6–36.3 ms) and did not reproduce in pair 2 (branch faster by 3.7 ms); layout and share gaps reverse between pairs. The diff touches no measured code path (drawer-width edit -> preview piece list is unchanged code; the new work is a Bin options stepper plus a settings/snapshot count that runs on change and load, and mesh/volume code behind the lazy export chunk that only runs on download). Parity unchanged at 54.0% (F18 stays 🟡); Job 2 gains configurable divider counts: Bin options now offers 0–3 evenly spaced dividers per bin instead of an on/off switch, with estimates, the print plan, and the download README following the count and legacy on/off storage and saved layouts migrating to 1/0. Bundle delta: index chunk 243,213 -> 243,960 B (+0.3%); the lazy export chunk 27,462 -> 27,602 B (+0.5%) for the multi-divider mesh loop and the count-aware README line.
 
+## 2026-11-07, PR #170 (3D preview, F7)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).
+
+| Metric | Branch (pair 1 / pair 2) | Trunk (pair 1 / pair 2) |
+| --- | --- | --- |
+| Parity | 58.0% (28 ✅ + 2 🟡 / 50) | 56.0% |
+| Lighthouse perf | 73 / 74 | 78 / 72 |
+| TTI | 3619 / 3604 ms | 3500 / 3709 ms |
+| Input-to-preview (median) | 35.2 / 37 ms | 30 / 33.5 ms |
+| Layout task | 4 steps, 491 / 496 ms | 4 steps, 506 / 511 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 75 / 81 ms | 1 click, 77 / 74 ms |
+
+Verdict: no credible regression. Pair 1's load gap (Lighthouse −5, TTI +119 ms, both trunk-favoring) reversed in pair 2 (branch leads Lighthouse +2, TTI −105 ms); trunk alone swung Lighthouse 78 → 72 and TTI 3500 → 3709 ms across its two runs, wider than any branch-trunk gap. Interaction metrics overlap across all four runs (layout 491–511 ms, adjust-grid 30.0–37.0 ms, share 74–81 ms). The diff touches no measured code path (drawer-width edit → preview piece list is unchanged code; the new work is a toolbar toggle plus a lazily-imported component that only loads when 3D is opened, and the 2D drawing renders identically until then). Parity +2.0pp (F7 ❌→✅); Job 1 gains depth: a [2D | 3D] switch in the drawing toolbar opens an interactive 3D view — instanced boxes for baseplates, half-size baseplates, spacers, and bins at their printed heights, orbit/zoom/pan, click a bin or piece to select it like the 2D view, Reset view returns to the three-quarter view; colors come from the same CSS tokens as 2D, the control hides where WebGL is unavailable, and a failed chunk load toasts and stays in 2D. Bundle delta: index chunk 246,916 → 248,682 B (+0.7%) for the toggle and wiring; the lazy export chunk is unchanged (28,801 → 28,796 B); new lazy chunk ThreeDPreview 910,389 B (235 kB gzip), loaded only when 3D opens and under the CI 1500 KB single-file limit.
+
 ## 2026-11-06, PR #169 (custom divider positions, F18)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).
