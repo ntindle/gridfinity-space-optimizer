@@ -1,5 +1,6 @@
 import type { Vec3 } from "./mesh";
 import { ARC_SEGMENTS } from "./gridfinityProfiles";
+import { MAGNET_HOLE_DIAMETER_MM } from "@/utils/bins";
 
 export { ARC_SEGMENTS };
 
@@ -58,3 +59,13 @@ export const SIDE_DIRECTIONS: Point[] = [
   [-1, 0],
   [0, -1],
 ];
+
+export const MAGNET_HOLE_SEGMENTS = 36;
+
+export const magnetHoleRing = (): Point[] => {
+  const radius = MAGNET_HOLE_DIAMETER_MM / 2;
+  return Array.from({ length: MAGNET_HOLE_SEGMENTS }, (_, step) => {
+    const angle = (2 * Math.PI * step) / MAGNET_HOLE_SEGMENTS;
+    return [radius * Math.cos(angle), radius * Math.sin(angle)] as Point;
+  });
+};

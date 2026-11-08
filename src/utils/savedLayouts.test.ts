@@ -24,6 +24,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   labelTabs: false,
   dividerCount: 0,
   lids: false,
+  magnets: false,
   estimateSettings: { material: "PLA", priceUsdPerKg: 20, flowMm3PerS: 8 },
 });
 
@@ -45,6 +46,20 @@ describe("parseSavedLayouts", () => {
 
   it("round-trips through serialize", () => {
     const layouts = [entry()];
+    expect(parseSavedLayouts(serializeSavedLayouts(layouts))).toEqual(layouts);
+  });
+
+  it("defaults magnets to false for a legacy snapshot without the field", () => {
+    const legacy = entry({
+      snapshot: { ...snapshot(), magnets: undefined } as unknown as SavedLayoutSnapshot,
+    });
+    const parsed = parseSavedLayouts(JSON.stringify([legacy]));
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].snapshot.magnets).toBe(false);
+  });
+
+  it("round-trips a snapshot with magnets on", () => {
+    const layouts = [entry({ snapshot: { ...snapshot(), magnets: true } })];
     expect(parseSavedLayouts(serializeSavedLayouts(layouts))).toEqual(layouts);
   });
 

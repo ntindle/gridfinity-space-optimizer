@@ -273,6 +273,22 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(readme).toContain('piece details panel');
   });
 
+  it('uses the magnets stem and documents the pocket when magnets are on', () => {
+    const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
+    const magnet = createPrintFiles(
+      request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })], magnets: true })
+    );
+    expect(magnet.parts).toBe(base.parts);
+    expect(magnet.plates).toBe(base.plates);
+    const names = Object.keys(files(magnet));
+    expect(names).toContain('stl/bin-2x1-6u-magnets-x2.stl');
+    expect(names).not.toContain('stl/bin-2x1-6u-x2.stl');
+    const readme = strFromU8(files(magnet)['README.txt']);
+    expect(readme).toContain('Ø6.2 × 2 mm magnet pocket');
+    expect(readme).toMatch(/2\s+Bin 2 × 1 · 6u · magnet holes\s+83\.5 × 41\.5 × 45\.55 mm\s+stl\/bin-2x1-6u-magnets-x2\.stl/);
+    expect(strFromU8(files(base)['README.txt'])).toContain('no magnet holes');
+  });
+
   it('adds the lid STL, its own 3MF lid plate, and the lid note when lids are on', () => {
     const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
     const lidded = createPrintFiles(

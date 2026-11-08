@@ -11,6 +11,8 @@ import {
   LID_LIP_DEPTH_MM,
   LID_LIP_THICKNESS_MM,
   LID_THICKNESS_MM,
+  MAGNET_HOLE_DEPTH_MM,
+  magnetHoleCount,
 } from "@/utils/bins";
 import {
   ARC_SEGMENTS,
@@ -23,6 +25,7 @@ import {
   STACKING_LIP_INNER_INSET_MM,
   binWallProfile,
 } from "@/utils/export/gridfinityProfiles";
+import { magnetHoleRing } from "@/utils/export/shapes";
 import { BASEPLATE_HEIGHT_MM } from "@/utils/printParts";
 import type { PrintPartSummary } from "@/utils/printParts";
 
@@ -285,6 +288,25 @@ export const dividerVolumeMm3 = (
     )
   );
 
+export const magnetPocketVolumeMm3 = (): number => {
+  const ring = magnetHoleRing();
+  let area = 0;
+  ring.forEach((current, index) => {
+    const next = ring[(index + 1) % ring.length];
+    area = unitMath.add(
+      area,
+      unitMath.divide(
+        unitMath.subtract(
+          unitMath.multiply(current[0], next[1]),
+          unitMath.multiply(next[0], current[1])
+        ),
+        2
+      )
+    );
+  });
+  return unitMath.multiply(abs(area), MAGNET_HOLE_DEPTH_MM);
+};
+
 export const lidLipVolumeMm3 = (width: number, depth: number): number => {
   const outerInset = unitMath.add(
     STACKING_LIP_INNER_INSET_MM,
@@ -351,6 +373,15 @@ export const partVolumeMm3 = (part: PrintPartSummary): number => {
             part.binGeometry.height
           ),
           part.binGeometry.dividerCount
+        )
+      );
+    }
+    if (part.binGeometry.magnetHoles) {
+      bin = unitMath.subtract(
+        bin,
+        unitMath.multiply(
+          magnetPocketVolumeMm3(),
+          magnetHoleCount(part.binGeometry.columns, part.binGeometry.rows)
         )
       );
     }

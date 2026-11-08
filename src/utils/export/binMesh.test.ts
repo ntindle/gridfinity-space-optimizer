@@ -4,9 +4,10 @@ import {
   labelTabWidthMm,
 } from './binMesh';
 import { binWallProfile } from './gridfinityProfiles';
-import { binVolumeMm3, dividerVolumeMm3, labelTabVolumeMm3 } from '@/utils/partVolumes';
+import { binVolumeMm3, dividerVolumeMm3, labelTabVolumeMm3, magnetPocketVolumeMm3 } from '@/utils/partVolumes';
 import { meshBounds, meshVolume, type Mesh } from './mesh';
-import { binTotalHeight } from '@/utils/bins';
+import { binTotalHeight, MAGNET_HOLE_DIAMETER_MM, magnetHoleCount } from '@/utils/bins';
+import { MAGNET_HOLE_SEGMENTS } from './shapes';
 
 const edgeProblems = (mesh: Mesh): string[] => {
   const directed = new Map<string, number>();
@@ -256,6 +257,104 @@ describe('binMesh', () => {
     const mesh = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, labelTab: true, dividerCount: 1 });
     expect(edgeProblems(mesh)).toEqual([]);
     expect(meshBounds(mesh).max[2]).toBeCloseTo(binTotalHeight(6) + 12, 5);
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+    [1, 1, 21, 2],
+  ])('builds a closed, outward-facing magnet %i × %i bin on %i mm cells, %iu tall', (columns, rows, cellSize, height) => {
+    const mesh = binMesh({ columns, rows, cellSize, height, magnetHoles: true });
+    expect(edgeProblems(mesh)).toEqual([]);
+    expect(meshVolume(mesh)).toBeLessThan(meshVolume(binMesh({ columns, rows, cellSize, height })));
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+  ])('matches the Gridfinity bin volume minus the magnet pockets for %i × %i on %i mm, %iu', (columns, rows, cellSize, height) => {
+    const volume = meshVolume(binMesh({ columns, rows, cellSize, height, magnetHoles: true }));
+    const expected =
+      binVolumeMm3(columns, rows, cellSize, height) -
+      magnetHoleCount(columns, rows) * magnetPocketVolumeMm3();
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+    [1, 1, 21, 2],
+  ])('covers the bin bottom exactly once for magnet %i × %i on %i mm, %iu', (columns, rows, cellSize, height) => {
+    const bottomArea = (mesh: Mesh): number => {
+      let area = 0;
+      for (let t = 0; t < mesh.triangles.length; t += 3) {
+        const [a, b, c] = mesh.triangles.slice(t, t + 3);
+        const [ax, ay, az] = [mesh.positions[a * 3], mesh.positions[a * 3 + 1], mesh.positions[a * 3 + 2]];
+        const [bx, by, bz] = [mesh.positions[b * 3], mesh.positions[b * 3 + 1], mesh.positions[b * 3 + 2]];
+        const [cx, cy, cz] = [mesh.positions[c * 3], mesh.positions[c * 3 + 1], mesh.positions[c * 3 + 2]];
+        if (az === 0 && bz === 0 && cz === 0) {
+          area += ((bx - ax) * (cy - ay) - (by - ay) * (cx - ax)) / 2;
+        }
+      }
+      return area;
+    };
+    const holeArea =
+      (MAGNET_HOLE_SEGMENTS / 2) *
+      (MAGNET_HOLE_DIAMETER_MM / 2) ** 2 *
+      Math.sin((2 * Math.PI) / MAGNET_HOLE_SEGMENTS);
+    const plain = bottomArea(binMesh({ columns, rows, cellSize, height }));
+    const magnet = bottomArea(binMesh({ columns, rows, cellSize, height, magnetHoles: true }));
+    const expected = plain + magnetHoleCount(columns, rows) * holeArea;
+    expect(Math.abs(magnet - expected) / Math.abs(expected)).toBeLessThan(1e-6);
+  });
+
+  it('cuts one pocket per corner cell, centered under the cell, 2 mm deep', () => {
+    const mesh = binMesh({ columns: 3, rows: 2, cellSize: 42, height: 6, magnetHoles: true });
+    const pocketFloor: [number, number][] = [];
+    for (let index = 0; index < mesh.positions.length; index += 3) {
+      if (mesh.positions[index + 2] === 2) {
+        pocketFloor.push([mesh.positions[index], mesh.positions[index + 1]]);
+      }
+    }
+    const near = (x: number, y: number) =>
+      pocketFloor.some(([px, py]) => Math.hypot(px - x, py - y) < 3.1);
+    expect(near(20.75, 20.75)).toBe(true);
+    expect(near(104.75, 20.75)).toBe(true);
+    expect(near(20.75, 62.75)).toBe(true);
+    expect(near(104.75, 62.75)).toBe(true);
+    expect(near(62.75, 20.75)).toBe(false);
+    expect(near(62.75, 62.75)).toBe(false);
+    expect(meshBounds(mesh)).toEqual({
+      min: [0, 0, 0],
+      max: [125.5, 83.5, expect.closeTo(binTotalHeight(6), 5)],
+    });
+  });
+
+  it('builds a closed magnet bin with a tab and a divider', () => {
+    const mesh = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, labelTab: true, dividerCount: 1, magnetHoles: true });
+    expect(edgeProblems(mesh)).toEqual([]);
+    const volume = meshVolume(mesh);
+    const expected =
+      binVolumeMm3(2, 1, 42, 6) +
+      labelTabVolumeMm3(2, 42) +
+      dividerVolumeMm3(2, 1, 42, 6) -
+      magnetHoleCount(2, 1) * magnetPocketVolumeMm3();
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+  });
+
+  it('cuts a pocket just under the faceted cylinder volume', () => {
+    const pocket = magnetPocketVolumeMm3();
+    expect(pocket).toBeGreaterThan(59.5);
+    expect(pocket).toBeLessThan(Math.PI * 3.1 * 3.1 * 2);
+    expect(magnetHoleCount(1, 1)).toBe(1);
+    expect(magnetHoleCount(2, 1)).toBe(2);
+    expect(magnetHoleCount(4, 3)).toBe(4);
   });
 
   it('rejects shapes that cannot be printed', () => {
