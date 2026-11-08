@@ -22,6 +22,7 @@ export interface SavedLayoutSnapshot {
   labelTabs: boolean;
   dividerCount: number;
   lids: boolean;
+  magnets: boolean;
   estimateSettings: EstimateSettings;
 }
 
@@ -116,6 +117,7 @@ const sanitizeSnapshot = (value: unknown): SavedLayoutSnapshot | null => {
         : (value as unknown as Record<string, unknown>).dividers
     ),
     lids: value.lids,
+    magnets: typeof value.magnets === "boolean" ? value.magnets : false,
     estimateSettings: sanitizeEstimateSettings(value.estimateSettings),
   };
 };

@@ -3,8 +3,11 @@
 **Status:** placing and printing bins shipped: bins are drawn in the drawing, sized, given a height
 and contents, labelled, shared in links, and exported as spec STL and 3MF (F15 partial). Label tabs
 shipped (F34): a Bin options switch adds a raised tab above the stacking lip to every generated bin
-STL, for a stuck-on label. Not started:
-dividers F18, scoop F19, magnets and screws F17, lids F16, vase mode F20.
+STL, for a stuck-on label. Dividers shipped (F18): 0–3 per bin, at chosen positions. Lids shipped
+(F16): a flat cover lid per bin footprint, with a locating lip. Magnet holes shipped (F17 partial):
+a Bin options switch adds a Ø6.2 × 2 mm magnet pocket under each corner cell of every printed bin;
+screw holes and baseplate magnet holes remain open. Bin-part options ship local-only (not in share
+links), per the lids/dividers/label-tabs precedent. Not started: scoop F19, vase mode F20.
 **Demand:** D1 (bins), D2 (lids, label tabs), D3–D4 (the rest). **Slots:** S3 (toolbar), S4 (bin panel).
 
 The job: decide which bins go where in the drawer, and get files to print them. A bin is something
@@ -36,8 +39,8 @@ per placed bin per drawer. New bin options become switch rows in the bin panel, 
 │ │ 125.5 × 83.5 mm · 45.6 mm tall with the stacking lip               │           │
 │ │ Contents [Screws                                  ]                │           │
 │ │ [Duplicate] [Delete]                                               │           │
-│ │ shipped: Label tabs · Dividers · Lids (Bin options switches)     │           │
-│ │ later: Scoop · Magnets                                            │           │
+│ │ shipped: Label tabs · Dividers · Lids · Magnet holes (Bin options switches)  │           │
+│ │ later: Scoop · Screw holes                                       │           │
 │ └────────────────────────────────────────────────────────────────────┘           │
 │ Parts to print: bin rows first (grouped by size and height), then                │
 │ baseplates and spacers                                                           │

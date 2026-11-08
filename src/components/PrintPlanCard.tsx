@@ -37,6 +37,7 @@ interface PrintPlanCardProps {
   labelTabs: boolean;
   dividerCount: number;
   lids: boolean;
+  magnets: boolean;
   estimateSettings: EstimateSettings;
   onEstimateSettingsChange: (settings: EstimateSettings) => void;
 }
@@ -112,6 +113,7 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
   labelTabs,
   dividerCount,
   lids,
+  magnets,
   estimateSettings,
   onEstimateSettingsChange,
 }) => {
@@ -134,8 +136,9 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
         labelTabs,
         dividerCount,
         lids,
+        magnets,
       }),
-    [layout, bins, numDrawers, printerSize, labelTabs, dividerCount, lids]
+    [layout, bins, numDrawers, printerSize, labelTabs, dividerCount, lids, magnets]
   );
   const plates: Plate[] = useMemo(
     () =>

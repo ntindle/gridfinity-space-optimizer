@@ -108,6 +108,28 @@ describe('collectPrintParts', () => {
     expect(divided.parts[0].stem).toBe(plain.parts[0].stem);
   });
 
+  it('marks magnet bins with the magnet flag, label suffix, and magnets stem', () => {
+    const plain = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+    });
+    const magnet = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+      magnets: true,
+    });
+    expect(plain.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6 });
+    expect(magnet.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6, magnetHoles: true });
+    expect(magnet.parts[0].label).toBe('Bin 2 × 1 · 6u · magnet holes');
+    expect(magnet.parts[0].stem).toBe('bin-2x1-6u-magnets');
+    expect(magnet.parts[0].key).toBe(plain.parts[0].key);
+    expect(magnet.parts[0].height).toBe(plain.parts[0].height);
+  });
+
   it('splits same-footprint bins by custom divider positions with distinct files', () => {
     const oneCell = (overrides: Partial<Bin>): Bin => ({
       ...bin(overrides),

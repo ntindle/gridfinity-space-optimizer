@@ -13,10 +13,12 @@ import {
   formatEstimateDuration,
   formatEstimateGrams,
   lidVolumeMm3,
+  magnetPocketVolumeMm3,
   partVolumeMm3,
   sanitizeEstimateSettings,
   spacerVolumeMm3,
 } from './partVolumes';
+import { magnetHoleCount } from '@/utils/bins';
 import type { PrintPartSummary } from './printParts';
 
 const relativeError = (actual: number, expected: number): number =>
@@ -139,6 +141,19 @@ describe('partVolumeMm3', () => {
     );
   });
 
+  it('subtracts the magnet pocket volume for a magnet bin and matches the magnet mesh', () => {
+    const magnet = binPart(2, 1, 42, 6, 1);
+    magnet.binGeometry = { ...magnet.binGeometry, magnetHoles: true };
+    expect(partVolumeMm3(magnet)).toBeCloseTo(
+      binVolumeMm3(2, 1, 42, 6) - magnetHoleCount(2, 1) * magnetPocketVolumeMm3(),
+      6
+    );
+    expect(partVolumeMm3(magnet)).toBeCloseTo(
+      meshVolume(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, magnetHoles: true })),
+      0
+    );
+  });
+
   it('prices a lid as its cover plus locating lip and matches the lid mesh', () => {
     const lid: PrintPartSummary = {
       key: 'lid-2x1',
@@ -190,6 +205,20 @@ describe('estimatePrint', () => {
     expect(petg.grams).toBeCloseTo((pla.grams * 1.27) / 1.24, 6);
     expect(abs.grams).toBeCloseTo((pla.grams * 1.04) / 1.24, 6);
     expect(petg.minutes).toBeCloseTo(pla.minutes, 6);
+  });
+
+  it('lowers the estimate for magnet bins by the pocket volume', () => {
+    const plain = binPart(2, 1, 42, 6, 1);
+    const magnet = binPart(2, 1, 42, 6, 1);
+    magnet.binGeometry = { ...magnet.binGeometry, magnetHoles: true };
+    const plainEstimate = estimatePrint([plain]);
+    const magnetEstimate = estimatePrint([magnet]);
+    expect(magnetEstimate.volumeMm3).toBeCloseTo(
+      plainEstimate.volumeMm3 - magnetHoleCount(2, 1) * magnetPocketVolumeMm3(),
+      6
+    );
+    expect(magnetEstimate.grams).toBeLessThan(plainEstimate.grams);
+    expect(magnetEstimate.minutes).toBeLessThan(plainEstimate.minutes);
   });
 
   it('scales cost by the filament price and time by the flow rate', () => {

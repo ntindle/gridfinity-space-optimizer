@@ -33,6 +33,7 @@ const props = {
   labelTabs: false,
   dividerCount: 0,
   lids: false,
+  magnets: false,
 };
 
 const StatefulCard: FC<{

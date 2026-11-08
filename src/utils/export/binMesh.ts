@@ -6,6 +6,8 @@ import {
   LABEL_TAB_MAX_WIDTH_MM,
   LABEL_TAB_SIDE_MARGIN_MM,
   LABEL_TAB_THICKNESS_MM,
+  MAGNET_HOLE_DEPTH_MM,
+  MAGNET_HOLE_DIAMETER_MM,
   MIN_BIN_HEIGHT,
   STACKING_LIP_HEIGHT_MM,
 } from "@/utils/bins";
@@ -25,8 +27,10 @@ import {
   SIDE_DIRECTIONS,
   UP,
   arc,
+  magnetHoleRing,
   midpoint,
   roundedCorners,
+  toward,
   type Point,
 } from "./shapes";
 
@@ -38,6 +42,7 @@ export interface BinShape {
   labelTab?: boolean;
   dividerCount?: number;
   dividerPositions?: number[];
+  magnetHoles?: boolean;
 }
 
 export const labelTabWidthMm = (columns: number, cellSize: number): number => {
@@ -99,6 +104,90 @@ const dividerBox = (
   builder.quad(point(x0, y1, z0), point(x1, y1, z0), point(x1, y1, z1), point(x0, y1, z1), [0, 1, 0]);
 };
 
+const magnetPocket = (
+  builder: ReturnType<typeof createMeshBuilder>,
+  center: Point,
+  ring: Point[],
+  hole: Point[],
+  depth: number
+): void => {
+  const point = ([x, y]: Point, z: number): Vec3 => [x - BIN_GAP, y - BIN_GAP, z];
+  const angleOf = (p: Point): number => Math.atan2(p[1] - center[1], p[0] - center[0]);
+  const start = angleOf(ring[0]);
+  const unwrap = (a: number): number => {
+    let value = a - start;
+    while (value < 0) value += 2 * Math.PI;
+    while (value >= 2 * Math.PI) value -= 2 * Math.PI;
+    return start + value;
+  };
+  const ringAngles = ring.map((p) => unwrap(angleOf(p)));
+  const orderedHole = hole
+    .map(([hx, hy]): Point => [center[0] + hx, center[1] + hy])
+    .map((p) => ({ p, a: unwrap(angleOf(p)) }))
+    .sort((x, y) => x.a - y.a);
+  const holePoints = orderedHole.map((entry) => entry.p);
+  const holeAngles = orderedHole.map((entry) => entry.a);
+  const atRing = (index: number): Point => ring[index % ring.length];
+  const atHole = (index: number): Point => holePoints[index % holePoints.length];
+  const holeRadius = MAGNET_HOLE_DIAMETER_MM / 2;
+  const segmentClear = (from: Point, to: Point): boolean => {
+    const dx = to[0] - from[0];
+    const dy = to[1] - from[1];
+    const lengthSq = dx * dx + dy * dy;
+    const t = Math.max(
+      0,
+      Math.min(1, ((center[0] - from[0]) * dx + (center[1] - from[1]) * dy) / lengthSq)
+    );
+    const closestX = from[0] + t * dx;
+    const closestY = from[1] + t * dy;
+    const distSq = (closestX - center[0]) ** 2 + (closestY - center[1]) ** 2;
+    return distSq >= (holeRadius - 1e-9) ** 2;
+  };
+  let i = 0;
+  let j = 0;
+  while (i < ring.length || j < holePoints.length) {
+    const nextRing =
+      i < ring.length - 1
+        ? ringAngles[i + 1]
+        : i === ring.length - 1
+          ? start + 2 * Math.PI
+          : Infinity;
+    const nextHole =
+      j < holePoints.length - 1
+        ? holeAngles[j + 1]
+        : j === holePoints.length - 1
+          ? start + 2 * Math.PI
+          : Infinity;
+    const holeClear = j < holePoints.length && segmentClear(atRing(i), atHole(j + 1));
+    const ringClear = i < ring.length && segmentClear(atRing(i + 1), atHole(j));
+    if (j >= holePoints.length || (ringClear && (!holeClear || nextRing <= nextHole))) {
+      builder.triangle(point(atRing(i), 0), point(atRing(i + 1), 0), point(atHole(j), 0), DOWN);
+      i += 1;
+    } else {
+      builder.triangle(point(atRing(i), 0), point(atHole(j), 0), point(atHole(j + 1), 0), DOWN);
+      j += 1;
+    }
+  }
+  holePoints.forEach((current, index) => {
+    const next = holePoints[(index + 1) % holePoints.length];
+    builder.quad(
+      point(current, 0),
+      point(current, depth),
+      point(next, depth),
+      point(next, 0),
+      toward(midpoint(current, next), center)
+    );
+  });
+  holePoints.forEach((current, index) => {
+    builder.triangle(
+      point(center, depth),
+      point(current, depth),
+      point(holePoints[(index + 1) % holePoints.length], depth),
+      DOWN
+    );
+  });
+};
+
 const FOOT_TOP = FOOT_PROFILE[FOOT_PROFILE.length - 1].z;
 const CORNER_INSET = BIN_GAP + BIN_TOP_RADIUS;
 const INWARD: Point[] = [
@@ -144,7 +233,7 @@ const outwardFacing = (center: Point, a: Point, b: Point, lower: ProfilePoint, u
   ];
 };
 
-export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCount, dividerPositions }: BinShape): Mesh => {
+export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCount, dividerPositions, magnetHoles }: BinShape): Mesh => {
   if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns < 1 || rows < 1) {
     throw new Error("A bin needs a whole number of cells");
   }
@@ -192,7 +281,13 @@ export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCoun
       const rings = FOOT_PROFILE.map(({ inset }) =>
         corners.flatMap((corner) => arc(corner, BIN_TOP_RADIUS - inset))
       );
-      fan(cellCenter, rings[0], FOOT_PROFILE[0].z, DOWN);
+      const isCornerCell =
+        (column === 0 || column === columns - 1) && (row === 0 || row === rows - 1);
+      if (magnetHoles && isCornerCell) {
+        magnetPocket(builder, cellCenter, rings[0], magnetHoleRing(), MAGNET_HOLE_DEPTH_MM);
+      } else {
+        fan(cellCenter, rings[0], FOOT_PROFILE[0].z, DOWN);
+      }
       for (let band = 0; band < FOOT_PROFILE.length - 1; band += 1) {
         loft(rings[band], rings[band + 1], FOOT_PROFILE[band], FOOT_PROFILE[band + 1], cellCenter);
       }

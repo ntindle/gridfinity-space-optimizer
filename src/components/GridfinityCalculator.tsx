@@ -137,6 +137,7 @@ const GridfinityCalculator: React.FC = () => {
     settings.setLabelTabs(snapshot.labelTabs);
     settings.setDividerCount(snapshot.dividerCount);
     settings.setLids(snapshot.lids);
+    settings.setMagnets(snapshot.magnets);
     settings.setEstimateSettings(snapshot.estimateSettings);
   };
 
@@ -154,6 +155,7 @@ const GridfinityCalculator: React.FC = () => {
     labelTabs: settings.labelTabs,
     dividerCount: settings.dividerCount,
     lids: settings.lids,
+    magnets: settings.magnets,
     estimateSettings: settings.estimateSettings,
   };
 
@@ -251,6 +253,8 @@ const GridfinityCalculator: React.FC = () => {
                 setDividerCount={settings.setDividerCount}
                 lids={settings.lids}
                 setLids={settings.setLids}
+                magnets={settings.magnets}
+                setMagnets={settings.setMagnets}
               />
             </CollapsibleCard>
 
@@ -293,6 +297,7 @@ const GridfinityCalculator: React.FC = () => {
                       labelTabs={settings.labelTabs}
                       dividerCount={settings.dividerCount}
                       lids={settings.lids}
+                      magnets={settings.magnets}
                     />
                     <ShareLayoutButton />
                   </div>
@@ -327,6 +332,7 @@ const GridfinityCalculator: React.FC = () => {
               labelTabs={settings.labelTabs}
               dividerCount={settings.dividerCount}
               lids={settings.lids}
+              magnets={settings.magnets}
               estimateSettings={settings.estimateSettings}
               onEstimateSettingsChange={settings.setEstimateSettings}
             />

@@ -274,6 +274,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression. Load metrics flip between pairs (pair 1 branch-favoring Lighthouse +2, TTI +16 ms; pair 2 trunk-favoring Lighthouse -5, TTI +297 ms), the sign flip being the signature of box noise rather than a branch cost; the four-run TTI band is 3547–3844 ms. Pair 1's branch input-to-preview (55.9 ms) is an outlier against the other three runs (32.6–36.3 ms) and did not reproduce in pair 2 (branch faster by 3.7 ms); layout and share gaps reverse between pairs. The diff touches no measured code path (drawer-width edit -> preview piece list is unchanged code; the new work is a Bin options stepper plus a settings/snapshot count that runs on change and load, and mesh/volume code behind the lazy export chunk that only runs on download). Parity unchanged at 54.0% (F18 stays 🟡); Job 2 gains configurable divider counts: Bin options now offers 0–3 evenly spaced dividers per bin instead of an on/off switch, with estimates, the print plan, and the download README following the count and legacy on/off storage and saved layouts migrating to 1/0. Bundle delta: index chunk 243,213 -> 243,960 B (+0.3%); the lazy export chunk 27,462 -> 27,602 B (+0.5%) for the multi-divider mesh loop and the count-aware README line.
 
+## 2026-11-08, PR #173 (magnet holes in bins, F17)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).
+
+| Metric | Branch (pair 1 / pair 2) | Trunk (pair 1 / pair 2) |
+| --- | --- | --- |
+| Parity | 59.0% (28 ✅ + 3 🟡 / 50) | 58.0% |
+| Lighthouse perf | 77 / 75 | 76 / 74 |
+| TTI | 3496 / 3572 ms | 3640 / 3632 ms |
+| Input-to-preview (median) | 35 / 34.3 ms | 39.5 / 38.2 ms |
+| Layout task | 4 steps, 493 / 506 ms | 4 steps, 480 / 518 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 75 / 75 ms | 1 click, 73 / 77 ms |
+
+Verdict: no credible regression. Branch leads on load in both pairs (Lighthouse +1, TTI −144 / −60 ms) and on input-to-preview (35 / 34.3 vs 39.5 / 38.2 ms); layout and share overlap across all four runs (480–518 ms, 73–77 ms), with the pair-1 trunk leads on both reversing or vanishing in pair 2. The diff touches no measured code path (drawer-width edit → preview piece list is unchanged code; the new work is a Bin options switch plus mesh/volume code behind the lazy export chunk that only runs on download). Parity +1.0pp (F17 ❌→🟡); Job 2 gains a bin option: a "Magnet holes in bins" switch adds one Ø6.2 × 2 mm magnet pocket under each corner cell of every printed bin — press a 6 × 2 mm magnet into each pocket from below; the print plan, estimates, STL stems, and download README follow it, and saved layouts carry it. Bundle delta: index chunk 248,682 → 250,473 B (+0.7%) for the switch and settings plumbing; the lazy export chunk 28,796 → 29,636 B (+2.9%) for the pocket mesh and volume.
+
 ## 2026-11-07, PR #170 (3D preview, F7)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).

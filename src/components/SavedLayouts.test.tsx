@@ -23,6 +23,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   labelTabs: false,
   dividerCount: 0,
   lids: false,
+  magnets: false,
   estimateSettings: { material: "PLA", priceUsdPerKg: 20, flowMm3PerS: 8 },
 });
 

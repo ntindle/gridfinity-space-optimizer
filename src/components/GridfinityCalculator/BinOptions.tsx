@@ -17,6 +17,8 @@ interface BinOptionsProps {
   setDividerCount: (value: number) => void;
   lids: boolean;
   setLids: (value: boolean) => void;
+  magnets: boolean;
+  setMagnets: (value: boolean) => void;
 }
 
 const BinOptions: React.FC<BinOptionsProps> = ({
@@ -32,6 +34,8 @@ const BinOptions: React.FC<BinOptionsProps> = ({
   setDividerCount,
   lids,
   setLids,
+  magnets,
+  setMagnets,
 }) => {
   return (
     <div className="-my-1 divide-y divide-border/70">
@@ -98,6 +102,13 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         description="Every printed bin gets a flat 3 mm cover lid with a locating lip that nests inside the bin mouth so the lid stays put; print it lip-up and flip it onto the bin. Lids have no hinge or handle."
         checked={lids}
         onCheckedChange={setLids}
+      />
+      <OptionRow
+        id="magnet-holes"
+        title="Magnet holes in bins"
+        description="Every printed bin gets a Ø6.2 mm magnet pocket, 2 mm deep, centered under each corner cell; press a 6 × 2 mm magnet into each pocket from below. Baseplates have no magnet holes."
+        checked={magnets}
+        onCheckedChange={setMagnets}
       />
     </div>
   );

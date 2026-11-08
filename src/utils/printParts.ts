@@ -40,6 +40,7 @@ export interface PrintPartSummary {
     labelTab?: boolean;
     dividerCount?: number;
     dividerPositions?: number[];
+    magnetHoles?: boolean;
   };
   gridGeometry?: { columns: number; rows: number; cellSize: number };
 }
@@ -52,6 +53,7 @@ export interface CollectPrintPartsRequest {
   labelTabs?: boolean;
   dividerCount?: number;
   lids?: boolean;
+  magnets?: boolean;
 }
 
 export const slug = (text: string): string =>
@@ -71,7 +73,8 @@ const binParts = (
   printerSize: PrinterSize,
   labelTabs: boolean,
   dividerCount: number,
-  lids: boolean
+  lids: boolean,
+  magnets: boolean
 ): { parts: PrintPartSummary[]; skipped: number } => {
   const index = indexCells(gridCells(layout));
   const bed = usableBed(printerSize);
@@ -96,7 +99,7 @@ const binParts = (
     const size = binSizeLabel(group);
     const label = `Bin ${size} · ${group.height}u${half ? " · half-grid feet" : ""}${
       group.dividerPositions ? ` · dividers at ${dividerPositionsText(group.dividerPositions)}` : ""
-    }`;
+    }${magnets ? " · magnet holes" : ""}`;
     const outer = binOuterSize(group);
     return {
       key: group.key,
@@ -106,7 +109,7 @@ const binParts = (
       stem: slug(
         `bin ${size} ${group.height}u${half ? " half grid" : ""}${
           group.dividerPositions ? ` dividers ${dividerPositionsText(group.dividerPositions)}` : ""
-        }`
+        }${magnets ? " magnets" : ""}`
       ),
       width: outer.width,
       depth: outer.depth,
@@ -120,6 +123,7 @@ const binParts = (
         ...(labelTabs ? { labelTab: true as const } : {}),
         ...(dividerCount ? { dividerCount } : {}),
         ...(group.dividerPositions ? { dividerPositions: group.dividerPositions } : {}),
+        ...(magnets ? { magnetHoles: true as const } : {}),
       },
     };
   });
@@ -212,7 +216,8 @@ export const collectPrintParts = (
     request.printerSize,
     request.labelTabs === true,
     request.dividerCount ?? 0,
-    request.lids === true
+    request.lids === true,
+    request.magnets === true
   );
   const grid = gridParts(request.layout, request.numDrawers);
   return { parts: [...bins, ...grid], skippedBins: skipped };
