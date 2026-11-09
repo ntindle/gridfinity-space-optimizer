@@ -9,6 +9,7 @@ import {
   MAGNET_HOLE_DEPTH_MM,
   MAGNET_HOLE_DIAMETER_MM,
   MIN_BIN_HEIGHT,
+  SCREW_HOLE_DIAMETER_MM,
   STACKING_LIP_HEIGHT_MM,
 } from "@/utils/bins";
 import { unitMath } from "@/services/unitMath";
@@ -30,6 +31,7 @@ import {
   magnetHoleRing,
   midpoint,
   roundedCorners,
+  screwHoleRing,
   toward,
   type Point,
 } from "./shapes";
@@ -43,6 +45,7 @@ export interface BinShape {
   dividerCount?: number;
   dividerPositions?: number[];
   magnetHoles?: boolean;
+  screwHoles?: boolean;
 }
 
 export const labelTabWidthMm = (columns: number, cellSize: number): number => {
@@ -104,14 +107,19 @@ const dividerBox = (
   builder.quad(point(x0, y1, z0), point(x1, y1, z0), point(x1, y1, z1), point(x0, y1, z1), [0, 1, 0]);
 };
 
-const magnetPocket = (
-  builder: ReturnType<typeof createMeshBuilder>,
+type MeshBuilder = ReturnType<typeof createMeshBuilder>;
+
+const toVec = ([x, y]: Point, z: number): Vec3 => [x - BIN_GAP, y - BIN_GAP, z];
+
+const triangulateAnnulus = (
+  builder: MeshBuilder,
   center: Point,
   ring: Point[],
   hole: Point[],
-  depth: number
+  holeRadius: number,
+  z: number,
+  facing: Vec3
 ): void => {
-  const point = ([x, y]: Point, z: number): Vec3 => [x - BIN_GAP, y - BIN_GAP, z];
   const angleOf = (p: Point): number => Math.atan2(p[1] - center[1], p[0] - center[0]);
   const start = angleOf(ring[0]);
   const unwrap = (a: number): number => {
@@ -129,7 +137,6 @@ const magnetPocket = (
   const holeAngles = orderedHole.map((entry) => entry.a);
   const atRing = (index: number): Point => ring[index % ring.length];
   const atHole = (index: number): Point => holePoints[index % holePoints.length];
-  const holeRadius = MAGNET_HOLE_DIAMETER_MM / 2;
   const segmentClear = (from: Point, to: Point): boolean => {
     const dx = to[0] - from[0];
     const dy = to[1] - from[1];
@@ -161,31 +168,113 @@ const magnetPocket = (
     const holeClear = j < holePoints.length && segmentClear(atRing(i), atHole(j + 1));
     const ringClear = i < ring.length && segmentClear(atRing(i + 1), atHole(j));
     if (j >= holePoints.length || (ringClear && (!holeClear || nextRing <= nextHole))) {
-      builder.triangle(point(atRing(i), 0), point(atRing(i + 1), 0), point(atHole(j), 0), DOWN);
+      builder.triangle(toVec(atRing(i), z), toVec(atRing(i + 1), z), toVec(atHole(j), z), facing);
       i += 1;
     } else {
-      builder.triangle(point(atRing(i), 0), point(atHole(j), 0), point(atHole(j + 1), 0), DOWN);
+      builder.triangle(toVec(atRing(i), z), toVec(atHole(j), z), toVec(atHole(j + 1), z), facing);
       j += 1;
     }
   }
-  holePoints.forEach((current, index) => {
-    const next = holePoints[(index + 1) % holePoints.length];
+};
+
+const holeWall = (
+  builder: MeshBuilder,
+  center: Point,
+  ring: Point[],
+  z0: number,
+  z1: number
+): void => {
+  ring.forEach((current, index) => {
+    const next = ring[(index + 1) % ring.length];
     builder.quad(
-      point(current, 0),
-      point(current, depth),
-      point(next, depth),
-      point(next, 0),
+      toVec(current, z0),
+      toVec(current, z1),
+      toVec(next, z1),
+      toVec(next, z0),
       toward(midpoint(current, next), center)
     );
   });
+};
+
+const screwHoleWall = (builder: MeshBuilder, center: Point, z0: number, z1: number): void => {
+  const ring = screwHoleRing().map(([hx, hy]): Point => [center[0] + hx, center[1] + hy]);
+  holeWall(builder, center, ring, z0, z1);
+};
+
+const magnetPocket = (
+  builder: MeshBuilder,
+  center: Point,
+  ring: Point[],
+  hole: Point[],
+  depth: number,
+  screwHoles: boolean
+): void => {
+  const orderedHole = hole
+    .map(([hx, hy]): Point => [center[0] + hx, center[1] + hy])
+    .map((p) => ({ p, a: Math.atan2(p[1] - center[1], p[0] - center[0]) }))
+    .sort((x, y) => x.a - y.a);
+  const holePoints = orderedHole.map((entry) => entry.p);
+  triangulateAnnulus(builder, center, ring, hole, MAGNET_HOLE_DIAMETER_MM / 2, 0, DOWN);
+  holeWall(builder, center, holePoints, 0, depth);
+  if (screwHoles) {
+    triangulateAnnulus(
+      builder,
+      center,
+      holePoints,
+      screwHoleRing(),
+      SCREW_HOLE_DIAMETER_MM / 2,
+      depth,
+      DOWN
+    );
+    screwHoleWall(builder, center, depth, BIN_BASE_HEIGHT);
+    return;
+  }
   holePoints.forEach((current, index) => {
     builder.triangle(
-      point(center, depth),
-      point(current, depth),
-      point(holePoints[(index + 1) % holePoints.length], depth),
+      toVec(center, depth),
+      toVec(current, depth),
+      toVec(holePoints[(index + 1) % holePoints.length], depth),
       DOWN
     );
   });
+};
+
+const pointInTriangle = (p: Point, a: Point, b: Point, c: Point): boolean => {
+  const d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]);
+  const w0 = ((b[1] - c[1]) * (p[0] - c[0]) + (c[0] - b[0]) * (p[1] - c[1])) / d;
+  const w1 = ((c[1] - a[1]) * (p[0] - c[0]) + (a[0] - c[0]) * (p[1] - c[1])) / d;
+  const w2 = 1 - w0 - w1;
+  const epsilon = 1e-9;
+  return w0 >= -epsilon && w1 >= -epsilon && w2 >= -epsilon;
+};
+
+const subdivideEdge = (from: Point, to: Point, maxStep: number): Point[] => {
+  const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
+  const steps = Math.max(1, Math.ceil(length / maxStep));
+  return Array.from({ length: steps + 1 }, (_, step): Point => [
+    from[0] + ((to[0] - from[0]) * step) / steps,
+    from[1] + ((to[1] - from[1]) * step) / steps,
+  ]);
+};
+
+const distanceToSegment = (p: Point, a: Point, b: Point): number => {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const lengthSq = dx * dx + dy * dy;
+  const t =
+    lengthSq === 0
+      ? 0
+      : Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / lengthSq));
+  return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+};
+
+const distanceToTriangle = (p: Point, a: Point, b: Point, c: Point): number => {
+  if (pointInTriangle(p, a, b, c)) return 0;
+  return Math.min(
+    distanceToSegment(p, a, b),
+    distanceToSegment(p, b, c),
+    distanceToSegment(p, c, a)
+  );
 };
 
 const FOOT_TOP = FOOT_PROFILE[FOOT_PROFILE.length - 1].z;
@@ -233,7 +322,7 @@ const outwardFacing = (center: Point, a: Point, b: Point, lower: ProfilePoint, u
   ];
 };
 
-export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCount, dividerPositions, magnetHoles }: BinShape): Mesh => {
+export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCount, dividerPositions, magnetHoles, screwHoles }: BinShape): Mesh => {
   if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns < 1 || rows < 1) {
     throw new Error("A bin needs a whole number of cells");
   }
@@ -284,7 +373,18 @@ export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCoun
       const isCornerCell =
         (column === 0 || column === columns - 1) && (row === 0 || row === rows - 1);
       if (magnetHoles && isCornerCell) {
-        magnetPocket(builder, cellCenter, rings[0], magnetHoleRing(), MAGNET_HOLE_DEPTH_MM);
+        magnetPocket(builder, cellCenter, rings[0], magnetHoleRing(), MAGNET_HOLE_DEPTH_MM, screwHoles === true);
+      } else if (screwHoles && isCornerCell) {
+        triangulateAnnulus(
+          builder,
+          cellCenter,
+          rings[0],
+          screwHoleRing(),
+          SCREW_HOLE_DIAMETER_MM / 2,
+          FOOT_PROFILE[0].z,
+          DOWN
+        );
+        screwHoleWall(builder, cellCenter, FOOT_PROFILE[0].z, BIN_BASE_HEIGHT);
       } else {
         fan(cellCenter, rings[0], FOOT_PROFILE[0].z, DOWN);
       }
@@ -348,7 +448,115 @@ export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCoun
   for (let band = 0; band < profile.length - 1; band += 1) {
     loft(rings[band], rings[band + 1], profile[band], profile[band + 1], binCenter);
   }
-  fan(binCenter, rings[rings.length - 1], BIN_BASE_HEIGHT, UP);
+  const floorRing = rings[rings.length - 1];
+  if (screwHoles) {
+    const holeCenters: Point[] = [];
+    for (let column = 0; column < columns; column += 1) {
+      for (let row = 0; row < rows; row += 1) {
+        if ((column === 0 || column === columns - 1) && (row === 0 || row === rows - 1)) {
+          holeCenters.push([column * cellSize + cellSize / 2, row * cellSize + cellSize / 2]);
+        }
+      }
+    }
+    if (columns === 1 && rows === 1) {
+      triangulateAnnulus(
+        builder,
+        binCenter,
+        floorRing,
+        screwHoleRing(),
+        SCREW_HOLE_DIAMETER_MM / 2,
+        BIN_BASE_HEIGHT,
+        UP
+      );
+    } else {
+      const replaced = new Set<number>();
+      const count = floorRing.length;
+      const at = (index: number): number => ((index % count) + count) % count;
+      for (const holeCenter of holeCenters) {
+        const hit = new Set<number>();
+        floorRing.forEach((_, index) => {
+          if (
+            distanceToTriangle(
+              holeCenter,
+              binCenter,
+              floorRing[index],
+              floorRing[(index + 1) % count]
+            ) <
+            SCREW_HOLE_DIAMETER_MM / 2 + 1e-6
+          ) {
+            hit.add(index);
+          }
+        });
+        if (hit.size === 0) continue;
+        let start = [...hit][0];
+        while (hit.has(at(start - 1))) start = at(start - 1);
+        let end = start;
+        while (hit.has(at(end + 1))) end = at(end + 1);
+        const runVertices: Point[] = [];
+        for (let step = 0; step <= hit.size; step += 1) {
+          runVertices.push(floorRing[at(start + step)]);
+        }
+        const firstEdge = subdivideEdge(binCenter, runVertices[0], 0.25);
+        const lastEdge = subdivideEdge(binCenter, runVertices[runVertices.length - 1], 0.25);
+        const ring = [
+          ...firstEdge,
+          ...runVertices.slice(1, -1),
+          ...lastEdge.slice(1),
+        ].sort(
+          (p, q) =>
+            Math.atan2(p[1] - holeCenter[1], p[0] - holeCenter[0]) -
+            Math.atan2(q[1] - holeCenter[1], q[0] - holeCenter[0])
+        );
+        triangulateAnnulus(
+          builder,
+          holeCenter,
+          ring,
+          screwHoleRing(),
+          SCREW_HOLE_DIAMETER_MM / 2,
+          BIN_BASE_HEIGHT,
+          UP
+        );
+        hit.forEach((index) => replaced.add(index));
+        const before = at(start - 1);
+        if (!replaced.has(before)) {
+          firstEdge.forEach((current, step) => {
+            if (step === firstEdge.length - 1) return;
+            builder.triangle(
+              point(floorRing[before], BIN_BASE_HEIGHT),
+              point(current, BIN_BASE_HEIGHT),
+              point(firstEdge[step + 1], BIN_BASE_HEIGHT),
+              UP
+            );
+          });
+          replaced.add(before);
+        }
+        const after = at(end + 1);
+        if (!replaced.has(after)) {
+          lastEdge.forEach((current, step) => {
+            if (step === lastEdge.length - 1) return;
+            builder.triangle(
+              point(floorRing[at(end + 2)], BIN_BASE_HEIGHT),
+              point(current, BIN_BASE_HEIGHT),
+              point(lastEdge[step + 1], BIN_BASE_HEIGHT),
+              UP
+            );
+          });
+          replaced.add(after);
+        }
+      }
+      floorRing.forEach((current, index) => {
+        if (replaced.has(index)) return;
+        builder.triangle(
+          point(binCenter, BIN_BASE_HEIGHT),
+          point(current, BIN_BASE_HEIGHT),
+          point(floorRing[(index + 1) % floorRing.length], BIN_BASE_HEIGHT),
+          UP
+        );
+      });
+    }
+  } else {
+    fan(binCenter, floorRing, BIN_BASE_HEIGHT, UP);
+  }
 
   if (labelTab) labelTabBox(builder, columns, cellSize, height);
   if (dividerCount) {

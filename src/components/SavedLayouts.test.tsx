@@ -24,6 +24,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   dividerCount: 0,
   lids: false,
   magnets: false,
+  screws: false,
   estimateSettings: { material: "PLA", priceUsdPerKg: 20, flowMm3PerS: 8 },
 });
 

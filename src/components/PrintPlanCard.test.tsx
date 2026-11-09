@@ -34,6 +34,7 @@ const props = {
   dividerCount: 0,
   lids: false,
   magnets: false,
+  screws: false,
 };
 
 const StatefulCard: FC<{
@@ -100,6 +101,21 @@ describe('PrintPlanCard', () => {
     unmount();
     render(<StatefulCard overrides={{ bins: [bin], lids: false }} />);
     expect(screen.queryByText(/Lid 2 × 1/)).not.toBeInTheDocument();
+  });
+
+  it('labels a bin with screw holes and drops the estimate when screws are on', () => {
+    const bin: Bin = { id: 'one', x: 0, y: 0, width: 84, depth: 42, height: 6, label: '' };
+    const { unmount } = render(<StatefulCard overrides={{ bins: [bin], screws: true }} />);
+    expect(screen.getByText(/Bin 2 × 1 · 6u · screw holes/)).toBeInTheDocument();
+    const screwed = estimatePrint(
+      collectPrintParts({ layout, bins: [bin], numDrawers: 1, printerSize: A1, screws: true }).parts
+    );
+    expect(
+      screen.getByText(new RegExp(`~${formatEstimateGrams(screwed.grams)} PLA`))
+    ).toBeInTheDocument();
+    unmount();
+    render(<StatefulCard overrides={{ bins: [bin], screws: false }} />);
+    expect(screen.queryByText(/screw holes/)).not.toBeInTheDocument();
   });
 
   it('numbers plates and notes repeated prints', () => {

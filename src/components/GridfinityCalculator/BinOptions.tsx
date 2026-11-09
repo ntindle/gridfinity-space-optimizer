@@ -19,6 +19,8 @@ interface BinOptionsProps {
   setLids: (value: boolean) => void;
   magnets: boolean;
   setMagnets: (value: boolean) => void;
+  screws: boolean;
+  setScrews: (value: boolean) => void;
 }
 
 const BinOptions: React.FC<BinOptionsProps> = ({
@@ -36,6 +38,8 @@ const BinOptions: React.FC<BinOptionsProps> = ({
   setLids,
   magnets,
   setMagnets,
+  screws,
+  setScrews,
 }) => {
   return (
     <div className="-my-1 divide-y divide-border/70">
@@ -109,6 +113,13 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         description="Every printed bin gets a Ø6.2 mm magnet pocket, 2 mm deep, centered under each corner cell; press a 6 × 2 mm magnet into each pocket from below. Baseplates have no magnet holes."
         checked={magnets}
         onCheckedChange={setMagnets}
+      />
+      <OptionRow
+        id="screw-holes"
+        title="Screw holes in bins"
+        description="Every printed bin gets a Ø3.2 mm hole through the floor under each corner cell for an M3 screw, so you can screw bins down. With magnet holes on, the hole passes through the magnet pocket floor."
+        checked={screws}
+        onCheckedChange={setScrews}
       />
     </div>
   );

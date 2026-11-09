@@ -19,6 +19,7 @@ interface DownloadButtonProps {
   dividerCount: number;
   lids: boolean;
   magnets: boolean;
+  screws: boolean;
 }
 
 const DownloadButton: React.FC<DownloadButtonProps> = ({
@@ -34,6 +35,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
   dividerCount,
   lids,
   magnets,
+  screws,
 }) => {
   const [busy, setBusy] = useState(false);
 
@@ -58,6 +60,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
         dividerCount,
         lids,
         magnets,
+        screws,
       });
       saveFile(bundle.filename, bundle.data, "application/zip");
       const skipped =

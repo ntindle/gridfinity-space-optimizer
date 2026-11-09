@@ -130,6 +130,57 @@ describe('collectPrintParts', () => {
     expect(magnet.parts[0].height).toBe(plain.parts[0].height);
   });
 
+  it('marks screw bins with the screw flag, label suffix, and screws stem', () => {
+    const plain = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+    });
+    const screwed = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+      screws: true,
+    });
+    expect(plain.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6 });
+    expect(screwed.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6, screwHoles: true });
+    expect(screwed.parts[0].label).toBe('Bin 2 × 1 · 6u · screw holes');
+    expect(screwed.parts[0].stem).toBe('bin-2x1-6u-screws');
+    expect(screwed.parts[0].key).toBe(plain.parts[0].key);
+    expect(screwed.parts[0].height).toBe(plain.parts[0].height);
+  });
+
+  it('marks magnet and screw bins with both flags, suffixes, and stem parts', () => {
+    const plain = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+    });
+    const both = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+      magnets: true,
+      screws: true,
+    });
+    expect(both.parts[0].binGeometry).toEqual({
+      columns: 2,
+      rows: 1,
+      cellSize: 42,
+      height: 6,
+      magnetHoles: true,
+      screwHoles: true,
+    });
+    expect(both.parts[0].label).toBe('Bin 2 × 1 · 6u · magnet holes · screw holes');
+    expect(both.parts[0].stem).toBe('bin-2x1-6u-magnets-screws');
+    expect(both.parts[0].key).toBe(plain.parts[0].key);
+    expect(both.parts[0].height).toBe(plain.parts[0].height);
+  });
+
   it('splits same-footprint bins by custom divider positions with distinct files', () => {
     const oneCell = (overrides: Partial<Bin>): Bin => ({
       ...bin(overrides),

@@ -3,11 +3,11 @@ import {
   binMesh,
   labelTabWidthMm,
 } from './binMesh';
-import { binWallProfile } from './gridfinityProfiles';
-import { binVolumeMm3, dividerVolumeMm3, labelTabVolumeMm3, magnetPocketVolumeMm3 } from '@/utils/partVolumes';
+import { binWallProfile, BIN_BASE_HEIGHT } from './gridfinityProfiles';
+import { binVolumeMm3, dividerVolumeMm3, labelTabVolumeMm3, magnetPocketVolumeMm3, screwHoleVolumeMm3 } from '@/utils/partVolumes';
 import { meshBounds, meshVolume, type Mesh } from './mesh';
-import { binTotalHeight, MAGNET_HOLE_DIAMETER_MM, magnetHoleCount } from '@/utils/bins';
-import { MAGNET_HOLE_SEGMENTS } from './shapes';
+import { binTotalHeight, MAGNET_HOLE_DEPTH_MM, MAGNET_HOLE_DIAMETER_MM, SCREW_HOLE_DIAMETER_MM, magnetHoleCount, screwHoleCount } from '@/utils/bins';
+import { HOLE_SEGMENTS } from './shapes';
 
 const edgeProblems = (mesh: Mesh): string[] => {
   const directed = new Map<string, number>();
@@ -305,9 +305,9 @@ describe('binMesh', () => {
       return area;
     };
     const holeArea =
-      (MAGNET_HOLE_SEGMENTS / 2) *
+      (HOLE_SEGMENTS / 2) *
       (MAGNET_HOLE_DIAMETER_MM / 2) ** 2 *
-      Math.sin((2 * Math.PI) / MAGNET_HOLE_SEGMENTS);
+      Math.sin((2 * Math.PI) / HOLE_SEGMENTS);
     const plain = bottomArea(binMesh({ columns, rows, cellSize, height }));
     const magnet = bottomArea(binMesh({ columns, rows, cellSize, height, magnetHoles: true }));
     const expected = plain + magnetHoleCount(columns, rows) * holeArea;
@@ -355,6 +355,126 @@ describe('binMesh', () => {
     expect(magnetHoleCount(1, 1)).toBe(1);
     expect(magnetHoleCount(2, 1)).toBe(2);
     expect(magnetHoleCount(4, 3)).toBe(4);
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [2, 2, 42, 3],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+    [1, 1, 21, 2],
+  ])('builds a closed, outward-facing screw-hole %i × %i bin on %i mm cells, %iu tall', (columns, rows, cellSize, height) => {
+    const mesh = binMesh({ columns, rows, cellSize, height, screwHoles: true });
+    expect(edgeProblems(mesh)).toEqual([]);
+    expect(meshVolume(mesh)).toBeLessThan(meshVolume(binMesh({ columns, rows, cellSize, height })));
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [2, 2, 42, 3],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+  ])('matches the Gridfinity bin volume minus the screw holes for %i × %i on %i mm, %iu', (columns, rows, cellSize, height) => {
+    const volume = meshVolume(binMesh({ columns, rows, cellSize, height, screwHoles: true }));
+    const expected =
+      binVolumeMm3(columns, rows, cellSize, height) -
+      screwHoleCount(columns, rows) * screwHoleVolumeMm3(BIN_BASE_HEIGHT);
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [2, 2, 42, 3],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+  ])('matches the Gridfinity bin volume minus pockets and screw holes for %i × %i on %i mm, %iu', (columns, rows, cellSize, height) => {
+    const volume = meshVolume(binMesh({ columns, rows, cellSize, height, magnetHoles: true, screwHoles: true }));
+    const expected =
+      binVolumeMm3(columns, rows, cellSize, height) -
+      magnetHoleCount(columns, rows) * magnetPocketVolumeMm3() -
+      screwHoleCount(columns, rows) * screwHoleVolumeMm3(BIN_BASE_HEIGHT - MAGNET_HOLE_DEPTH_MM);
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+    [1, 1, 21, 2],
+  ])('covers the bin floor exactly once for screw %i × %i on %i mm, %iu', (columns, rows, cellSize, height) => {
+    const floorArea = (mesh: Mesh): number => {
+      let area = 0;
+      for (let t = 0; t < mesh.triangles.length; t += 3) {
+        const [a, b, c] = mesh.triangles.slice(t, t + 3);
+        const [ax, ay, az] = [mesh.positions[a * 3], mesh.positions[a * 3 + 1], mesh.positions[a * 3 + 2]];
+        const [bx, by, bz] = [mesh.positions[b * 3], mesh.positions[b * 3 + 1], mesh.positions[b * 3 + 2]];
+        const [cx, cy, cz] = [mesh.positions[c * 3], mesh.positions[c * 3 + 1], mesh.positions[c * 3 + 2]];
+        if (az === BIN_BASE_HEIGHT && bz === BIN_BASE_HEIGHT && cz === BIN_BASE_HEIGHT) {
+          area += ((bx - ax) * (cy - ay) - (by - ay) * (cx - ax)) / 2;
+        }
+      }
+      return area;
+    };
+    const holeArea =
+      (HOLE_SEGMENTS / 2) *
+      (SCREW_HOLE_DIAMETER_MM / 2) ** 2 *
+      Math.sin((2 * Math.PI) / HOLE_SEGMENTS);
+    const plain = floorArea(binMesh({ columns, rows, cellSize, height }));
+    const screwed = floorArea(binMesh({ columns, rows, cellSize, height, screwHoles: true }));
+    const expected = plain - screwHoleCount(columns, rows) * holeArea;
+    expect(Math.abs(screwed - expected) / Math.abs(expected)).toBeLessThan(1e-6);
+  });
+
+  it('cuts one screw hole per corner cell, through the floor', () => {
+    const mesh = binMesh({ columns: 3, rows: 2, cellSize: 42, height: 6, screwHoles: true });
+    const floor: [number, number][] = [];
+    for (let index = 0; index < mesh.positions.length; index += 3) {
+      if (mesh.positions[index + 2] === BIN_BASE_HEIGHT) {
+        floor.push([mesh.positions[index], mesh.positions[index + 1]]);
+      }
+    }
+    const near = (x: number, y: number) =>
+      floor.some(([px, py]) => Math.hypot(px - x, py - y) < 1.61);
+    expect(near(20.75, 20.75)).toBe(true);
+    expect(near(104.75, 20.75)).toBe(true);
+    expect(near(20.75, 62.75)).toBe(true);
+    expect(near(104.75, 62.75)).toBe(true);
+    expect(near(62.75, 20.75)).toBe(false);
+    expect(near(62.75, 62.75)).toBe(false);
+    expect(meshBounds(mesh)).toEqual({
+      min: [0, 0, 0],
+      max: [125.5, 83.5, expect.closeTo(binTotalHeight(6), 5)],
+    });
+  });
+
+  it('builds a closed screw bin with a tab, a divider, and magnets', () => {
+    const mesh = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, labelTab: true, dividerCount: 1, magnetHoles: true, screwHoles: true });
+    expect(edgeProblems(mesh)).toEqual([]);
+    const volume = meshVolume(mesh);
+    const expected =
+      binVolumeMm3(2, 1, 42, 6) +
+      labelTabVolumeMm3(2, 42) +
+      dividerVolumeMm3(2, 1, 42, 6) -
+      magnetHoleCount(2, 1) * magnetPocketVolumeMm3() -
+      screwHoleCount(2, 1) * screwHoleVolumeMm3(BIN_BASE_HEIGHT - MAGNET_HOLE_DEPTH_MM);
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+  });
+
+  it('cuts a screw hole just under the faceted cylinder volume', () => {
+    const hole = screwHoleVolumeMm3(BIN_BASE_HEIGHT);
+    expect(hole).toBeGreaterThan(55);
+    expect(hole).toBeLessThan(Math.PI * 1.6 * 1.6 * BIN_BASE_HEIGHT);
+    expect(screwHoleVolumeMm3(BIN_BASE_HEIGHT - MAGNET_HOLE_DEPTH_MM)).toBeCloseTo(
+      screwHoleVolumeMm3(BIN_BASE_HEIGHT) * 5 / 7,
+      6
+    );
+    expect(screwHoleCount(1, 1)).toBe(1);
+    expect(screwHoleCount(2, 1)).toBe(2);
+    expect(screwHoleCount(4, 3)).toBe(4);
   });
 
   it('rejects shapes that cannot be printed', () => {

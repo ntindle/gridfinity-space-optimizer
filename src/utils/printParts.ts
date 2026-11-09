@@ -41,6 +41,7 @@ export interface PrintPartSummary {
     dividerCount?: number;
     dividerPositions?: number[];
     magnetHoles?: boolean;
+    screwHoles?: boolean;
   };
   gridGeometry?: { columns: number; rows: number; cellSize: number };
 }
@@ -54,6 +55,7 @@ export interface CollectPrintPartsRequest {
   dividerCount?: number;
   lids?: boolean;
   magnets?: boolean;
+  screws?: boolean;
 }
 
 export const slug = (text: string): string =>
@@ -74,7 +76,8 @@ const binParts = (
   labelTabs: boolean,
   dividerCount: number,
   lids: boolean,
-  magnets: boolean
+  magnets: boolean,
+  screws: boolean
 ): { parts: PrintPartSummary[]; skipped: number } => {
   const index = indexCells(gridCells(layout));
   const bed = usableBed(printerSize);
@@ -99,7 +102,7 @@ const binParts = (
     const size = binSizeLabel(group);
     const label = `Bin ${size} · ${group.height}u${half ? " · half-grid feet" : ""}${
       group.dividerPositions ? ` · dividers at ${dividerPositionsText(group.dividerPositions)}` : ""
-    }${magnets ? " · magnet holes" : ""}`;
+    }${magnets ? " · magnet holes" : ""}${screws ? " · screw holes" : ""}`;
     const outer = binOuterSize(group);
     return {
       key: group.key,
@@ -109,7 +112,7 @@ const binParts = (
       stem: slug(
         `bin ${size} ${group.height}u${half ? " half grid" : ""}${
           group.dividerPositions ? ` dividers ${dividerPositionsText(group.dividerPositions)}` : ""
-        }${magnets ? " magnets" : ""}`
+        }${magnets ? " magnets" : ""}${screws ? " screws" : ""}`
       ),
       width: outer.width,
       depth: outer.depth,
@@ -124,6 +127,7 @@ const binParts = (
         ...(dividerCount ? { dividerCount } : {}),
         ...(group.dividerPositions ? { dividerPositions: group.dividerPositions } : {}),
         ...(magnets ? { magnetHoles: true as const } : {}),
+        ...(screws ? { screwHoles: true as const } : {}),
       },
     };
   });
@@ -217,7 +221,8 @@ export const collectPrintParts = (
     request.labelTabs === true,
     request.dividerCount ?? 0,
     request.lids === true,
-    request.magnets === true
+    request.magnets === true,
+    request.screws === true
   );
   const grid = gridParts(request.layout, request.numDrawers);
   return { parts: [...bins, ...grid], skippedBins: skipped };

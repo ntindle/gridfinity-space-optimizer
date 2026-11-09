@@ -289,6 +289,36 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(strFromU8(files(base)['README.txt'])).toContain('no magnet holes');
   });
 
+  it('uses the screws stem and documents the hole when screws are on', () => {
+    const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
+    const screwed = createPrintFiles(
+      request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })], screws: true })
+    );
+    expect(screwed.parts).toBe(base.parts);
+    expect(screwed.plates).toBe(base.plates);
+    const names = Object.keys(files(screwed));
+    expect(names).toContain('stl/bin-2x1-6u-screws-x2.stl');
+    expect(names).not.toContain('stl/bin-2x1-6u-x2.stl');
+    const readme = strFromU8(files(screwed)['README.txt']);
+    expect(readme).toContain('Ø3.2 mm hole through the floor');
+    expect(readme).toMatch(/2\s+Bin 2 × 1 · 6u · screw holes\s+83\.5 × 41\.5 × 45\.55 mm\s+stl\/bin-2x1-6u-screws-x2\.stl/);
+    expect(strFromU8(files(base)['README.txt'])).not.toContain('Screw holes:');
+  });
+
+  it('uses the magnets and screws stem and notes the hole through the pocket floor when both are on', () => {
+    const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
+    const both = createPrintFiles(
+      request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })], magnets: true, screws: true })
+    );
+    expect(both.parts).toBe(base.parts);
+    expect(both.plates).toBe(base.plates);
+    const names = Object.keys(files(both));
+    expect(names).toContain('stl/bin-2x1-6u-magnets-screws-x2.stl');
+    const readme = strFromU8(files(both)['README.txt']);
+    expect(readme).toContain('hole passes through the magnet pocket floor');
+    expect(readme).toMatch(/2\s+Bin 2 × 1 · 6u · magnet holes · screw holes\s+83\.5 × 41\.5 × 45\.55 mm\s+stl\/bin-2x1-6u-magnets-screws-x2\.stl/);
+  });
+
   it('adds the lid STL, its own 3MF lid plate, and the lid note when lids are on', () => {
     const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
     const lidded = createPrintFiles(

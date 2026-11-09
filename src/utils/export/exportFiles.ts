@@ -32,6 +32,7 @@ export interface ExportRequest {
   dividerCount?: number;
   lids?: boolean;
   magnets?: boolean;
+  screws?: boolean;
 }
 
 export interface ExportBundle {
@@ -60,6 +61,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     dividerCount: request.dividerCount,
     lids: request.lids,
     magnets: request.magnets,
+    screws: request.screws,
   });
   if (parts.length === 0) throw new Error("There is nothing to print yet");
 
@@ -183,6 +185,11 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       (request.magnets
         ? "- Bins follow the Gridfinity spec: 7 mm height units plus a stacking lip, 0.95 mm walls, with a Ø6.2 × 2 mm magnet pocket centered under each corner cell; press a 6 × 2 mm magnet into each pocket from below."
         : "- Bins follow the Gridfinity spec: 7 mm height units plus a stacking lip, 0.95 mm walls, no magnet holes."),
+    bins.length > 0 &&
+      request.screws &&
+      (request.magnets
+        ? "- Screw holes: every bin has a Ø3.2 mm hole through the floor under each corner cell for an M3 screw; the hole passes through the magnet pocket floor, so each corner holds either a magnet or a screw."
+        : "- Screw holes: every bin has a Ø3.2 mm hole through the floor under each corner cell for an M3 screw, so you can screw bins down."),
     bins.length > 0 &&
       request.labelTabs &&
       "- Label tabs: every bin has a raised tab above the stacking lip for a stuck-on label; another bin cannot stack on top of a tabbed bin.",
