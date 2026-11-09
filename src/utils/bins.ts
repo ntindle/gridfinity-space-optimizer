@@ -15,9 +15,14 @@ export const DIVIDER_POSITION_MIN_GAP_FRACTION = 0.05;
 export const DIVIDER_POSITION_EPSILON = 0.005;
 export const MAGNET_HOLE_DIAMETER_MM = 6.2;
 export const MAGNET_HOLE_DEPTH_MM = 2;
+export const SCREW_HOLE_DIAMETER_MM = 3.2;
 
-export const magnetHoleCount = (columns: number, rows: number): number =>
+export const cornerHoleCount = (columns: number, rows: number): number =>
   unitMath.multiply(columns > 1 ? 2 : 1, rows > 1 ? 2 : 1);
+
+export const magnetHoleCount = cornerHoleCount;
+
+export const screwHoleCount = cornerHoleCount;
 
 export const sanitizeDividerCount = (value: unknown): number => {
   if (typeof value === "boolean") return value ? 1 : 0;

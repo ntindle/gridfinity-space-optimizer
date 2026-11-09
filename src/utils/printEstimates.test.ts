@@ -16,9 +16,11 @@ import {
   magnetPocketVolumeMm3,
   partVolumeMm3,
   sanitizeEstimateSettings,
+  screwHoleVolumeMm3,
   spacerVolumeMm3,
 } from './partVolumes';
-import { magnetHoleCount } from '@/utils/bins';
+import { magnetHoleCount, screwHoleCount, MAGNET_HOLE_DEPTH_MM } from '@/utils/bins';
+import { BIN_BASE_HEIGHT } from './export/gridfinityProfiles';
 import type { PrintPartSummary } from './printParts';
 
 const relativeError = (actual: number, expected: number): number =>
@@ -154,6 +156,37 @@ describe('partVolumeMm3', () => {
     );
   });
 
+  it('subtracts the screw hole volume for a screw bin and matches the screw mesh', () => {
+    const screwed = binPart(2, 1, 42, 6, 1);
+    screwed.binGeometry = { ...screwed.binGeometry, screwHoles: true };
+    expect(partVolumeMm3(screwed)).toBeCloseTo(
+      binVolumeMm3(2, 1, 42, 6) - screwHoleCount(2, 1) * screwHoleVolumeMm3(BIN_BASE_HEIGHT),
+      6
+    );
+    expect(partVolumeMm3(screwed)).toBeCloseTo(
+      meshVolume(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, screwHoles: true })),
+      0
+    );
+  });
+
+  it('subtracts the pocket and the shorter screw hole for a magnet and screw bin', () => {
+    const both = binPart(2, 1, 42, 6, 1);
+    both.binGeometry = { ...both.binGeometry, magnetHoles: true, screwHoles: true };
+    expect(partVolumeMm3(both)).toBeCloseTo(
+      binVolumeMm3(2, 1, 42, 6) -
+        magnetHoleCount(2, 1) * magnetPocketVolumeMm3() -
+        screwHoleCount(2, 1) *
+          screwHoleVolumeMm3(BIN_BASE_HEIGHT - MAGNET_HOLE_DEPTH_MM),
+      6
+    );
+    expect(partVolumeMm3(both)).toBeCloseTo(
+      meshVolume(
+        binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, magnetHoles: true, screwHoles: true })
+      ),
+      0
+    );
+  });
+
   it('prices a lid as its cover plus locating lip and matches the lid mesh', () => {
     const lid: PrintPartSummary = {
       key: 'lid-2x1',
@@ -219,6 +252,20 @@ describe('estimatePrint', () => {
     );
     expect(magnetEstimate.grams).toBeLessThan(plainEstimate.grams);
     expect(magnetEstimate.minutes).toBeLessThan(plainEstimate.minutes);
+  });
+
+  it('lowers the estimate for screw bins by the hole volume', () => {
+    const plain = binPart(2, 1, 42, 6, 1);
+    const screwed = binPart(2, 1, 42, 6, 1);
+    screwed.binGeometry = { ...screwed.binGeometry, screwHoles: true };
+    const plainEstimate = estimatePrint([plain]);
+    const screwedEstimate = estimatePrint([screwed]);
+    expect(screwedEstimate.volumeMm3).toBeCloseTo(
+      plainEstimate.volumeMm3 - screwHoleCount(2, 1) * screwHoleVolumeMm3(BIN_BASE_HEIGHT),
+      6
+    );
+    expect(screwedEstimate.grams).toBeLessThan(plainEstimate.grams);
+    expect(screwedEstimate.minutes).toBeLessThan(plainEstimate.minutes);
   });
 
   it('scales cost by the filament price and time by the flow rate', () => {

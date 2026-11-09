@@ -13,6 +13,7 @@ import {
   LID_THICKNESS_MM,
   MAGNET_HOLE_DEPTH_MM,
   magnetHoleCount,
+  screwHoleCount,
 } from "@/utils/bins";
 import {
   ARC_SEGMENTS,
@@ -25,7 +26,7 @@ import {
   STACKING_LIP_INNER_INSET_MM,
   binWallProfile,
 } from "@/utils/export/gridfinityProfiles";
-import { magnetHoleRing } from "@/utils/export/shapes";
+import { magnetHoleRing, screwHoleRing, type Point } from "@/utils/export/shapes";
 import { BASEPLATE_HEIGHT_MM } from "@/utils/printParts";
 import type { PrintPartSummary } from "@/utils/printParts";
 
@@ -288,8 +289,7 @@ export const dividerVolumeMm3 = (
     )
   );
 
-export const magnetPocketVolumeMm3 = (): number => {
-  const ring = magnetHoleRing();
+export const ringAreaMm2 = (ring: Point[]): number => {
   let area = 0;
   ring.forEach((current, index) => {
     const next = ring[(index + 1) % ring.length];
@@ -304,8 +304,14 @@ export const magnetPocketVolumeMm3 = (): number => {
       )
     );
   });
-  return unitMath.multiply(abs(area), MAGNET_HOLE_DEPTH_MM);
+  return abs(area);
 };
+
+export const magnetPocketVolumeMm3 = (): number =>
+  unitMath.multiply(ringAreaMm2(magnetHoleRing()), MAGNET_HOLE_DEPTH_MM);
+
+export const screwHoleVolumeMm3 = (depthMm: number): number =>
+  unitMath.multiply(ringAreaMm2(screwHoleRing()), depthMm);
 
 export const lidLipVolumeMm3 = (width: number, depth: number): number => {
   const outerInset = unitMath.add(
@@ -382,6 +388,19 @@ export const partVolumeMm3 = (part: PrintPartSummary): number => {
         unitMath.multiply(
           magnetPocketVolumeMm3(),
           magnetHoleCount(part.binGeometry.columns, part.binGeometry.rows)
+        )
+      );
+    }
+    if (part.binGeometry.screwHoles) {
+      bin = unitMath.subtract(
+        bin,
+        unitMath.multiply(
+          screwHoleVolumeMm3(
+            part.binGeometry.magnetHoles
+              ? unitMath.subtract(BIN_BASE_HEIGHT, MAGNET_HOLE_DEPTH_MM)
+              : BIN_BASE_HEIGHT
+          ),
+          screwHoleCount(part.binGeometry.columns, part.binGeometry.rows)
         )
       );
     }

@@ -23,6 +23,8 @@ const renderOptions = (overrides: Partial<ComponentProps<typeof BinOptions>> = {
     setLids: vi.fn(),
     magnets: false,
     setMagnets: vi.fn(),
+    screws: false,
+    setScrews: vi.fn(),
     ...overrides,
   };
   render(<BinOptions {...props} />);
@@ -97,6 +99,18 @@ describe('BinOptions', () => {
     expect(props.setMagnets).toHaveBeenCalledWith(true);
     expect(screen.getByRole('switch', { name: 'Magnet holes in bins' })).toHaveAccessibleDescription(
       /Ø6.2 mm magnet pocket/
+    );
+  });
+
+  it('toggles screw holes in bins', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Screw holes in bins' }));
+
+    expect(props.setScrews).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Screw holes in bins' })).toHaveAccessibleDescription(
+      /Ø3.2 mm hole through the floor/
     );
   });
 

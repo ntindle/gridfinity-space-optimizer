@@ -23,6 +23,7 @@ export interface SavedLayoutSnapshot {
   dividerCount: number;
   lids: boolean;
   magnets: boolean;
+  screws: boolean;
   estimateSettings: EstimateSettings;
 }
 
@@ -118,6 +119,7 @@ const sanitizeSnapshot = (value: unknown): SavedLayoutSnapshot | null => {
     ),
     lids: value.lids,
     magnets: typeof value.magnets === "boolean" ? value.magnets : false,
+    screws: typeof value.screws === "boolean" ? value.screws : false,
     estimateSettings: sanitizeEstimateSettings(value.estimateSettings),
   };
 };
