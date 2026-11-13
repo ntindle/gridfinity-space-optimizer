@@ -5,8 +5,12 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   DEFAULT_PREVIEW_COLORS,
   isParsableColor,
+  liftLightness,
   oklchToRgb,
+  prefersDarkColorScheme,
   readPreviewColors,
+  rgbToOklab,
+  sceneColorsForTheme,
 } from "./threeDColors";
 
 describe("isParsableColor", () => {
@@ -50,6 +54,105 @@ describe("oklchToRgb", () => {
     expect(oklchToRgb("oklch(0.5 0.1)")).toBeNull();
     expect(oklchToRgb("oklch(0.5 0.1 100 / 0.5)")).toBeNull();
     expect(oklchToRgb("")).toBeNull();
+  });
+});
+
+describe("rgbToOklab", () => {
+  it("converts achromatic endpoints", () => {
+    const white = rgbToOklab("#ffffff");
+    expect(white?.l).toBeCloseTo(1, 4);
+    expect(white?.a).toBeCloseTo(0, 4);
+    expect(white?.b).toBeCloseTo(0, 4);
+    expect(rgbToOklab("#000000")).toEqual({ l: 0, a: 0, b: 0 });
+  });
+
+  it("accepts hex, rgb, and percent forms of the same color", () => {
+    const hex = rgbToOklab("#472f1d");
+    expect(rgbToOklab("rgb(71, 47, 29)")).toEqual(hex);
+    expect(rgbToOklab("rgb(27.8%, 18.4%, 11.4%)")?.l).toBeCloseTo(hex?.l ?? 0, 2);
+  });
+
+  it("round-trips the oklch conversions", () => {
+    const bin = rgbToOklab(oklchToRgb("oklch(0.38 0.012 60)") ?? "");
+    expect(bin?.l).toBeCloseTo(0.38, 2);
+    const plate = rgbToOklab(oklchToRgb("oklch(0.255 0.006 52)") ?? "");
+    expect(plate?.l).toBeCloseTo(0.255, 2);
+  });
+
+  it("returns null for values it cannot convert", () => {
+    expect(rgbToOklab("not-a-color")).toBeNull();
+    expect(rgbToOklab("oklch(0.5 0.1 100)")).toBeNull();
+    expect(rgbToOklab("rgba(0, 0, 0, 0)")).toBeNull();
+    expect(rgbToOklab("")).toBeNull();
+  });
+});
+
+describe("liftLightness", () => {
+  it("lifts a dark plate color to the floor while keeping its hue", () => {
+    const original = rgbToOklab("rgb(37, 34, 32)");
+    const lifted = rgbToOklab(liftLightness("rgb(37, 34, 32)", 0.62));
+    expect(lifted?.l).toBeCloseTo(0.62, 2);
+    expect(lifted?.a).toBeCloseTo(original?.a ?? 0, 2);
+    expect(lifted?.b).toBeCloseTo(original?.b ?? 0, 2);
+  });
+
+  it("leaves colors at or above the floor untouched", () => {
+    expect(liftLightness("#ffffff", 0.62)).toBe("#ffffff");
+    expect(liftLightness("rgb(245, 73, 0)", 0.62)).toBe("rgb(245, 73, 0)");
+  });
+
+  it("returns unparsable values unchanged", () => {
+    expect(liftLightness("not-a-color", 0.62)).toBe("not-a-color");
+  });
+});
+
+describe("sceneColorsForTheme", () => {
+  it("returns the palette unchanged in light mode", () => {
+    expect(sceneColorsForTheme(DEFAULT_PREVIEW_COLORS, false)).toBe(
+      DEFAULT_PREVIEW_COLORS
+    );
+  });
+
+  it("lifts dark-mode surfaces and keeps the selection color", () => {
+    const dark = {
+      baseplate: "rgb(37, 34, 32)",
+      halfSize: "rgb(43, 40, 38)",
+      spacer: "rgb(66, 61, 57)",
+      bin: "rgb(71, 65, 60)",
+      floor: "rgb(14, 12, 11)",
+      selected: "rgb(249, 115, 22)",
+    };
+    const scene = sceneColorsForTheme(dark, true);
+    expect(scene.selected).toBe(dark.selected);
+    expect(scene.baseplate).not.toBe(dark.baseplate);
+    expect(rgbToOklab(scene.baseplate)?.l).toBeCloseTo(0.62, 2);
+    expect(rgbToOklab(scene.halfSize)?.l).toBeCloseTo(0.62, 2);
+    expect(rgbToOklab(scene.spacer)?.l).toBeCloseTo(0.62, 2);
+    expect(rgbToOklab(scene.bin)?.l).toBeCloseTo(0.62, 2);
+    expect(rgbToOklab(scene.floor)?.l).toBeCloseTo(0.3, 2);
+  });
+});
+
+describe("prefersDarkColorScheme", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("is false when matchMedia is unavailable", () => {
+    expect(prefersDarkColorScheme()).toBe(false);
+  });
+
+  it("follows the media query", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true }))
+    );
+    expect(prefersDarkColorScheme()).toBe(true);
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: false }))
+    );
+    expect(prefersDarkColorScheme()).toBe(false);
   });
 });
 

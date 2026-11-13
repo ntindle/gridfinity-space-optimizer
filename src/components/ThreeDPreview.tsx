@@ -11,7 +11,13 @@ import {
   type ThreeDBox,
   type ThreeDBoxKind,
 } from "@/utils/threeDLayout";
-import { readPreviewColors, type PreviewColors } from "@/utils/threeDColors";
+import {
+  darkColorSchemeQuery,
+  prefersDarkColorScheme,
+  readPreviewColors,
+  sceneColorsForTheme,
+  type PreviewColors,
+} from "@/utils/threeDColors";
 import { Button } from "@/components/ui/button";
 import type { Bin, DrawerSize, LayoutItem } from "@/types";
 
@@ -138,7 +144,18 @@ const ThreeDPreview: React.FC<ThreeDPreviewProps> = ({
   onSelectPiece,
 }) => {
   const [resetSignal, setResetSignal] = useState(0);
-  const colors = useMemo(() => readPreviewColors(), []);
+  const [isDark, setIsDark] = useState(() => prefersDarkColorScheme());
+  useEffect(() => {
+    const query = darkColorSchemeQuery();
+    if (!query) return;
+    const onChange = (event: MediaQueryListEvent) => setIsDark(event.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+  const colors = useMemo(
+    () => sceneColorsForTheme(readPreviewColors(), isDark),
+    [isDark]
+  );
   const boxes = useMemo(
     () => buildThreeDBoxes(layout, bins, drawerMm, binGroupKey),
     [layout, bins, drawerMm, binGroupKey]
@@ -161,6 +178,15 @@ const ThreeDPreview: React.FC<ThreeDPreviewProps> = ({
         unitMath.multiply(home.maxSide, 0.8),
         unitMath.multiply(home.maxSide, 1.4),
         unitMath.multiply(home.maxSide, 0.6),
+      ] as [number, number, number],
+    [home]
+  );
+  const fillPosition = useMemo(
+    () =>
+      [
+        unitMath.multiply(home.maxSide, -0.8),
+        unitMath.multiply(home.maxSide, 0.6),
+        unitMath.multiply(home.maxSide, -0.6),
       ] as [number, number, number],
     [home]
   );
@@ -187,11 +213,11 @@ const ThreeDPreview: React.FC<ThreeDPreviewProps> = ({
           camera={{ position: home.position, fov: 40, near: 1, far: 10000 }}
           gl={{ antialias: true }}
         >
-          <ambientLight intensity={0.85} />
+          <ambientLight intensity={isDark ? 1 : 0.85} />
           <directionalLight
             castShadow
             position={lightPosition}
-            intensity={0.9}
+            intensity={isDark ? 1 : 0.9}
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
             shadow-camera-left={unitMath.multiply(home.maxSide, -0.9)}
@@ -199,6 +225,8 @@ const ThreeDPreview: React.FC<ThreeDPreviewProps> = ({
             shadow-camera-top={unitMath.multiply(home.maxSide, 0.9)}
             shadow-camera-bottom={unitMath.multiply(home.maxSide, -0.9)}
           />
+          {isDark && <hemisphereLight args={["#ffffff", "#44403c", 0.55]} />}
+          {isDark && <directionalLight position={fillPosition} intensity={0.45} />}
           <mesh
             rotation={[-Math.PI / 2, 0, 0]}
             position={[0, -0.5, 0]}

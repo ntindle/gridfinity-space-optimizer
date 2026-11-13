@@ -290,6 +290,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression. Branch leads on load in both pairs (Lighthouse +7 / +5, TTI −317 / −196 ms), but the diff touches no measured code path (drawer-width edit → preview piece list is unchanged code; the new work is a Bin options switch plus mesh/volume code behind the lazy export chunk that only runs on download), so the load lead is box noise in the branch's favor, not a branch speedup; input-to-preview flips sign between pairs (pair 1 branch-favoring by 10.3 ms, pair 2 trunk-favoring by 3.9 ms) across a 30.3–47.4 ms four-run band, and layout (473–498 ms) and share (74–79 ms) overlap across all four runs. Parity +1.0pp (F17 🟡→✅); Job 2 gains a bin option: a "Screw holes in bins" switch adds one Ø3.2 mm hole through the floor under each corner cell of every printed bin, for an M3 screw — with magnet holes on, the hole passes through the magnet pocket floor, so each corner holds either a magnet or a screw; the print plan, estimates, STL stems, and download README follow it, and saved layouts carry it. Bundle delta: index chunk 250,473 → 251,360 B (+0.35%) for the switch and settings plumbing; the lazy export chunk 29,636 → 32,081 B (+8.3%) for the screw-hole mesh (floor-cut triangulation and volume) and the README line.
 
+## 2026-11-12, PR #177 (3D preview dark-mode lighting fix)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).
+
+| Metric | Branch (pair 1 / pair 2) | Trunk (pair 1 / pair 2) |
+| --- | --- | --- |
+| Parity | 60.0% (29 ✅ + 2 🟡 / 50) | 60.0% |
+| Lighthouse perf | 76 / 78 | 78 / 76 |
+| TTI | 3572 / 3439 ms | 3458 / 3517 ms |
+| Input-to-preview (median) | 59.3 / 42.1 ms | 35 / 39.1 ms |
+| Layout task | 4 steps, 489 / 483 ms | 4 steps, 496 / 460 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 74 / 74 ms | 1 click, 76 / 77 ms |
+
+Verdict: no credible regression — Lighthouse flips sign between pairs (76/78 vs 78/76), TTI overlaps (3439–3572 ms), and input-to-preview narrows from a 24.3 ms gap to within 3 ms across a 35–59.3 ms four-run band; layout and share overlap across all four runs. The diff touches no measured code path (the drawer-width edit → preview piece list is unchanged code; the new work is color math and lights behind the lazy 3D chunk, which only loads when the 3D view opens). Parity unchanged at 60.0%: a bug fix, not a feature. The 3D preview in dark mode rendered nearly black — it read the flat-UI dark theme tokens (plate 25.5%, bin 38% lightness) as Lambert material albedo, so the lit geometry had almost nothing to reflect. The scene now lifts dark-mode surface colors to a readable lightness in Oklab space (boxes 0.62, floor 0.30, hues preserved, selection color untouched), runs a stronger lighting rig in dark mode only (ambient 1.0, key 1.0, plus a hemisphere light and an opposite-side fill), and re-reads the theme live when the OS color scheme flips; light mode is pixel-identical (same rig, same colors). Bundle delta: index chunk unchanged at 251,360 B; the lazy 3D chunk 910,394 → 912,737 B (+0.26%) for the color conversion and the theme listener.
+
 ## 2026-11-08, PR #173 (magnet holes in bins, F17)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).
