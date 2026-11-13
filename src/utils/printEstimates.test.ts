@@ -16,6 +16,7 @@ import {
   magnetPocketVolumeMm3,
   partVolumeMm3,
   sanitizeEstimateSettings,
+  scoopVolumeMm3,
   screwHoleVolumeMm3,
   spacerVolumeMm3,
 } from './partVolumes';
@@ -169,6 +170,19 @@ describe('partVolumeMm3', () => {
     );
   });
 
+  it('subtracts the scoop volume for a scoop bin and matches the scoop mesh', () => {
+    const scooped = binPart(2, 1, 42, 6, 1);
+    scooped.binGeometry = { ...scooped.binGeometry, scoop: true };
+    expect(partVolumeMm3(scooped)).toBeCloseTo(
+      binVolumeMm3(2, 1, 42, 6) - scoopVolumeMm3(2, 42, 6),
+      6
+    );
+    expect(partVolumeMm3(scooped)).toBeCloseTo(
+      meshVolume(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, scoop: true })),
+      0
+    );
+  });
+
   it('subtracts the pocket and the shorter screw hole for a magnet and screw bin', () => {
     const both = binPart(2, 1, 42, 6, 1);
     both.binGeometry = { ...both.binGeometry, magnetHoles: true, screwHoles: true };
@@ -238,6 +252,20 @@ describe('estimatePrint', () => {
     expect(petg.grams).toBeCloseTo((pla.grams * 1.27) / 1.24, 6);
     expect(abs.grams).toBeCloseTo((pla.grams * 1.04) / 1.24, 6);
     expect(petg.minutes).toBeCloseTo(pla.minutes, 6);
+  });
+
+  it('lowers the estimate for scoop bins by the scoop volume', () => {
+    const plain = binPart(2, 1, 42, 6, 1);
+    const scooped = binPart(2, 1, 42, 6, 1);
+    scooped.binGeometry = { ...scooped.binGeometry, scoop: true };
+    const plainEstimate = estimatePrint([plain]);
+    const scoopedEstimate = estimatePrint([scooped]);
+    expect(scoopedEstimate.volumeMm3).toBeCloseTo(
+      plainEstimate.volumeMm3 - scoopVolumeMm3(2, 42, 6),
+      6
+    );
+    expect(scoopedEstimate.grams).toBeLessThan(plainEstimate.grams);
+    expect(scoopedEstimate.minutes).toBeLessThan(plainEstimate.minutes);
   });
 
   it('lowers the estimate for magnet bins by the pocket volume', () => {

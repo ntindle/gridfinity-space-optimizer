@@ -305,6 +305,22 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(strFromU8(files(base)['README.txt'])).not.toContain('Screw holes:');
   });
 
+  it('uses the scoop stem and documents the dip when scoop is on', () => {
+    const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
+    const scooped = createPrintFiles(
+      request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })], scoop: true })
+    );
+    expect(scooped.parts).toBe(base.parts);
+    expect(scooped.plates).toBe(base.plates);
+    const names = Object.keys(files(scooped));
+    expect(names).toContain('stl/bin-2x1-6u-scoop-x2.stl');
+    expect(names).not.toContain('stl/bin-2x1-6u-x2.stl');
+    const readme = strFromU8(files(scooped)['README.txt']);
+    expect(readme).toContain('dips to half its height over the middle half of the front');
+    expect(readme).toMatch(/2\s+Bin 2 × 1 · 6u · scoop\s+83\.5 × 41\.5 × 45\.55 mm\s+stl\/bin-2x1-6u-scoop-x2\.stl/);
+    expect(strFromU8(files(base)['README.txt'])).not.toContain('Scoop:');
+  });
+
   it('uses the magnets and screws stem and notes the hole through the pocket floor when both are on', () => {
     const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
     const both = createPrintFiles(

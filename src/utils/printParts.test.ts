@@ -152,6 +152,28 @@ describe('collectPrintParts', () => {
     expect(screwed.parts[0].height).toBe(plain.parts[0].height);
   });
 
+  it('marks scoop bins with the scoop flag, label suffix, and scoop stem', () => {
+    const plain = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+    });
+    const scooped = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+      scoop: true,
+    });
+    expect(plain.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6 });
+    expect(scooped.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6, scoop: true });
+    expect(scooped.parts[0].label).toBe('Bin 2 × 1 · 6u · scoop');
+    expect(scooped.parts[0].stem).toBe('bin-2x1-6u-scoop');
+    expect(scooped.parts[0].key).toBe(plain.parts[0].key);
+    expect(scooped.parts[0].height).toBe(plain.parts[0].height);
+  });
+
   it('marks magnet and screw bins with both flags, suffixes, and stem parts', () => {
     const plain = collectPrintParts({
       layout,

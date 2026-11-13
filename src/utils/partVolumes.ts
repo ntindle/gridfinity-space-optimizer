@@ -12,6 +12,8 @@ import {
   LID_LIP_THICKNESS_MM,
   LID_THICKNESS_MM,
   MAGNET_HOLE_DEPTH_MM,
+  SCOOP_SPAN_END_FRACTION,
+  SCOOP_SPAN_START_FRACTION,
   magnetHoleCount,
   screwHoleCount,
 } from "@/utils/bins";
@@ -25,6 +27,8 @@ import {
   POCKET_PROFILE,
   STACKING_LIP_INNER_INSET_MM,
   binWallProfile,
+  scoopTopZMm,
+  type ProfilePoint,
 } from "@/utils/export/gridfinityProfiles";
 import { magnetHoleRing, screwHoleRing, type Point } from "@/utils/export/shapes";
 import { BASEPLATE_HEIGHT_MM } from "@/utils/printParts";
@@ -313,6 +317,59 @@ export const magnetPocketVolumeMm3 = (): number =>
 export const screwHoleVolumeMm3 = (depthMm: number): number =>
   unitMath.multiply(ringAreaMm2(screwHoleRing()), depthMm);
 
+const scoopAreaAboveMm2 = (height: number): number => {
+  const top = scoopTopZMm(height);
+  const polygon = binWallProfile(height).map((point, index) =>
+    index === 0 ? { ...point, z: BIN_BASE_HEIGHT } : point
+  );
+  const clipped: ProfilePoint[] = [];
+  polygon.forEach((current, index) => {
+    const next = polygon[(index + 1) % polygon.length];
+    if (current.z >= top) clipped.push(current);
+    if ((current.z >= top) !== (next.z >= top)) {
+      const fraction = unitMath.divide(
+        unitMath.subtract(top, current.z),
+        unitMath.subtract(next.z, current.z)
+      );
+      clipped.push({
+        inset: unitMath.add(
+          current.inset,
+          unitMath.multiply(fraction, unitMath.subtract(next.inset, current.inset))
+        ),
+        z: top,
+      });
+    }
+  });
+  let area = 0;
+  clipped.forEach((current, index) => {
+    const next = clipped[(index + 1) % clipped.length];
+    area = unitMath.add(
+      area,
+      unitMath.divide(
+        unitMath.subtract(
+          unitMath.multiply(current.inset, next.z),
+          unitMath.multiply(next.inset, current.z)
+        ),
+        2
+      )
+    );
+  });
+  return abs(area);
+};
+
+export const scoopVolumeMm3 = (
+  columns: number,
+  cellSize: number,
+  height: number
+): number =>
+  unitMath.multiply(
+    scoopAreaAboveMm2(height),
+    unitMath.multiply(
+      unitMath.multiply(columns, cellSize),
+      unitMath.subtract(SCOOP_SPAN_END_FRACTION, SCOOP_SPAN_START_FRACTION)
+    )
+  );
+
 export const lidLipVolumeMm3 = (width: number, depth: number): number => {
   const outerInset = unitMath.add(
     STACKING_LIP_INNER_INSET_MM,
@@ -401,6 +458,16 @@ export const partVolumeMm3 = (part: PrintPartSummary): number => {
               : BIN_BASE_HEIGHT
           ),
           screwHoleCount(part.binGeometry.columns, part.binGeometry.rows)
+        )
+      );
+    }
+    if (part.binGeometry.scoop) {
+      bin = unitMath.subtract(
+        bin,
+        scoopVolumeMm3(
+          part.binGeometry.columns,
+          part.binGeometry.cellSize,
+          part.binGeometry.height
         )
       );
     }

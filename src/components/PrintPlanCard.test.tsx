@@ -35,6 +35,7 @@ const props = {
   lids: false,
   magnets: false,
   screws: false,
+  scoop: false,
 };
 
 const StatefulCard: FC<{
@@ -116,6 +117,21 @@ describe('PrintPlanCard', () => {
     unmount();
     render(<StatefulCard overrides={{ bins: [bin], screws: false }} />);
     expect(screen.queryByText(/screw holes/)).not.toBeInTheDocument();
+  });
+
+  it('labels a bin with a scoop and drops the estimate when scoop is on', () => {
+    const bin: Bin = { id: 'one', x: 0, y: 0, width: 84, depth: 42, height: 6, label: '' };
+    const { unmount } = render(<StatefulCard overrides={{ bins: [bin], scoop: true }} />);
+    expect(screen.getByText(/Bin 2 × 1 · 6u · scoop/)).toBeInTheDocument();
+    const scooped = estimatePrint(
+      collectPrintParts({ layout, bins: [bin], numDrawers: 1, printerSize: A1, scoop: true }).parts
+    );
+    expect(
+      screen.getByText(new RegExp(`~${formatEstimateGrams(scooped.grams)} PLA`))
+    ).toBeInTheDocument();
+    unmount();
+    render(<StatefulCard overrides={{ bins: [bin], scoop: false }} />);
+    expect(screen.queryByText(/scoop/)).not.toBeInTheDocument();
   });
 
   it('numbers plates and notes repeated prints', () => {
