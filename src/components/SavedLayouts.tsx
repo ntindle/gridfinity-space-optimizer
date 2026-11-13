@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import CollapsibleCard from "@/components/CollapsibleCard";
+import { layoutSummary, track, trackLayoutLoaded } from "@/services/analytics";
 import { formatDrawerSize, pluralize } from "@/utils/format";
 import {
   SAVED_LAYOUTS_KEY,
@@ -43,6 +44,7 @@ const SavedLayouts: React.FC<SavedLayoutsProps> = ({ snapshot, onRestore }) => {
       snapshot,
     };
     persist(upsertSavedLayout(saved, entry));
+    track("layout_saved", layoutSummary(snapshot));
     setName("");
     toast.success(`Saved "${entry.name}"`, {
       description: "It stays on this device until you delete it.",
@@ -50,6 +52,7 @@ const SavedLayouts: React.FC<SavedLayoutsProps> = ({ snapshot, onRestore }) => {
   };
 
   const handleLoad = (layout: SavedLayout) => {
+    trackLayoutLoaded("saved", layout.snapshot);
     onRestore(layout.snapshot);
     toast.success(`Opened "${layout.name}"`, {
       description: "It replaces the current layout.",

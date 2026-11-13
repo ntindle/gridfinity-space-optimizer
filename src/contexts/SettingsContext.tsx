@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { useGridfinitySettings, type GridfinitySettings } from '@/hooks/useGridfinitySettings';
+import { withLayoutTracking } from '@/services/analytics';
 
 const SettingsContext = createContext<GridfinitySettings | null>(null);
 
@@ -8,7 +9,7 @@ interface SettingsProviderProps {
 }
 
 export const SettingsProvider = ({ children }: SettingsProviderProps) => {
-  const settings = useGridfinitySettings();
+  const settings = withLayoutTracking(useGridfinitySettings());
   
   return (
     <SettingsContext.Provider value={settings}>

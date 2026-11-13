@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { unitMath } from "@/services/unitMath";
+import { track } from "@/services/analytics";
 import { binOuterSize, binSizeLabel } from "@/utils/bins";
 import { formatSize, pluralize } from "@/utils/format";
 import { usePersistedState } from "@/hooks/usePersistedState";
@@ -96,6 +97,7 @@ const BinLabels: React.FC<BinLabelsProps> = ({ bins, useMm, numDrawers }) => {
       landscape.textContent = "@page { size: landscape; }";
       document.head.appendChild(landscape);
     }
+    track("labels_printed", { labels: unitMath.min(totalLabels, MAX_LABELS), style });
     if (typeof window.print === "function") {
       window.print();
     }

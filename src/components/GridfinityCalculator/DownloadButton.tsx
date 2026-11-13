@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import { Download, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { trackFilesDownloaded } from "@/services/analytics";
 import { nextPaint, saveFile } from "@/utils/download";
 import { pluralize } from "@/utils/format";
+import type { ExportRequest } from "@/utils/export/exportFiles";
 import type { Bin, DrawerSize, LayoutItem, PrinterSize } from "@/types";
 
 interface DownloadButtonProps {
@@ -49,7 +51,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
         import("@/utils/export/exportFiles"),
         nextPaint(),
       ]);
-      const bundle = createPrintFiles({
+      const request: ExportRequest = {
         layout,
         bins,
         numDrawers,
@@ -64,8 +66,10 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
         magnets,
         screws,
         scoop,
-      });
+      };
+      const bundle = createPrintFiles(request);
       saveFile(bundle.filename, bundle.data, "application/zip");
+      trackFilesDownloaded(request, bundle);
       const skipped =
         bundle.skippedBins > 0
           ? ` ${pluralize(bundle.skippedBins, "bin")} with a problem ${bundle.skippedBins === 1 ? "was" : "were"} left out.`
