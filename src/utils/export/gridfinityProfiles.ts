@@ -1,3 +1,4 @@
+import { unitMath } from "@/services/unitMath";
 import { BIN_HEIGHT_UNIT_MM, STACKING_LIP_FILLET_RADIUS } from "@/utils/bins";
 import { BASEPLATE_HEIGHT_MM } from "@/utils/printParts";
 
@@ -53,3 +54,15 @@ export const binWallProfile = (height: number): ProfilePoint[] => {
     { inset: BIN_WALL, z: BIN_BASE_HEIGHT },
   ];
 };
+
+export const scoopTopZMm = (height: number): number =>
+  unitMath.add(
+    BIN_BASE_HEIGHT,
+    unitMath.divide(
+      unitMath.subtract(
+        unitMath.multiply(height, BIN_HEIGHT_UNIT_MM),
+        BIN_BASE_HEIGHT
+      ),
+      2
+    )
+  );
