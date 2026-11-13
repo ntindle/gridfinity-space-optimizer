@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderHook } from "@testing-library/react";
 import type { CaptureResult, PostHogConfig } from "posthog-js/dist/module.slim";
 import { buildShareUrl } from "@/utils/shareLayout";
-import type { GridfinitySettings } from "@/hooks/useGridfinitySettings";
+import { useGridfinitySettings, type GridfinitySettings } from "@/hooks/useGridfinitySettings";
 import type { SavedLayoutSnapshot } from "@/utils/savedLayouts";
 import type { Bin, DrawerSize, LayoutItem } from "@/types";
 
@@ -344,6 +345,22 @@ describe("layout events", () => {
 
     expect(analytics.withLayoutTracking(settings)).toBe(settings);
   });
+
+  it("wraps every setter except units, test fit, estimates, and bins, which the bin editor tracks", async () => {
+    const analytics = await startAnalytics();
+    const settings = renderHook(() => useGridfinitySettings()).result.current;
+    const tracked = analytics.withLayoutTracking(settings);
+    const setters = (Object.keys(settings) as Array<keyof GridfinitySettings>).filter((key) =>
+      key.startsWith("set")
+    );
+
+    expect(setters.filter((key) => tracked[key] === settings[key]).sort()).toEqual([
+      "setBins",
+      "setEstimateSettings",
+      "setTestFit",
+      "setUseMm",
+    ]);
+  });
 });
 
 describe("event properties", () => {
@@ -386,6 +403,7 @@ describe("event properties", () => {
         lids: true,
         magnets: false,
         screws: true,
+        scoop: true,
       },
       { parts: 5, prints: 3, skippedBins: 1 }
     );
@@ -411,6 +429,7 @@ describe("event properties", () => {
           lids: true,
           magnets: false,
           screws: true,
+          scoop: true,
         },
       ],
     ]);

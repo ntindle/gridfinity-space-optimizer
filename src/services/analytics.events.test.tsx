@@ -195,7 +195,7 @@ describe("events sent by each feature", () => {
         lids={false}
         magnets={true}
         screws={false}
-        scoop={false}
+        scoop={true}
       />
     );
     fireEvent.click(screen.getByRole("button", { name: /download files/i }));
@@ -210,6 +210,7 @@ describe("events sent by each feature", () => {
           spacers: 2,
           dividers: 1,
           magnets: true,
+          scoop: true,
         }),
       ])
     );

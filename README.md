@@ -117,7 +117,7 @@ Product analytics use [PostHog](https://posthog.com). They are off unless a proj
 ### Turning analytics on
 
 1. In PostHog, go to **Settings → Project → Web analytics**, turn on **Enable cookieless tracking**, and save. Without it, PostHog drops every event this site sends.
-2. In Netlify, go to **Project configuration → Environment variables** and add these, with the **Builds** scope and only the **Production** deploy context, so deploy previews don't count:
+2. In Netlify, go to **Project configuration → Environment variables** and add these with only the **Production** deploy context, so deploy previews don't count. The **Builds** scope is enough; on plans that can't limit scopes, **All scopes** works too:
 
    | Variable | Value |
    | --- | --- |
@@ -141,7 +141,7 @@ The variables are deliberately not `VITE_`-prefixed. The build writes them into 
 | `layout_saved` | A layout is saved on the device | layout summary |
 | `layout_loaded` | A saved layout or a share link is opened | layout summary, `source` (`saved` or `share_link`) |
 | `layout_shared` | A share link is created | layout summary |
-| `files_downloaded` | The print files download | layout summary, `baseplates`, `spacers`, `parts`, `prints`, `skipped_bins`, `test_fit`, `label_tabs`, `dividers`, `lids`, `magnets`, `screws` |
+| `files_downloaded` | The print files download | layout summary, `baseplates`, `spacers`, `parts`, `prints`, `skipped_bins`, `test_fit`, `label_tabs`, `dividers`, `lids`, `magnets`, `screws`, `scoop` |
 | `labels_printed` | Bin labels are sent to the printer | `labels`, `style` |
 
 The layout summary is `drawer_width_mm`, `drawer_depth_mm`, `units`, `printer`, `drawers`, and `bins` (a count). The events are defined in `src/services/analytics.ts`.
