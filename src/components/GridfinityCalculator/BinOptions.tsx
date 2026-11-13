@@ -21,6 +21,8 @@ interface BinOptionsProps {
   setMagnets: (value: boolean) => void;
   screws: boolean;
   setScrews: (value: boolean) => void;
+  scoop: boolean;
+  setScoop: (value: boolean) => void;
 }
 
 const BinOptions: React.FC<BinOptionsProps> = ({
@@ -40,6 +42,8 @@ const BinOptions: React.FC<BinOptionsProps> = ({
   setMagnets,
   screws,
   setScrews,
+  scoop,
+  setScoop,
 }) => {
   return (
     <div className="-my-1 divide-y divide-border/70">
@@ -78,8 +82,13 @@ const BinOptions: React.FC<BinOptionsProps> = ({
       <OptionRow
         id="label-tabs"
         title="Label tabs on bins"
-        description="Printed bins get a raised tab above the stacking lip for a stuck-on label. Another bin cannot stack on top of a tabbed bin."
+        description={
+          scoop
+            ? "Not used with a scoop in bins — the tab would float above the dipped front wall."
+            : "Printed bins get a raised tab above the stacking lip for a stuck-on label. Another bin cannot stack on top of a tabbed bin."
+        }
         checked={labelTabs}
+        disabled={scoop}
         onCheckedChange={setLabelTabs}
       />
       <div className="relative flex items-start justify-between gap-4 py-2.5">
@@ -120,6 +129,18 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         description="Every printed bin gets a Ø3.2 mm hole through the floor under each corner cell for an M3 screw, so you can screw bins down. With magnet holes on, the hole passes through the magnet pocket floor."
         checked={screws}
         onCheckedChange={setScrews}
+      />
+      <OptionRow
+        id="scoop"
+        title="Scoop in bins"
+        description={
+          labelTabs
+            ? "Not used with label tabs on bins — the tab would float above the dipped front wall."
+            : "The front wall of every printed bin dips to half its height over the middle half of the front, with vertical step sides, so you can reach in and grab parts. The stacking lip is cut flat at the dip height."
+        }
+        checked={scoop}
+        disabled={labelTabs}
+        onCheckedChange={setScoop}
       />
     </div>
   );

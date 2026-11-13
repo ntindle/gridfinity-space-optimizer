@@ -33,6 +33,7 @@ export interface ExportRequest {
   lids?: boolean;
   magnets?: boolean;
   screws?: boolean;
+  scoop?: boolean;
 }
 
 export interface ExportBundle {
@@ -62,6 +63,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     lids: request.lids,
     magnets: request.magnets,
     screws: request.screws,
+    scoop: request.scoop,
   });
   if (parts.length === 0) throw new Error("There is nothing to print yet");
 
@@ -190,6 +192,9 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       (request.magnets
         ? "- Screw holes: every bin has a Ø3.2 mm hole through the floor under each corner cell for an M3 screw; the hole passes through the magnet pocket floor, so each corner holds either a magnet or a screw."
         : "- Screw holes: every bin has a Ø3.2 mm hole through the floor under each corner cell for an M3 screw, so you can screw bins down."),
+    bins.length > 0 &&
+      request.scoop &&
+      "- Scoop: the front wall of every bin dips to half its height over the middle half of the front, with vertical step sides, so you can reach in and grab parts; the stacking lip is cut flat at the dip height.",
     bins.length > 0 &&
       request.labelTabs &&
       "- Label tabs: every bin has a raised tab above the stacking lip for a stuck-on label; another bin cannot stack on top of a tabbed bin.",

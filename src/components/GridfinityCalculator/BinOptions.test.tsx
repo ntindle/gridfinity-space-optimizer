@@ -25,6 +25,8 @@ const renderOptions = (overrides: Partial<ComponentProps<typeof BinOptions>> = {
     setMagnets: vi.fn(),
     screws: false,
     setScrews: vi.fn(),
+    scoop: false,
+    setScoop: vi.fn(),
     ...overrides,
   };
   render(<BinOptions {...props} />);
@@ -60,6 +62,36 @@ describe('BinOptions', () => {
     expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toHaveAccessibleDescription(
       /raised tab above the stacking lip/
     );
+  });
+
+  it('toggles scoop in bins', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Scoop in bins' }));
+
+    expect(props.setScoop).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Scoop in bins' })).toHaveAccessibleDescription(
+      /dips to half its height/
+    );
+  });
+
+  it('disables label tabs when scoop is on, and scoop when label tabs are on', () => {
+    renderOptions({ scoop: true });
+    expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toHaveAccessibleDescription(
+      /float above the dipped front wall/
+    );
+    expect(screen.getByRole('switch', { name: 'Scoop in bins' })).toBeEnabled();
+  });
+
+  it('disables scoop when label tabs are on', () => {
+    renderOptions({ labelTabs: true });
+    expect(screen.getByRole('switch', { name: 'Scoop in bins' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Scoop in bins' })).toHaveAccessibleDescription(
+      /float above the dipped front wall/
+    );
+    expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toBeEnabled();
   });
 
   it('steps the divider count up and down', async () => {

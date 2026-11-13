@@ -10,6 +10,8 @@ import {
   MAGNET_HOLE_DIAMETER_MM,
   MIN_BIN_HEIGHT,
   SCREW_HOLE_DIAMETER_MM,
+  SCOOP_SPAN_END_FRACTION,
+  SCOOP_SPAN_START_FRACTION,
   STACKING_LIP_HEIGHT_MM,
 } from "@/utils/bins";
 import { unitMath } from "@/services/unitMath";
@@ -20,6 +22,7 @@ import {
   BIN_TOP_RADIUS,
   FOOT_PROFILE,
   binWallProfile,
+  scoopTopZMm,
   type ProfilePoint,
 } from "./gridfinityProfiles";
 import {
@@ -46,6 +49,7 @@ export interface BinShape {
   dividerPositions?: number[];
   magnetHoles?: boolean;
   screwHoles?: boolean;
+  scoop?: boolean;
 }
 
 export const labelTabWidthMm = (columns: number, cellSize: number): number => {
@@ -109,6 +113,202 @@ const dividerBox = (
 
 type MeshBuilder = ReturnType<typeof createMeshBuilder>;
 
+const samePoint = (a: Point, b: Point): boolean =>
+  Math.round(a[0] * 1e6) === Math.round(b[0] * 1e6) &&
+  Math.round(a[1] * 1e6) === Math.round(b[1] * 1e6);
+
+const triangleIsDegenerate = (a: Vec3, b: Vec3, c: Vec3): boolean => {
+  const ux = b[0] - a[0];
+  const uy = b[1] - a[1];
+  const uz = b[2] - a[2];
+  const vx = c[0] - a[0];
+  const vy = c[1] - a[1];
+  const vz = c[2] - a[2];
+  const cx = uy * vz - uz * vy;
+  const cy = uz * vx - ux * vz;
+  const cz = ux * vy - uy * vx;
+  return cx * cx + cy * cy + cz * cz < 1e-12;
+};
+
+const emitQuad = (
+  builder: MeshBuilder,
+  a: Vec3,
+  b: Vec3,
+  c: Vec3,
+  d: Vec3,
+  facing: Vec3
+): void => {
+  if (!triangleIsDegenerate(a, b, c)) builder.triangle(a, b, c, facing);
+  if (!triangleIsDegenerate(a, c, d)) builder.triangle(a, c, d, facing);
+};
+
+interface ScoopSpan {
+  x0: number;
+  x1: number;
+}
+
+const scoopSpanFor = (width: number): ScoopSpan => ({
+  x0: unitMath.multiply(width, SCOOP_SPAN_START_FRACTION),
+  x1: unitMath.multiply(width, SCOOP_SPAN_END_FRACTION),
+});
+
+const insertScoopPoints = (ring: Point[], span: ScoopSpan): Point[] => {
+  const minY = Math.min(...ring.map((point) => point[1]));
+  const start = ring.findIndex((point) => Math.abs(point[1] - minY) < 1e-9);
+  if (start === -1) return ring;
+  let end = start;
+  while (end + 1 < ring.length && Math.abs(ring[end + 1][1] - minY) < 1e-9) end += 1;
+  const front = ring.slice(start, end + 1);
+  const low = front[0][0];
+  const high = front[front.length - 1][0];
+  const expanded: Point[] = [];
+  let insertedStart = false;
+  let insertedEnd = false;
+  for (const point of front) {
+    if (!insertedStart && span.x0 >= low && span.x0 <= high && point[0] > span.x0) {
+      expanded.push([span.x0, minY], [span.x0, minY]);
+      insertedStart = true;
+    }
+    if (!insertedEnd && span.x1 >= low && span.x1 <= high && point[0] > span.x1) {
+      expanded.push([span.x1, minY], [span.x1, minY]);
+      insertedEnd = true;
+    }
+    expanded.push(point);
+  }
+  if (!insertedStart && span.x0 >= low && span.x0 <= high) expanded.push([span.x0, minY], [span.x0, minY]);
+  if (!insertedEnd && span.x1 >= low && span.x1 <= high) expanded.push([span.x1, minY], [span.x1, minY]);
+  return [...ring.slice(0, start), ...expanded, ...ring.slice(end + 1)];
+};
+
+const scoopFactors = (ring: Point[], span: ScoopSpan): number[] => {
+  const minY = Math.min(...ring.map((point) => point[1]));
+  return ring.map((point, index) => {
+    const [x, y] = point;
+    if (Math.abs(y - minY) >= 1e-9) return 0;
+    const prev = ring[(index - 1 + ring.length) % ring.length];
+    const next = ring[(index + 1) % ring.length];
+    if (samePoint(prev, point)) return x === span.x0 ? 1 : 0;
+    if (samePoint(next, point)) return x === span.x0 ? 0 : 1;
+    return x >= span.x0 && x < span.x1 ? 1 : 0;
+  });
+};
+
+interface ScoopClamp {
+  t: number[];
+  top: number;
+}
+
+const scoopCrossing = (lower: ProfilePoint, upper: ProfilePoint, top: number): Point => {
+  const fraction = unitMath.divide(
+    unitMath.subtract(top, lower.z),
+    unitMath.subtract(upper.z, lower.z)
+  );
+  return [
+    BIN_GAP +
+      unitMath.add(
+        lower.inset,
+        unitMath.multiply(fraction, unitMath.subtract(upper.inset, lower.inset))
+      ),
+    top,
+  ];
+};
+
+const splitProfileAtDip = (profile: ProfilePoint[], top: number): ProfilePoint[] => {
+  const split: ProfilePoint[] = [profile[0]];
+  for (let index = 0; index < profile.length - 1; index += 1) {
+    const lower = profile[index];
+    const upper = profile[index + 1];
+    if ((lower.z < top && upper.z > top) || (lower.z > top && upper.z < top)) {
+      const fraction = unitMath.divide(
+        unitMath.subtract(top, lower.z),
+        unitMath.subtract(upper.z, lower.z)
+      );
+      split.push({
+        inset: unitMath.add(
+          lower.inset,
+          unitMath.multiply(fraction, unitMath.subtract(upper.inset, lower.inset))
+        ),
+        z: top,
+      });
+    }
+    split.push(upper);
+  }
+  return split;
+};
+
+const scoopStepPolygon = (profile: ProfilePoint[], top: number): Point[] => {
+  const points: Point[] = [];
+  for (let index = 0; index < profile.length - 1; index += 1) {
+    const lower = profile[index];
+    const upper = profile[index + 1];
+    if (lower.z <= top && upper.z > top) points.push(scoopCrossing(lower, upper, top));
+    if (upper.z > top) points.push([BIN_GAP + upper.inset, upper.z]);
+    if (lower.z > top && upper.z <= top) points.push(scoopCrossing(lower, upper, top));
+  }
+  return points.filter(
+    (point, index, list) => index === 0 || !samePoint(point, list[index - 1])
+  );
+};
+
+const polygonSignedArea = (polygon: Point[]): number => {
+  let sum = 0;
+  polygon.forEach((current, index) => {
+    const next = polygon[(index + 1) % polygon.length];
+    sum += current[0] * next[1] - next[0] * current[1];
+  });
+  return sum / 2;
+};
+
+const pointInTriangleStrict = (p: Point, a: Point, b: Point, c: Point): boolean => {
+  const d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]);
+  if (d === 0) return false;
+  const w0 = ((b[1] - c[1]) * (p[0] - c[0]) + (c[0] - b[0]) * (p[1] - c[1])) / d;
+  const w1 = ((c[1] - a[1]) * (p[0] - c[0]) + (a[0] - c[0]) * (p[1] - c[1])) / d;
+  const w2 = 1 - w0 - w1;
+  const epsilon = 1e-9;
+  return w0 > epsilon && w1 > epsilon && w2 > epsilon;
+};
+
+const triangulatePolygon = (polygon: Point[]): Array<readonly [Point, Point, Point]> => {
+  const order = polygonSignedArea(polygon) < 0 ? [...polygon].reverse() : [...polygon];
+  const remaining = order.map((_, index) => index);
+  const triangles: Array<readonly [Point, Point, Point]> = [];
+  const turn = (a: Point, b: Point, c: Point): number =>
+    (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+  while (remaining.length > 3) {
+    let ear = -1;
+    for (let index = 0; index < remaining.length; index += 1) {
+      const count = remaining.length;
+      const prev = order[remaining[(index - 1 + count) % count]];
+      const current = order[remaining[index]];
+      const next = order[remaining[(index + 1) % count]];
+      if (turn(prev, current, next) <= 1e-12) continue;
+      let blocked = false;
+      for (const other of remaining) {
+        const vertex = order[other];
+        if (vertex === prev || vertex === current || vertex === next) continue;
+        if (pointInTriangleStrict(vertex, prev, current, next)) {
+          blocked = true;
+          break;
+        }
+      }
+      if (!blocked) {
+        ear = index;
+        break;
+      }
+    }
+    if (ear === -1) throw new Error("Scoop step face has no ear");
+    const count = remaining.length;
+    const prev = order[remaining[(ear - 1 + count) % count]];
+    const current = order[remaining[ear]];
+    const next = order[remaining[(ear + 1) % count]];
+    triangles.push([prev, current, next]);
+    remaining.splice(ear, 1);
+  }
+  triangles.push([order[remaining[0]], order[remaining[1]], order[remaining[2]]]);
+  return triangles;
+};
+
 const toVec = ([x, y]: Point, z: number): Vec3 => [x - BIN_GAP, y - BIN_GAP, z];
 
 const triangulateAnnulus = (
@@ -168,10 +368,16 @@ const triangulateAnnulus = (
     const holeClear = j < holePoints.length && segmentClear(atRing(i), atHole(j + 1));
     const ringClear = i < ring.length && segmentClear(atRing(i + 1), atHole(j));
     if (j >= holePoints.length || (ringClear && (!holeClear || nextRing <= nextHole))) {
-      builder.triangle(toVec(atRing(i), z), toVec(atRing(i + 1), z), toVec(atHole(j), z), facing);
+      const a = toVec(atRing(i), z);
+      const b = toVec(atRing(i + 1), z);
+      const c = toVec(atHole(j), z);
+      if (!triangleIsDegenerate(a, b, c)) builder.triangle(a, b, c, facing);
       i += 1;
     } else {
-      builder.triangle(toVec(atRing(i), z), toVec(atHole(j), z), toVec(atHole(j + 1), z), facing);
+      const a = toVec(atRing(i), z);
+      const b = toVec(atHole(j), z);
+      const c = toVec(atHole(j + 1), z);
+      if (!triangleIsDegenerate(a, b, c)) builder.triangle(a, b, c, facing);
       j += 1;
     }
   }
@@ -286,7 +492,7 @@ const INWARD: Point[] = [
   [1, 0],
 ];
 
-const bodyRing = (width: number, depth: number, cellSize: number, inset: number): Point[] => {
+const bodyRing = (width: number, depth: number, cellSize: number, inset: number, scoopSpan?: ScoopSpan): Point[] => {
   const offset = BIN_GAP + inset;
   const columns = Math.round(width / cellSize);
   const rows = Math.round(depth / cellSize);
@@ -298,7 +504,7 @@ const bodyRing = (width: number, depth: number, cellSize: number, inset: number)
     seams(columns, (step) => [width - step * cellSize, depth - offset]),
     seams(rows, (step) => [offset, depth - step * cellSize]),
   ];
-  return roundedCorners(0, 0, width, depth, CORNER_INSET).flatMap((corner, index) => [
+  const ring = roundedCorners(0, 0, width, depth, CORNER_INSET).flatMap((corner, index) => [
     ...arc(corner, BIN_TOP_RADIUS - inset),
     ...sides[index].flatMap(([x, y]): Point[] => {
       const [dx, dy] = SIDE_DIRECTIONS[index];
@@ -309,6 +515,7 @@ const bodyRing = (width: number, depth: number, cellSize: number, inset: number)
       ];
     }),
   ]);
+  return scoopSpan === undefined ? ring : insertScoopPoints(ring, scoopSpan);
 };
 
 const outwardFacing = (center: Point, a: Point, b: Point, lower: ProfilePoint, upper: ProfilePoint): Vec3 => {
@@ -322,7 +529,7 @@ const outwardFacing = (center: Point, a: Point, b: Point, lower: ProfilePoint, u
   ];
 };
 
-export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCount, dividerPositions, magnetHoles, screwHoles }: BinShape): Mesh => {
+export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCount, dividerPositions, magnetHoles, screwHoles, scoop }: BinShape): Mesh => {
   if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns < 1 || rows < 1) {
     throw new Error("A bin needs a whole number of cells");
   }
@@ -338,28 +545,48 @@ export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCoun
     upperRing: Point[],
     lower: ProfilePoint,
     upper: ProfilePoint,
-    center: Point
+    center: Point,
+    scoopClamp?: ScoopClamp
   ) => {
     lowerRing.forEach((current, index) => {
       const next = (index + 1) % lowerRing.length;
-      builder.quad(
-        point(current, lower.z),
-        point(lowerRing[next], lower.z),
-        point(upperRing[next], upper.z),
-        point(upperRing[index], upper.z),
+      if (scoopClamp !== undefined) {
+        const step =
+          scoopClamp.t[index] !== scoopClamp.t[next] && samePoint(current, lowerRing[next]);
+        if (step) return;
+        const aboveDip =
+          scoopClamp.t[index] === 1 &&
+          scoopClamp.t[next] === 1 &&
+          unitMath.min(lower.z, upper.z) >= scoopClamp.top;
+        if (aboveDip) return;
+      }
+      const clamped = (ringIndex: number, z: number): number =>
+        scoopClamp !== undefined && scoopClamp.t[ringIndex] === 1
+          ? unitMath.min(z, scoopClamp.top)
+          : z;
+      emitQuad(
+        builder,
+        point(current, clamped(index, lower.z)),
+        point(lowerRing[next], clamped(next, lower.z)),
+        point(upperRing[next], clamped(next, upper.z)),
+        point(upperRing[index], clamped(index, upper.z)),
         outwardFacing(center, current, lowerRing[next], lower, upper)
       );
     });
   };
   const fan = (hub: Point, ring: Point[], z: number, facing: Vec3) => {
     ring.forEach((current, index) => {
-      builder.triangle(point(hub, z), point(current, z), point(ring[(index + 1) % ring.length], z), facing);
+      const a = point(hub, z);
+      const b = point(current, z);
+      const c = point(ring[(index + 1) % ring.length], z);
+      if (!triangleIsDegenerate(a, b, c)) builder.triangle(a, b, c, facing);
     });
   };
 
   const width = columns * cellSize;
   const depth = rows * cellSize;
   const binCenter: Point = [width / 2, depth / 2];
+  const scoopSpan = scoop === true ? scoopSpanFor(width) : undefined;
 
   for (let column = 0; column < columns; column += 1) {
     for (let row = 0; row < rows; row += 1) {
@@ -370,15 +597,19 @@ export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCoun
       const rings = FOOT_PROFILE.map(({ inset }) =>
         corners.flatMap((corner) => arc(corner, BIN_TOP_RADIUS - inset))
       );
+      const footRings =
+        scoopSpan === undefined || row !== 0
+          ? rings
+          : rings.map((ring) => insertScoopPoints(ring, scoopSpan));
       const isCornerCell =
         (column === 0 || column === columns - 1) && (row === 0 || row === rows - 1);
       if (magnetHoles && isCornerCell) {
-        magnetPocket(builder, cellCenter, rings[0], magnetHoleRing(), MAGNET_HOLE_DEPTH_MM, screwHoles === true);
+        magnetPocket(builder, cellCenter, footRings[0], magnetHoleRing(), MAGNET_HOLE_DEPTH_MM, screwHoles === true);
       } else if (screwHoles && isCornerCell) {
         triangulateAnnulus(
           builder,
           cellCenter,
-          rings[0],
+          footRings[0],
           screwHoleRing(),
           SCREW_HOLE_DIAMETER_MM / 2,
           FOOT_PROFILE[0].z,
@@ -386,10 +617,10 @@ export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCoun
         );
         screwHoleWall(builder, cellCenter, FOOT_PROFILE[0].z, BIN_BASE_HEIGHT);
       } else {
-        fan(cellCenter, rings[0], FOOT_PROFILE[0].z, DOWN);
+        fan(cellCenter, footRings[0], FOOT_PROFILE[0].z, DOWN);
       }
       for (let band = 0; band < FOOT_PROFILE.length - 1; band += 1) {
-        loft(rings[band], rings[band + 1], FOOT_PROFILE[band], FOOT_PROFILE[band + 1], cellCenter);
+        loft(footRings[band], footRings[band + 1], FOOT_PROFILE[band], FOOT_PROFILE[band + 1], cellCenter);
       }
 
       const boundary = [row === 0, column === columns - 1, row === rows - 1, column === 0];
@@ -443,12 +674,52 @@ export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCoun
     }
   }
 
-  const profile = binWallProfile(height);
-  const rings = profile.map(({ inset }) => bodyRing(width, depth, cellSize, inset));
+  const baseProfile = binWallProfile(height);
+  const profile =
+    scoopSpan === undefined ? baseProfile : splitProfileAtDip(baseProfile, scoopTopZMm(height));
+  const rings = profile.map(({ inset }) => bodyRing(width, depth, cellSize, inset, scoopSpan));
+  const scoopClamp =
+    scoopSpan === undefined
+      ? undefined
+      : { t: scoopFactors(rings[0], scoopSpan), top: scoopTopZMm(height) };
   for (let band = 0; band < profile.length - 1; band += 1) {
-    loft(rings[band], rings[band + 1], profile[band], profile[band + 1], binCenter);
+    loft(rings[band], rings[band + 1], profile[band], profile[band + 1], binCenter, scoopClamp);
   }
-  const floorRing = rings[rings.length - 1];
+  if (scoopSpan !== undefined && scoopClamp !== undefined) {
+    const polygon = scoopStepPolygon(profile, scoopClamp.top);
+    if (polygon.length >= 3) {
+      const faces: Array<{ x: number; facing: Vec3 }> = [
+        { x: scoopSpan.x0, facing: [1, 0, 0] },
+        { x: scoopSpan.x1, facing: [-1, 0, 0] },
+      ];
+      faces.forEach(({ x, facing }) => {
+        triangulatePolygon(polygon).forEach(([a, b, c]) => {
+          builder.triangle(
+            point([x, a[0]], a[1]),
+            point([x, b[0]], b[1]),
+            point([x, c[0]], c[1]),
+            facing
+          );
+        });
+      });
+      const rimLow = Math.min(polygon[0][0], polygon[polygon.length - 1][0]);
+      const rimHigh = Math.max(polygon[0][0], polygon[polygon.length - 1][0]);
+      rings[0].forEach((current, index) => {
+        const next = (index + 1) % rings[0].length;
+        if (scoopClamp.t[index] !== 1 || scoopClamp.t[next] !== 1) return;
+        builder.quad(
+          point([current[0], rimLow], scoopClamp.top),
+          point([rings[0][next][0], rimLow], scoopClamp.top),
+          point([rings[0][next][0], rimHigh], scoopClamp.top),
+          point([current[0], rimHigh], scoopClamp.top),
+          UP
+        );
+      });
+    }
+  }
+  const floorRing = rings[rings.length - 1].filter(
+    (point, index, ring) => index === 0 || !samePoint(point, ring[index - 1])
+  );
   if (screwHoles) {
     const holeCenters: Point[] = [];
     for (let column = 0; column < columns; column += 1) {

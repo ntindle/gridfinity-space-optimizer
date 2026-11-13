@@ -8,9 +8,11 @@ STL, for a stuck-on label. Dividers shipped (F18): 0–3 per bin, at chosen posi
 a Bin options switch adds a Ø6.2 × 2 mm magnet pocket under each corner cell of every printed bin.
 Screw holes shipped (F17 complete): a Bin options switch adds a Ø3.2 mm hole through the floor
 under each corner cell of every printed bin, for an M3 screw; with magnet holes on, the hole passes
-through the magnet pocket floor. Baseplate magnet and screw holes remain open. Bin-part options ship
-local-only (not in share links), per the lids/dividers/label-tabs precedent. Not started: scoop F19,
-vase mode F20.
+through the magnet pocket floor. Scoop shipped (F19): a Bin options switch dips the front wall of
+every printed bin to half its height over the middle half of the front, with vertical step sides;
+the stacking lip is cut flat at the dip height. Scoop conflicts with label tabs, so the two switches
+disable each other. Baseplate magnet and screw holes remain open. Bin-part options ship
+local-only (not in share links), per the lids/dividers/label-tabs precedent. Not started: vase mode F20.
 **Demand:** D1 (bins), D2 (lids, label tabs), D3–D4 (the rest). **Slots:** S3 (toolbar), S4 (bin panel).
 
 The job: decide which bins go where in the drawer, and get files to print them. A bin is something
@@ -43,8 +45,8 @@ per placed bin per drawer. New bin options become switch rows in the bin panel, 
 │ │ Contents [Screws                                  ]                │           │
 │ │ [Duplicate] [Delete]                                               │           │
 │ │ shipped: Label tabs · Dividers · Lids · Magnet holes · Screw holes │           │
-│ │   (Bin options switches)                                           │           │
-│ │ later: Scoop                                                       │           │
+│ │   Scoop (Bin options switches)                                     │           │
+│ │ later: Vase mode                                                   │           │
 │ └────────────────────────────────────────────────────────────────────┘           │
 │ Parts to print: bin rows first (grouped by size and height), then                │
 │ baseplates and spacers                                                           │

@@ -16,6 +16,8 @@ export const DIVIDER_POSITION_EPSILON = 0.005;
 export const MAGNET_HOLE_DIAMETER_MM = 6.2;
 export const MAGNET_HOLE_DEPTH_MM = 2;
 export const SCREW_HOLE_DIAMETER_MM = 3.2;
+export const SCOOP_SPAN_START_FRACTION = 0.25;
+export const SCOOP_SPAN_END_FRACTION = 0.75;
 
 export const cornerHoleCount = (columns: number, rows: number): number =>
   unitMath.multiply(columns > 1 ? 2 : 1, rows > 1 ? 2 : 1);

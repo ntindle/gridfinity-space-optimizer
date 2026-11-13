@@ -3,8 +3,8 @@ import {
   binMesh,
   labelTabWidthMm,
 } from './binMesh';
-import { binWallProfile, BIN_BASE_HEIGHT } from './gridfinityProfiles';
-import { binVolumeMm3, dividerVolumeMm3, labelTabVolumeMm3, magnetPocketVolumeMm3, screwHoleVolumeMm3 } from '@/utils/partVolumes';
+import { binWallProfile, BIN_BASE_HEIGHT, scoopTopZMm } from './gridfinityProfiles';
+import { binVolumeMm3, dividerVolumeMm3, labelTabVolumeMm3, magnetPocketVolumeMm3, scoopVolumeMm3, screwHoleVolumeMm3 } from '@/utils/partVolumes';
 import { meshBounds, meshVolume, type Mesh } from './mesh';
 import { binTotalHeight, MAGNET_HOLE_DEPTH_MM, MAGNET_HOLE_DIAMETER_MM, SCREW_HOLE_DIAMETER_MM, magnetHoleCount, screwHoleCount } from '@/utils/bins';
 import { HOLE_SEGMENTS } from './shapes';
@@ -481,5 +481,74 @@ describe('binMesh', () => {
     expect(() => binMesh({ columns: 0, rows: 1, cellSize: 42, height: 3 })).toThrow(/whole number of cells/);
     expect(() => binMesh({ columns: 1, rows: 1, cellSize: 42, height: 1 })).toThrow(/at least 2/);
     expect(() => binMesh({ columns: 1, rows: 1, cellSize: 42, height: 2.5 })).toThrow(/whole height/);
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+    [1, 1, 21, 2],
+  ])('builds a closed, outward-facing scooped %i × %i bin on %i mm cells, %iu tall', (columns, rows, cellSize, height) => {
+    const mesh = binMesh({ columns, rows, cellSize, height, scoop: true });
+    expect(edgeProblems(mesh)).toEqual([]);
+    expect(meshVolume(mesh)).toBeLessThan(meshVolume(binMesh({ columns, rows, cellSize, height })));
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+  ])('matches the Gridfinity bin volume minus the scoop for %i × %i on %i mm, %iu', (columns, rows, cellSize, height) => {
+    const volume = meshVolume(binMesh({ columns, rows, cellSize, height, scoop: true }));
+    const expected =
+      binVolumeMm3(columns, rows, cellSize, height) - scoopVolumeMm3(columns, cellSize, height);
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+  });
+
+  it('dips the front wall to half height over the middle half, and leaves the back wall full height', () => {
+    const mesh = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, scoop: true });
+    const dip = scoopTopZMm(6);
+    const frontRim: [number, number][] = [];
+    let frontMax = 0;
+    let backMax = 0;
+    for (let index = 0; index < mesh.positions.length; index += 3) {
+      const [x, y, z] = [mesh.positions[index], mesh.positions[index + 1], mesh.positions[index + 2]];
+      if (y < 2.6 && x > 20.75 && x < 62.75) {
+        frontMax = Math.max(frontMax, z);
+        if (z === dip) frontRim.push([x, y]);
+      }
+      if (y > 39) backMax = Math.max(backMax, z);
+    }
+    expect(frontMax).toBe(dip);
+    expect(frontRim.length).toBeGreaterThan(0);
+    expect(frontRim.some(([x]) => Math.abs(x - 41.75) < 1e-6)).toBe(true);
+    expect(backMax).toBeCloseTo(binTotalHeight(6), 5);
+    expect(meshBounds(mesh)).toEqual({
+      min: [0, 0, 0],
+      max: [83.5, 41.5, expect.closeTo(binTotalHeight(6), 5)],
+    });
+  });
+
+  it('cuts the scoop just under the faceted wall volume above the dip', () => {
+    const scoop = scoopVolumeMm3(2, 42, 6);
+    expect(scoop).toBeGreaterThan(0);
+    expect(scoop).toBeLessThan(binVolumeMm3(2, 1, 42, 6));
+    expect(scoopVolumeMm3(1, 42, 6)).toBeCloseTo(scoop / 2, 6);
+    expect(scoopVolumeMm3(2, 21, 6)).toBeCloseTo(scoop / 2, 6);
+  });
+
+  it('builds a closed scooped bin with a divider, magnets, and screw holes', () => {
+    const mesh = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, dividerCount: 1, magnetHoles: true, screwHoles: true, scoop: true });
+    expect(edgeProblems(mesh)).toEqual([]);
+    const volume = meshVolume(mesh);
+    const expected =
+      binVolumeMm3(2, 1, 42, 6) +
+      dividerVolumeMm3(2, 1, 42, 6) -
+      magnetHoleCount(2, 1) * magnetPocketVolumeMm3() -
+      screwHoleCount(2, 1) * screwHoleVolumeMm3(BIN_BASE_HEIGHT - MAGNET_HOLE_DEPTH_MM) -
+      scoopVolumeMm3(2, 42, 6);
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
   });
 });
