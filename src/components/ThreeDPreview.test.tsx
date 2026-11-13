@@ -1,12 +1,16 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { ComponentProps, ReactNode } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ThreeDPreview from "./ThreeDPreview";
 import { boxForInstance, buildThreeDBoxes } from "@/utils/threeDLayout";
+import {
+  DARK_SCENE_FLOOR_LIGHTNESS,
+  liftLightness,
+} from "@/utils/threeDColors";
 import type { Bin, LayoutItem } from "@/types";
 
 const invalidateMock = vi.hoisted(() => vi.fn());
@@ -168,5 +172,78 @@ describe("ThreeDPreview", () => {
     expect(screen.getByText(/Drag to orbit/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Reset view" }));
     expect(screen.getByRole("button", { name: "Reset view" })).toBeInTheDocument();
+  });
+});
+
+const mockColorScheme = (matches: boolean) => {
+  const listeners = new Map<string, Array<(event: { matches: boolean }) => void>>();
+  const query = {
+    matches,
+    addEventListener: vi.fn(
+      (event: string, fn: (event: { matches: boolean }) => void) => {
+        const next = listeners.get(event) ?? [];
+        next.push(fn);
+        listeners.set(event, next);
+      }
+    ),
+    removeEventListener: vi.fn(
+      (event: string, fn: (event: { matches: boolean }) => void) => {
+        listeners.set(
+          event,
+          (listeners.get(event) ?? []).filter((listener) => listener !== fn)
+        );
+      }
+    ),
+  };
+  vi.stubGlobal("matchMedia", vi.fn(() => query));
+  return {
+    query,
+    fireChange: (next: boolean) => {
+      query.matches = next;
+      listeners.get("change")?.forEach((listener) => listener({ matches: next }));
+    },
+  };
+};
+
+describe("ThreeDPreview dark mode", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("uses the light-mode rig when the color scheme is light", () => {
+    mockColorScheme(false);
+    const { container } = renderPreview();
+    expect(container.querySelector("ambientlight")?.getAttribute("intensity")).toBe(
+      "0.85"
+    );
+    expect(container.querySelectorAll("directionallight")).toHaveLength(1);
+    expect(container.querySelector("hemispherelight")).toBeNull();
+  });
+
+  it("adds fill lights and lifts the floor color when the color scheme is dark", () => {
+    mockColorScheme(true);
+    vi.spyOn(window, "getComputedStyle").mockReturnValue({
+      backgroundColor: "oklch(0.155 0.004 50)",
+    } as CSSStyleDeclaration);
+    const { container } = renderPreview();
+    expect(container.querySelector("ambientlight")?.getAttribute("intensity")).toBe("1");
+    expect(container.querySelectorAll("directionallight")).toHaveLength(2);
+    expect(container.querySelector("hemispherelight")).not.toBeNull();
+    const floorColor = container
+      .querySelector("mesh > meshlambertmaterial")
+      ?.getAttribute("color");
+    expect(floorColor).toBe(
+      liftLightness("rgb(14, 12, 11)", DARK_SCENE_FLOOR_LIGHTNESS)
+    );
+  });
+
+  it("follows the color scheme when it changes", () => {
+    const scheme = mockColorScheme(false);
+    const { container } = renderPreview();
+    expect(container.querySelector("hemispherelight")).toBeNull();
+    act(() => scheme.fireChange(true));
+    expect(container.querySelector("hemispherelight")).not.toBeNull();
+    expect(container.querySelectorAll("directionallight")).toHaveLength(2);
   });
 });
