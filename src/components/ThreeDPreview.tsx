@@ -5,6 +5,7 @@ import { OrbitControls } from "three-stdlib";
 import * as THREE from "three";
 import { RotateCcw } from "lucide-react";
 import { unitMath } from "@/services/unitMath";
+import { track } from "@/services/analytics";
 import {
   boxForPointerClick,
   buildThreeDBoxes,
@@ -145,6 +146,7 @@ const ThreeDPreview: React.FC<ThreeDPreviewProps> = ({
 }) => {
   const [resetSignal, setResetSignal] = useState(0);
   const [isDark, setIsDark] = useState(() => prefersDarkColorScheme());
+  useEffect(() => track("preview_3d_opened"), []);
   useEffect(() => {
     const query = darkColorSchemeQuery();
     if (!query) return;

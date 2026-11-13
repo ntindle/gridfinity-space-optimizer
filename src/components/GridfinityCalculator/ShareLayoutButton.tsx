@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Check, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSettings } from '@/contexts/SettingsContext';
+import { layoutSummary, track } from '@/services/analytics';
 import { buildShareUrl } from '@/utils/shareLayout';
 import { cn } from '@/lib/utils';
 
@@ -66,6 +67,7 @@ const ShareLayoutButton: React.FC = () => {
         bins: settings.bins,
       },
     );
+    track('layout_shared', layoutSummary(settings));
 
     try {
       if (navigator.clipboard?.writeText) {

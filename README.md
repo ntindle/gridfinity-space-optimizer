@@ -105,6 +105,47 @@ or
 yarn build
 ```
 
+## Analytics
+
+Product analytics use [PostHog](https://posthog.com). They are off unless a project token is set at build time, and they need no cookie banner:
+
+- PostHog runs in cookieless mode with in-memory persistence. It sets no cookies and stores nothing in the browser. Its only write is a feature-test key that it deletes at once, and the flags it looks up (`ph_debug` and its opt-out key) are never set by this site. PostHog counts visitors with a server-side hash that rotates daily, so a person who comes back on another day counts as a new visitor.
+- PostHog is never loaded when Do Not Track or Global Privacy Control is on, or in automated browsers (`navigator.webdriver`), so the production smoke check sends nothing.
+- Only the events below are sent: no autocapture, session replay, heatmaps, surveys, feature flags, or external scripts. Bin contents, layout names, and the share-link payload are never sent, and `share=` is stripped from every URL.
+- PostHog (about 51 KB gzipped) loads in its own chunk after the page starts. With analytics off it is never downloaded.
+
+### Turning analytics on
+
+1. In PostHog, go to **Settings → Project → Web analytics**, turn on **Enable cookieless tracking**, and save. Without it, PostHog drops every event this site sends.
+2. In Netlify, go to **Project configuration → Environment variables** and add these, with the **Builds** scope and only the **Production** deploy context, so deploy previews don't count:
+
+   | Variable | Value |
+   | --- | --- |
+   | `POSTHOG_KEY` | The project token from PostHog → Settings → Project (starts with `phc_`) |
+   | `POSTHOG_HOST` | `https://us.i.posthog.com` (US Cloud) or `https://eu.i.posthog.com` (EU Cloud). Optional; defaults to US Cloud |
+
+   Don't tick **Contains secret values**. The token is public by design and ends up in `index.html`, so Netlify's secret scanning would fail the build.
+3. Trigger a production deploy, because the variables are read at build time. Then open the site with Do Not Track off and look for a `$pageview` in PostHog → Activity.
+
+The variables are deliberately not `VITE_`-prefixed. The build writes them into `index.html` as `<meta>` tags and never into the JavaScript, so the bundle is byte-identical with analytics on or off and `prod-smoke.yml` still finds its own build in production. The build fails if `POSTHOG_KEY` is not a `phc_` project token, so a personal API key can't be published by mistake. To try analytics locally, copy `.env.example` to `.env.local` and fill it in.
+
+### Events
+
+| Event | Sent when | Properties |
+| --- | --- | --- |
+| `$pageview`, `$pageleave` | The page opens or closes | PostHog's standard browser, screen, and referrer properties |
+| `layout_created` | The first change to the layout in a visit | `change`: `drawer_size`, `printer`, `grid`, `drawer_count`, `bin_options`, or `bins` |
+| `layout_edited` | Each later change, at most once per 2 seconds for each kind of change | `change` |
+| `bins_added` | Bins are drawn, added, filled, or duplicated | `count` (bins added), `total` |
+| `preview_3d_opened` | The 3D preview opens | none |
+| `layout_saved` | A layout is saved on the device | layout summary |
+| `layout_loaded` | A saved layout or a share link is opened | layout summary, `source` (`saved` or `share_link`) |
+| `layout_shared` | A share link is created | layout summary |
+| `files_downloaded` | The print files download | layout summary, `baseplates`, `spacers`, `parts`, `prints`, `skipped_bins`, `test_fit`, `label_tabs`, `dividers`, `lids`, `magnets`, `screws` |
+| `labels_printed` | Bin labels are sent to the printer | `labels`, `style` |
+
+The layout summary is `drawer_width_mm`, `drawer_depth_mm`, `units`, `printer`, `drawers`, and `bins` (a count). The events are defined in `src/services/analytics.ts`.
+
 ## Production smoke and rollback
 
 After every push to `main`, `.github/workflows/prod-smoke.yml` waits until https://gridfinitylayout.com/ serves the new build, then drives the core tasks in headless Chromium. If the smoke check fails it:

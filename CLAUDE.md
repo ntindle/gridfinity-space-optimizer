@@ -153,6 +153,7 @@ Uses Shadcn/ui components (`src/components/ui/`) - pre-built accessible componen
 3. **Dimension Handling**: All internal calculations use millimeters; UI supports inch/mm toggle
 4. **Printer Profiles**: Predefined printer sizes in `src/lib/utils.ts` as `printerSizes` object
 5. **Layout Visualization**: Real-time preview updates using calculated pixel coordinates
+6. **Analytics**: Product events go through `src/services/analytics.ts` (`track` and its helpers). It is a no-op unless `POSTHOG_KEY` is set at build time, and its tests (`analytics.test.ts`, `analytics.events.test.tsx`) pin every event. Never send typed text (bin contents, layout names) or the share payload. When a feature adds a user action worth counting, add its event there and to the README's Analytics table. Don't read `POSTHOG_*` through `import.meta.env`: the key must stay out of the JS bundle (see the README).
 
 ## Building New Features
 
