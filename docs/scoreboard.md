@@ -322,6 +322,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression. Branch leads on load in both pairs (Lighthouse +6 / +5, TTI −308 / −230 ms), but the diff touches no measured code path (the new work is a Bin options switch plus mesh/volume code behind the lazy export chunk that only runs on download; the drawer-width edit → preview piece list is unchanged code), so the load lead is box noise in the branch's favor, not a branch speedup; input-to-preview flips sign between pairs (pair 1 branch-favoring by 10.6 ms, pair 2 trunk-favoring by 1.7 ms) across a 33.5–46.6 ms four-run band, and layout (480–509 ms) and share (72–77 ms) overlap across all four runs. Parity +3.0pp (F19 ❌→✅ and F15 🟡→✅); the new work is a "Scoop in bins" switch: the front wall of every printed bin dips to half its height over the middle half of the front, with vertical step sides, and the stacking lip is cut flat at the dip height — the mesh, estimates, print plan, STL stems, and download README follow it, saved-layout snapshots carry it, and it conflicts with label tabs (same front edge), so the two switches disable each other with a reason. Bundle delta: index chunk 251,360 → 252,897 B (+0.61%) for the switch and settings plumbing; the lazy export chunk 32,081 → 35,971 B (+12.1%) for the scoop mesh (step-face triangulation and the profile split at the dip height) and the README line.
 
+## 2026-11-14, PR #181 (example layouts gallery, F44)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair). Both pairs below ran on the final head; three earlier pairs on the pre-fix head are covered in the verdict.
+
+| Metric | Branch (pair 1 / pair 2) | Trunk (pair 1 / pair 2) |
+| --- | --- | --- |
+| Parity | 65.0% (32 ✅ + 1 🟡 / 50) | 63.0% |
+| Lighthouse perf | 77 / 75 | 76 / 76 |
+| TTI | 3497 / 3575 ms | 3518 / 3618 ms |
+| Input-to-preview (median) | 32.5 / 36.4 ms | 32.2 / 28.2 ms |
+| Layout task | 4 steps, 481 / 496 ms | 4 steps, 467 / 470 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 80 / 72 ms | 1 click, 78 / 79 ms |
+
+Verdict: no credible regression. Lighthouse (75–77 vs 76), TTI (3497–3575 vs 3518–3618 ms), input-to-preview (32.5–36.4 vs 28.2–32.2 ms), and share (72–80 vs 78–79 ms) all overlap across the four runs. The layout task runs +14/+26 ms (+3.0%/+5.5%) over trunk in both pairs on the final head. Three earlier pairs on the pre-fix head showed the same offset (+25–37 ms), which pointed at the gallery re-rendering its plan previews on every keystroke; wrapping the preview in React.memo narrowed it, and the residual is a fresh-load cost (the static section plus the 8 KB chunk), not the edit→preview path — input-to-preview shows no consistent offset in any of the five pairs, and the layout bands across all five pairs overlap (branch 481–531 ms, trunk 467–499 ms). Parity +2.0pp (F44 ❌→✅); the new work is an "Example layouts" section in the calculator with four named example drawers — kitchen utensils, screws & fasteners, desk tools, craft & sewing — each with a plan preview, drawer size, and bin count, and one click loads the drawer dims and placed bins with contents and labels through the saved-layout snapshot restore. Every example uses a real, sourced drawer size (IKEA ALEX interior measured by theworkspacehero; Husky 52-in 18-drawer chest drawers per the Home Depot listing), shown on the card with its source; examples are local-only, not in share links. Bundle delta: index chunk 257,015 → 264,994 B (+3.1%) for the gallery section, the example data, and the analytics source; the lazy export chunk is unchanged at 35,976 B.
+
 ## 2026-11-08, PR #173 (magnet holes in bins, F17)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).

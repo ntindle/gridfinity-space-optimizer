@@ -21,7 +21,7 @@ export type LayoutChange =
   | "bin_options"
   | "bins";
 
-export type LayoutSource = "saved" | "share_link";
+export type LayoutSource = "saved" | "share_link" | "example";
 
 export type LayoutSummary = {
   drawer_width_mm: number;
