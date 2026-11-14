@@ -23,6 +23,7 @@ import { binIssues, gridCells, indexCells, maxBinHeight } from "@/utils/bins";
 import { usableBed } from "@/utils/printPlan";
 import GuidedTour from "@/components/GuidedTour";
 import SavedLayouts from "@/components/SavedLayouts";
+import ExampleLayouts from "@/components/ExampleLayouts";
 import type { SavedLayoutSnapshot } from "@/utils/savedLayouts";
 import CollapsibleCard from "@/components/CollapsibleCard";
 import MobileResultsBar from "@/components/MobileResultsBar";
@@ -270,6 +271,8 @@ const GridfinityCalculator: React.FC = () => {
               snapshot={savedLayoutSnapshot}
               onRestore={restoreSavedLayout}
             />
+
+            <ExampleLayouts onRestore={restoreSavedLayout} />
           </Card>
         </div>
 
