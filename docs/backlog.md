@@ -15,7 +15,7 @@ Still-valid items carried over from `CLAUDE.md` and `REFACTOR_PLAN.md`, checked 
 | Item | Source | Notes |
 | --- | --- | --- |
 | Export the parts list as CSV/JSON and a print plan view | REFACTOR_PLAN Phase 5.2 | STL and 3MF shipped; see `docs/wireframes/print-and-export.md` for the rest. |
-| Stackable prints export with model links | issue #5, draft PR #66 | Highest-demand open issue. |
+| Stacked 3MF export | issue #5, PR #66 | Stacking suggestions shipped in the Print plan card (`src/utils/stackPlan.ts`); exporting the stacks as 3MF with slicer separation is still open. Model-repository links were dropped: Download files generates every part. |
 | Presets for common drawer sizes, saved configurations | REFACTOR_PLAN Phase 5.1 | |
 | 3D preview | REFACTOR_PLAN Phase 5.3 | Drag-and-drop editing and dimension labels shipped. |
 | Multi-drawer layouts, cost and print-time estimates | REFACTOR_PLAN Future | |
