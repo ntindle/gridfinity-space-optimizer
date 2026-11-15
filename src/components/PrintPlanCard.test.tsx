@@ -17,6 +17,7 @@ import {
 import PrintPlanCard from './PrintPlanCard';
 import { buildPrintListText } from '@/utils/printList';
 import { planPlates } from '@/utils/printPlan';
+import { countPrintJobs, planPlateStack } from '@/utils/stackPlan';
 import type { Bin, DrawerSize, PrinterSize } from '@/types';
 
 const A1: PrinterSize = { x: 256, y: 256, z: 256 };
@@ -139,6 +140,28 @@ describe('PrintPlanCard', () => {
     const { parts } = collectPrintParts({ layout, bins: [], numDrawers: 2, printerSize: A1 });
     const total = parts.reduce((sum, part) => sum + part.count, 0);
     expect(screen.getByText(new RegExp(`${total} parts on`))).toBeInTheDocument();
+  });
+
+  it('suggests stacking repeated flat plates', () => {
+    render(<StatefulCard overrides={{ numDrawers: 12 }} />);
+    const { parts } = collectPrintParts({ layout, bins: [], numDrawers: 12, printerSize: A1 });
+    const byKey = new Map(parts.map((part) => [part.key, part]));
+    const plates = planPlates(parts, A1);
+    const stacked = plates.map((plate) => planPlateStack(plate, byKey, A1.z)).filter(Boolean);
+    expect(stacked.length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^or stack \d+ high · \d+ jobs?$/)).toHaveLength(stacked.length);
+    const plain = countPrintJobs(plates, byKey, A1.z, false);
+    const fewer = countPrintJobs(plates, byKey, A1.z, true);
+    expect(fewer).toBeLessThan(plain);
+    expect(
+      screen.getByText(new RegExp(`cut ${plain} print jobs to ${fewer}:`))
+    ).toBeInTheDocument();
+  });
+
+  it('does not suggest stacking when nothing repeats', () => {
+    render(<StatefulCard />);
+    expect(screen.queryByText(/or stack/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Stack the repeated/)).not.toBeInTheDocument();
   });
 
   it('shows the print estimate for the parts in the plan', () => {

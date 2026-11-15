@@ -16,6 +16,12 @@ import {
 import { buildPrintListText } from "@/utils/printList";
 import { planPlates, usableBed, type Plate } from "@/utils/printPlan";
 import {
+  countPrintJobs,
+  planPlateStack,
+  STACK_GAP_MM,
+  type PlateStack,
+} from "@/utils/stackPlan";
+import {
   ESTIMATE_MATERIAL_DENSITY_G_PER_CM3,
   estimatePrint,
   formatEstimateCost,
@@ -68,9 +74,10 @@ interface PlateRowProps {
   label: string;
   plate: Plate;
   byKey: Map<string, PrintPartSummary>;
+  stack?: PlateStack | null;
 }
 
-const PlateRow: React.FC<PlateRowProps> = ({ label, plate, byKey }) => {
+const PlateRow: React.FC<PlateRowProps> = ({ label, plate, byKey, stack }) => {
   const plateParts = plate.parts.reduce(
     (sum, item) => unitMath.add(sum, item.count),
     0
@@ -95,9 +102,14 @@ const PlateRow: React.FC<PlateRowProps> = ({ label, plate, byKey }) => {
           );
         })}
       </span>
-      <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground">
+      <span className="shrink-0 text-right text-[13px] tabular-nums text-muted-foreground">
         {pluralize(plateParts, "part")}
         {plate.copies > 1 ? ` · print ${plate.copies} times` : null}
+        {stack ? (
+          <span className="block text-xs">
+            or stack {stack.layers} high · {pluralize(stack.jobs, "job")}
+          </span>
+        ) : null}
       </span>
     </li>
   );
@@ -212,6 +224,9 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
     testPartCount
   );
   const plateCount = unitMath.add(plates.length, testPlate ? 1 : 0);
+  const stacks = plates.map((plate) => planPlateStack(plate, byKey, printerSize.z));
+  const plainJobs = countPrintJobs(plates, byKey, printerSize.z, false);
+  const stackedJobs = countPrintJobs(plates, byKey, printerSize.z, true);
 
   if (parts.length === 0) return null;
 
@@ -275,9 +290,17 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
             label={plates.length > 1 ? `Plate ${unitMath.add(index, 1)}` : "Plate"}
             plate={plate}
             byKey={byKey}
+            stack={stacks[index]}
           />
         ))}
       </ol>
+      {stackedJobs < plainJobs ? (
+        <p className="mt-3 text-[13px] text-muted-foreground text-pretty">
+          Stack the repeated flat plates to cut {pluralize(plainJobs, "print job")} to{" "}
+          {stackedJobs}: in your slicer, copy the plate straight up with a{" "}
+          {STACK_GAP_MM} mm air gap between copies, then snap them apart.
+        </p>
+      ) : null}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p className="text-[13px] tabular-nums text-muted-foreground">
           ~{formatEstimateDuration(estimate.minutes)} · ~
