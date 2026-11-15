@@ -338,6 +338,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression. Lighthouse (75–77 vs 76), TTI (3497–3575 vs 3518–3618 ms), input-to-preview (32.5–36.4 vs 28.2–32.2 ms), and share (72–80 vs 78–79 ms) all overlap across the four runs. The layout task runs +14/+26 ms (+3.0%/+5.5%) over trunk in both pairs on the final head. Three earlier pairs on the pre-fix head showed the same offset (+25–37 ms), which pointed at the gallery re-rendering its plan previews on every keystroke; wrapping the preview in React.memo narrowed it, and the residual is a fresh-load cost (the static section plus the 8 KB chunk), not the edit→preview path — input-to-preview shows no consistent offset in any of the five pairs, and the layout bands across all five pairs overlap (branch 481–531 ms, trunk 467–499 ms). Parity +2.0pp (F44 ❌→✅); the new work is an "Example layouts" section in the calculator with four named example drawers — kitchen utensils, screws & fasteners, desk tools, craft & sewing — each with a plan preview, drawer size, and bin count, and one click loads the drawer dims and placed bins with contents and labels through the saved-layout snapshot restore. Every example uses a real, sourced drawer size (IKEA ALEX interior measured by theworkspacehero; Husky 52-in 18-drawer chest drawers per the Home Depot listing), shown on the card with its source; examples are local-only, not in share links. Bundle delta: index chunk 257,015 → 264,994 B (+3.1%) for the gallery section, the example data, and the analytics source; the lazy export chunk is unchanged at 35,976 B.
 
+## 2026-11-15, PR #182 (drawer presets, F12)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair and a confirmatory third pair for the input-to-preview reading).
+
+| Metric | Branch (pair 1 / pair 2) | Trunk (pair 1 / pair 2) |
+| --- | --- | --- |
+| Parity | 67.0% (33 ✅ + 1 🟡 / 50) | 65.0% |
+| Lighthouse perf | 68 / 74 | 73 / 67 |
+| TTI | 3953 / 3604 ms | 3663 / 4004 ms |
+| Input-to-preview (median) | 34.9 / 61.4 ms | 34.7 / 44.2 ms |
+| Layout task | 4 steps, 534 / 510 ms | 4 steps, 505 / 511 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 75 / 77 ms | 1 click, 75 / 80 ms |
+
+Verdict: no credible regression. Load metrics flip sign between pairs (Lighthouse 68/74 vs 73/67; TTI 3953/3604 vs 3663/4004 ms), so the pair-1 branch load lag is box noise, not a branch slowdown. Layout (505–534 ms) and share (75–80 ms) overlap across all four runs. Input-to-preview reads 34.9 vs 34.7 ms in pair 1 and 61.4 vs 44.2 ms in pair 2; the pair-2 branch reading did not reproduce in a third confirmatory pair (branch 33.0 vs trunk 48.4 ms), and trunk alone spans 34.7–48.4 ms across the three pairs, so the 61.4 ms is an outlier on a noisy metric, not a branch effect — the diff adds a select to the Drawer card and the layout task, which exercises the same edit path, shows no offset in any pair. Parity +2.0pp (F12 ❌→✅); the new work is a "Drawer preset" picker beside the width/depth inputs with four named drawers — IKEA ALEX drawer unit 11.5 × 20.6 in, Husky 52-in chest full-length drawer 47.6 × 15.8 in, right-hand drawer 13.9 × 15.7 in, and left-hand large drawer 31.6 × 15.8 in — reusing only the drawer sizes already sourced and verified for the F44 examples; picking one fills the dims, editing either field flips the picker back to Custom size, and the choice itself is not persisted or shared (the dims travel as plain dims). The example projects now read their drawer sizes from the same preset list, so there is one source of truth for sourced sizes. The perf harness (`scripts/measure.mjs`) and the production smoke script (`scripts/smoke.mjs`, run by `prod-smoke.yml`) now target the printer picker by its accessible name and scope its options to the listbox: the new preset `<select>` is also a combobox with options, and both scripts previously clicked the first combobox on the page. Bundle delta: index chunk 264,994 → 266,689 B (+0.64%) for the picker, the preset data, and the harness locator fixes; the lazy export chunk is unchanged at 35,976 B.
+
 ## 2026-11-08, PR #173 (magnet holes in bins, F17)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).

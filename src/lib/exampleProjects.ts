@@ -1,5 +1,11 @@
 import { DEFAULT_ESTIMATE_SETTINGS } from "@/utils/partVolumes";
 import type { SavedLayoutSnapshot } from "@/utils/savedLayouts";
+import { drawerPresetById } from "@/lib/drawerPresets";
+
+const alexPreset = drawerPresetById("ikea-alex");
+const huskyFullPreset = drawerPresetById("husky-52-full-length");
+const huskyRightPreset = drawerPresetById("husky-52-right-hand");
+const huskyLeftPreset = drawerPresetById("husky-52-left-large");
 
 export interface ExampleProject {
   id: string;
@@ -35,10 +41,10 @@ export const EXAMPLE_PROJECTS: ExampleProject[] = [
     id: "kitchen-utensils",
     name: "Kitchen utensils",
     description: "Long bins for spatulas and ladles, short bins for cutlery and gadgets.",
-    drawerSource: "IKEA ALEX drawer unit, interior measured",
-    drawerSourceUrl: "https://theworkspacehero.com/alex-drawer-dimensions/",
+    drawerSource: alexPreset.source,
+    drawerSourceUrl: alexPreset.sourceUrl,
     snapshot: {
-      ...baseSnapshot({ width: 11.5, height: 20.6 }),
+      ...baseSnapshot(alexPreset.size),
       bins: [
         { id: "kitchen-spatulas", x: 0, y: 0, width: 84, depth: 252, height: 6, label: "Spatulas" },
         { id: "kitchen-ladles", x: 0, y: 252, width: 84, depth: 252, height: 6, label: "Ladles" },
@@ -54,11 +60,10 @@ export const EXAMPLE_PROJECTS: ExampleProject[] = [
     id: "screws-fasteners",
     name: "Screws & fasteners",
     description: "A shallow-bin wall of screw sizes over deeper bins for bolts, nuts, and bits.",
-    drawerSource: "Husky 52-in 18-drawer chest, full-length drawer",
-    drawerSourceUrl:
-      "https://www.homedepot.ca/product/husky-52-inch-18-drawer-mobile-tool-storage-chest-and-cabinet-set-in-black/1000804523",
+    drawerSource: huskyFullPreset.source,
+    drawerSourceUrl: huskyFullPreset.sourceUrl,
     snapshot: {
-      ...baseSnapshot({ width: 47.6, height: 15.8 }),
+      ...baseSnapshot(huskyFullPreset.size),
       bins: [
         { id: "screws-m3", x: 0, y: 0, width: 168, depth: 84, height: 3, label: "M3 screws" },
         { id: "screws-m4", x: 168, y: 0, width: 168, depth: 84, height: 3, label: "M4 screws" },
@@ -88,11 +93,10 @@ export const EXAMPLE_PROJECTS: ExampleProject[] = [
     id: "desk-tools",
     name: "Desk tools",
     description: "Pens and markers up top, cables and chargers below.",
-    drawerSource: "Husky 52-in 18-drawer chest, right-hand drawer",
-    drawerSourceUrl:
-      "https://www.homedepot.ca/product/husky-52-inch-18-drawer-mobile-tool-storage-chest-and-cabinet-set-in-black/1000804523",
+    drawerSource: huskyRightPreset.source,
+    drawerSourceUrl: huskyRightPreset.sourceUrl,
     snapshot: {
-      ...baseSnapshot({ width: 13.9, height: 15.7 }),
+      ...baseSnapshot(huskyRightPreset.size),
       bins: [
         { id: "desk-pens", x: 0, y: 0, width: 84, depth: 168, height: 3, label: "Pens & pencils" },
         { id: "desk-markers", x: 84, y: 0, width: 84, depth: 168, height: 3, label: "Markers" },
@@ -111,11 +115,10 @@ export const EXAMPLE_PROJECTS: ExampleProject[] = [
     id: "craft-sewing",
     name: "Craft & sewing",
     description: "Thread and scissors on the left, beads and yarn across the bottom.",
-    drawerSource: "Husky 52-in 18-drawer chest, left-hand large drawer",
-    drawerSourceUrl:
-      "https://www.homedepot.ca/product/husky-52-inch-18-drawer-mobile-tool-storage-chest-and-cabinet-set-in-black/1000804523",
+    drawerSource: huskyLeftPreset.source,
+    drawerSourceUrl: huskyLeftPreset.sourceUrl,
     snapshot: {
-      ...baseSnapshot({ width: 31.6, height: 15.8 }),
+      ...baseSnapshot(huskyLeftPreset.size),
       bins: [
         { id: "craft-thread", x: 0, y: 0, width: 126, depth: 252, height: 6, label: "Thread spools" },
         { id: "craft-needles", x: 126, y: 0, width: 84, depth: 126, height: 3, label: "Needles & pins" },

@@ -115,7 +115,7 @@ describe('GridfinityCalculator', () => {
   it('should update printer selection', async () => {
     renderWithProviders(<GridfinityCalculator />);
     
-    const printerButton = screen.getByRole('combobox');
+    const printerButton = screen.getByRole('combobox', { name: /Printer:/ });
     await userEvent.click(printerButton);
     
     const testPrinter = await screen.findByText('Test Printer');

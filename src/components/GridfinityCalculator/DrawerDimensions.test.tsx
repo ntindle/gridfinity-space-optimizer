@@ -138,4 +138,21 @@ describe('DrawerDimensions', () => {
     render(<Harness initial={{ width: 23.62204724409449, height: 16.5 }} onChange={vi.fn()} />);
     expect(width()).toHaveValue('23.622');
   });
+
+  it('shows the preset for a preset size and flips back to Custom on a manual edit', async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <Harness initial={{ width: 11.5, height: 20.6 }} onChange={onChange} />
+    );
+
+    const preset = screen.getByRole('combobox', { name: 'Drawer preset' });
+    expect(preset).toHaveValue('ikea-alex');
+
+    await user.clear(width());
+    await user.type(width(), '30{Enter}');
+
+    expect(onChange).toHaveBeenLastCalledWith({ width: 30, height: 20.6 });
+    expect(preset).toHaveValue('');
+  });
 });

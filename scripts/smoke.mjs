@@ -32,8 +32,8 @@ await check('loads', async () => {
 await check('layout from drawer and printer', async () => {
   await page.fill('#drawerWidth', '20');
   await page.fill('#drawerHeight', '15');
-  await page.getByRole('combobox').first().click();
-  await page.getByRole('option').nth(1).click();
+  await page.getByRole('combobox', { name: /Printer:/ }).click();
+  await page.getByRole('listbox').getByRole('option').nth(1).click();
   await page.waitForFunction(
     () => [...document.querySelectorAll('button')].some((b) => /^Baseplate\b/.test(b.textContent.trim())),
     null,
