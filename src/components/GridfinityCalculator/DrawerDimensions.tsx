@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label"
 import { unitMath } from "@/services/unitMath"
 import { parseDecimal } from "@/utils/format"
 import type { DrawerSize } from "@/types"
+import DrawerPresets from "./DrawerPresets"
 import MeasureGuide from "./MeasureGuide"
 
 type Dimension = "width" | "height"
@@ -96,6 +97,7 @@ const DrawerDimensions = ({ drawerSize, setDrawerSize, useMm }: DrawerDimensions
 
   return (
     <div className="space-y-3">
+      <DrawerPresets drawerSize={drawerSize} setDrawerSize={setDrawerSize} useMm={useMm} />
       <div className="grid grid-cols-2 gap-3">
         <DimensionField
           id="drawerWidth"

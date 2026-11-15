@@ -77,9 +77,9 @@ const measureInteractions = async () => {
     const t0 = Date.now();
     await setInput(page, '#drawerWidth', 20 + (i % 5), steps);
     await setInput(page, '#drawerHeight', 15 + (i % 3), steps);
-    await page.getByRole('combobox').first().click();
+    await page.getByRole('combobox', { name: /Printer:/ }).click();
     steps.count += 1;
-    await page.getByRole('option').nth(1 + (i % 3)).click();
+    await page.getByRole('listbox').getByRole('option').nth(1 + (i % 3)).click();
     steps.count += 1;
     await page.waitForFunction(
       (patternSource) =>
