@@ -32,7 +32,7 @@ Steps to reproduce the behavior:
 - Unit system: [inches/millimeters]
 - Printer selected: [e.g., Prusa MK3S+, Custom]
 - Custom printer dimensions (if applicable): [e.g., 250mm x 210mm x 210mm]
-- Half-size bins enabled: [yes/no]
+- Half-size grid enabled: [yes/no]
 - Number of drawers: [e.g., 1]
 
 ## Browser Information

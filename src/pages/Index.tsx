@@ -1,20 +1,18 @@
 import React from "react";
 import Header from "@/components/Header";
-import Hero from "@/components/Hero";
-import Features from "@/components/Features";
-import HowItWorks from "@/components/HowItWorks";
-import CalculatorSection from "@/components/CalculatorSection";
+import GridfinityCalculator from "@/components/GridfinityCalculator";
+import About from "@/components/About";
+import AccessibilityStatement from "@/components/AccessibilityStatement";
 import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <div className="flex min-h-dvh flex-col">
       <Header />
-      <main className="container mx-auto px-4 py-16">
-        <Hero />
-        <Features />
-        <HowItWorks />
-        <CalculatorSection />
+      <main className="flex-1">
+        <GridfinityCalculator />
+        <About />
+        <AccessibilityStatement />
       </main>
       <Footer />
     </div>

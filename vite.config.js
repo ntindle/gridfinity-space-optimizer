@@ -1,8 +1,29 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { analyticsMeta } from "./scripts/lib/analytics-meta.mjs";
 
-// https://vitejs.dev/config/
+const preloadLatinFont = () => ({
+  name: "preload-latin-font",
+  transformIndexHtml: {
+    order: "post",
+    handler(html, ctx) {
+      const font = Object.keys(ctx.bundle ?? {}).find((file) =>
+        /inter-latin-wght-normal-[\w-]+\.woff2$/.test(file)
+      );
+      if (!font) return html;
+      return [
+        {
+          tag: "link",
+          attrs: { rel: "preload", href: `/${font}`, as: "font", type: "font/woff2", crossorigin: "" },
+          injectTo: "head",
+        },
+      ];
+    },
+  },
+});
+
 export default defineConfig({
   server: {
     host: "::",
@@ -11,7 +32,7 @@ export default defineConfig({
       'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
     }
   },
-  plugins: [react()],
+  plugins: [react(), tailwindcss(), preloadLatinFont(), analyticsMeta()],
   resolve: {
     alias: {
       "@": path.resolve(process.cwd(), "./src"),
@@ -19,13 +40,24 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-label', '@radix-ui/react-slot'],
-          'math-vendor': ['mathjs'],
-        }
+        advancedChunks: {
+          groups: [
+            {
+              name: 'react-vendor',
+              test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/,
+            },
+            {
+              name: 'ui-vendor',
+              test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
+            },
+            {
+              name: 'math-vendor',
+              test: /[\\/]node_modules[\\/]mathjs[\\/]/,
+            },
+          ],
+        },
       }
     },
     sourcemap: true,

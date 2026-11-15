@@ -1,0 +1,128 @@
+name: Production smoke check
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      url:
+        description: URL to check
+        default: https://gridfinitylayout.com/
+      dry_run:
+        description: Skip the smoke test and only resolve which Netlify deploy a rollback would restore
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: prod-smoke
+  cancel-in-progress: false
+
+env:
+  SMOKE_URL: ${{ github.event.inputs.url || 'https://gridfinitylayout.com/' }}
+  NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+  NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID || secrets.NETLIFY_SITE_ID }}
+
+jobs:
+  rollback-dry-run:
+    if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Resolve rollback target without restoring
+        env:
+          DRY_RUN: "true"
+        run: node scripts/rollback.mjs
+
+  smoke:
+    if: github.event_name != 'workflow_dispatch' || !inputs.dry_run
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Wait until production serves this commit's build
+        if: github.event_name == 'push'
+        run: |
+          npm run build
+          entry=$(grep -o 'assets/index-[^"]*\.js' dist/index.html | head -1)
+          echo "Waiting for $entry on $SMOKE_URL"
+          for i in $(seq 1 60); do
+            if curl -fsS "$SMOKE_URL" | grep -q "$entry"; then echo "Live after $((i*10))s"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::Production did not serve $entry within 10 minutes. Netlify deploy may have failed."
+          exit 1
+      - id: smoke
+        shell: bash
+        run: node scripts/smoke.mjs "$SMOKE_URL" | tee smoke.json
+
+      - id: rollback
+        name: Roll back to the previous Netlify deploy
+        if: failure() && steps.smoke.outcome == 'failure' && github.event_name == 'push'
+        run: node scripts/rollback.mjs
+
+      - id: revert
+        name: Open a revert PR for the offending commit
+        if: failure() && steps.smoke.outcome == 'failure' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=${{ github.sha }}
+          branch="revert/smoke-${sha::7}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B "$branch" origin/main
+          if ! git revert --no-edit "$sha"; then
+            echo "::error::git revert of $sha did not apply cleanly."
+            echo "url=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git push -f origin "$branch"
+          url=$(gh pr create --base main --head "$branch" \
+            --title "Revert ${sha::7}: production smoke check failed" \
+            --body "Automated revert. Smoke check failed on production after ${sha} ([run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})). Netlify rollback status: ${{ steps.rollback.outputs.status || 'not run' }}." 2>&1) || {
+            echo "::warning::Could not open the revert PR: $url"
+            url="branch $branch pushed; PR not created"
+          }
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the smoke failure issue
+        if: failure() && steps.smoke.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Production smoke check failing"
+          body=$(cat <<BODY
+          Smoke check failed on ${SMOKE_URL} (event: ${{ github.event_name }}, commit: ${{ github.sha }}).
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          Netlify rollback: ${{ steps.rollback.outputs.status || 'not run' }} ${{ steps.rollback.outputs.target }}
+          Revert PR: ${{ steps.revert.outputs.url || 'not run' }}
+
+          \`\`\`json
+          $(cat smoke.json 2>/dev/null)
+          \`\`\`
+          BODY
+          )
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number -q '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi

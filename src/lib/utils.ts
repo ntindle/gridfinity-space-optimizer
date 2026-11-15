@@ -31,5 +31,11 @@ export function saveUserSettings(settings: Partial<Settings>): void {
 
 export function loadUserSettings(): Partial<Settings> | null {
   const savedSettings = localStorage.getItem('gridfinitySettings');
-  return savedSettings ? JSON.parse(savedSettings) : null;
+  if (!savedSettings) return null;
+  try {
+    const parsed = JSON.parse(savedSettings);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
 }

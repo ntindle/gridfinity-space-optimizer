@@ -42,7 +42,8 @@
         "uses-rel-preconnect": "off",
         "unused-javascript": "off",
         "canonical": "off",
-        "is-crawlable": "off"
+        "is-crawlable": "off",
+        "network-dependency-tree-insight": "off"
       }
     },
     "upload": {

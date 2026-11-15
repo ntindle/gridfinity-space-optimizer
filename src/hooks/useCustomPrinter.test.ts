@@ -13,10 +13,8 @@ describe('useCustomPrinter', () => {
   let mockStorage: MockStorage = {};
 
   beforeEach(() => {
-    // Reset mock storage
     mockStorage = {};
     
-    // Mock localStorage methods
     global.localStorage = {
       getItem: vi.fn((key: string) => mockStorage[key] || null),
       setItem: vi.fn((key: string, value: string) => {
@@ -32,7 +30,6 @@ describe('useCustomPrinter', () => {
       key: vi.fn(() => null)
     } as Storage;
     
-    // Reset modules to clear any cached state
     vi.resetModules();
   });
 
@@ -81,26 +78,24 @@ describe('useCustomPrinter', () => {
         result.current.handleInputChange('x', '10');
       });
       
-      // The input value is stored exactly as entered by the user
       expect(result.current.inputValues.x).toBe('10');
-      expect(result.current.customDimensions.x).toBeCloseTo(254, 0); // 10 inches = 254mm
+      expect(result.current.customDimensions.x).toBeCloseTo(254, 0);
     });
 
     it('should validate dimensions', () => {
       const { result } = renderHook(() => useCustomPrinter(true));
       
       act(() => {
-        result.current.handleInputChange('x', '700'); // Too large
+        result.current.handleInputChange('x', '700');
       });
       
-      // Check that input value was set
       expect(result.current.inputValues.x).toBe('700');
       
       act(() => {
-        result.current.validateSingleDimension('x'); // Validate on blur
+        result.current.validateSingleDimension('x');
       });
       
-      expect(result.current.errors.x).toBe('Maximum 600mm');
+      expect(result.current.errors.x).toBe('Maximum 600 mm');
     });
 
     it('should reset to defaults', () => {
@@ -163,21 +158,18 @@ describe('useCustomPrinter', () => {
         result.current.handleExclusionZoneChange('left', '1');
       });
       
-      // The input value is stored exactly as entered by the user
       expect(result.current.exclusionZoneInputs.left).toBe('1');
-      expect(result.current.customDimensions.exclusionZone?.left).toBeCloseTo(25.4, 1); // 1 inch = 25.4mm
+      expect(result.current.customDimensions.exclusionZone?.left).toBeCloseTo(25.4, 1);
     });
 
     it('should validate exclusion zones against printer dimensions', () => {
       const { result } = renderHook(() => useCustomPrinter(true));
       
-      // Set printer to 200mm x 200mm
       act(() => {
         result.current.handleInputChange('x', '200');
         result.current.handleInputChange('y', '200');
       });
       
-      // Try to set front exclusion larger than Y dimension
       act(() => {
         result.current.handleExclusionZoneChange('front', '250');
       });
@@ -189,14 +181,12 @@ describe('useCustomPrinter', () => {
     it('should clear exclusion zone when empty string is provided', () => {
       const { result } = renderHook(() => useCustomPrinter(true));
       
-      // Set an exclusion zone
       act(() => {
         result.current.handleExclusionZoneChange('back', '30');
       });
       
       expect(result.current.customDimensions.exclusionZone?.back).toBe(30);
       
-      // Clear it
       act(() => {
         result.current.handleExclusionZoneChange('back', '');
       });
@@ -226,7 +216,6 @@ describe('useCustomPrinter', () => {
     it('should reset exclusion zones when resetting to defaults', () => {
       const { result } = renderHook(() => useCustomPrinter(true));
       
-      // Set some exclusion zones
       act(() => {
         result.current.handleExclusionZoneChange('front', '20');
         result.current.handleExclusionZoneChange('left', '15');
@@ -235,7 +224,6 @@ describe('useCustomPrinter', () => {
       expect(result.current.customDimensions.exclusionZone?.front).toBe(20);
       expect(result.current.customDimensions.exclusionZone?.left).toBe(15);
       
-      // Reset
       act(() => {
         result.current.resetToDefault();
       });
@@ -252,19 +240,16 @@ describe('useCustomPrinter', () => {
     it('should validate left/right exclusions against X dimension', () => {
       const { result } = renderHook(() => useCustomPrinter(true));
       
-      // Set X dimension
       act(() => {
         result.current.handleInputChange('x', '150');
       });
       
-      // Try to set left exclusion larger than X
       act(() => {
         result.current.handleExclusionZoneChange('left', '200');
       });
       
       expect(result.current.exclusionZoneErrors.left).toContain('exceed');
       
-      // Try to set right exclusion larger than X
       act(() => {
         result.current.handleExclusionZoneChange('right', '200');
       });
@@ -275,12 +260,10 @@ describe('useCustomPrinter', () => {
     it('should validate front/back exclusions against Y dimension', () => {
       const { result } = renderHook(() => useCustomPrinter(true));
       
-      // Set Y dimension
       act(() => {
         result.current.handleInputChange('y', '180');
       });
       
-      // Valid front exclusion
       act(() => {
         result.current.handleExclusionZoneChange('front', '50');
       });
@@ -288,7 +271,6 @@ describe('useCustomPrinter', () => {
       expect(result.current.exclusionZoneErrors.front).toBeNull();
       expect(result.current.customDimensions.exclusionZone?.front).toBe(50);
       
-      // Invalid back exclusion
       act(() => {
         result.current.handleExclusionZoneChange('back', '200');
       });
@@ -299,23 +281,19 @@ describe('useCustomPrinter', () => {
 
   describe('Unit conversion', () => {
     it('should convert exclusion zones when unit changes', () => {
-      // Start in mm mode
       const { result, rerender } = renderHook(
         ({ useMm }) => useCustomPrinter(useMm),
         { initialProps: { useMm: true } }
       );
       
-      // Set exclusion in mm
       act(() => {
         result.current.handleExclusionZoneChange('front', '25.4');
       });
       
       expect(result.current.exclusionZoneInputs.front).toBe('25.4');
       
-      // Switch to inches
       rerender({ useMm: false });
       
-      // Should show as 1 inch (formatNumber removes unnecessary decimals)
       expect(result.current.exclusionZoneInputs.front).toBe('1');
     });
   });
@@ -330,19 +308,15 @@ describe('useCustomPrinter', () => {
         result.current.handleExclusionZoneChange('left', '15');
       });
       
-      // Check that the state was updated
       expect(result.current.customDimensions.x).toBe(300);
       expect(result.current.customDimensions.exclusionZone?.front).toBe(20);
       expect(result.current.customDimensions.exclusionZone?.left).toBe(15);
       
-      // The actual localStorage persistence is handled by usePersistedState
-      // and tested in its own test file
     });
 
     it('should handle exclusion zones in custom dimensions', () => {
       const { result } = renderHook(() => useCustomPrinter(true));
       
-      // Set dimensions with exclusion zones
       act(() => {
         result.current.handleInputChange('x', '250');
         result.current.handleInputChange('y', '210');
@@ -350,13 +324,80 @@ describe('useCustomPrinter', () => {
         result.current.handleExclusionZoneChange('back', '12');
       });
       
-      // Verify the values are set correctly
       expect(result.current.customDimensions.x).toBe(250);
       expect(result.current.customDimensions.y).toBe(210);
       expect(result.current.customDimensions.exclusionZone?.front).toBe(18);
       expect(result.current.customDimensions.exclusionZone?.back).toBe(12);
       expect(result.current.exclusionZoneInputs.front).toBe('18');
       expect(result.current.exclusionZoneInputs.back).toBe('12');
+    });
+  });
+
+  describe('Dialog sync and validation', () => {
+    it('loads the printer in use into the inputs', () => {
+      const { result } = renderHook(() => useCustomPrinter(true));
+
+      act(() => {
+        result.current.loadDimensions({ x: 300, y: 250, z: 200, exclusionZone: { left: 20, front: 10 } });
+      });
+
+      expect(result.current.inputValues).toEqual({ x: '300', y: '250', z: '200' });
+      expect(result.current.exclusionZoneInputs).toEqual({ front: '10', back: '', left: '20', right: '' });
+      expect(result.current.customDimensions.x).toBe(300);
+    });
+
+    it('rejects exclusion zones that together leave less than one grid cell', () => {
+      const { result } = renderHook(() => useCustomPrinter(true));
+
+      act(() => {
+        result.current.loadDimensions({ x: 100, y: 100, z: 100 });
+      });
+      act(() => {
+        result.current.handleExclusionZoneChange('left', '30');
+      });
+      act(() => {
+        result.current.handleExclusionZoneChange('right', '30');
+      });
+
+      let valid = true;
+      act(() => {
+        valid = result.current.validateAll();
+      });
+
+      expect(valid).toBe(false);
+      expect(result.current.exclusionZoneErrors.right).toBe('Leaves less than 42 mm to print on');
+    });
+
+    it('blocks saving while an exclusion zone shows an error', () => {
+      const { result } = renderHook(() => useCustomPrinter(true));
+
+      act(() => {
+        result.current.loadDimensions({ x: 200, y: 200, z: 200 });
+      });
+      act(() => {
+        result.current.handleExclusionZoneChange('front', '250');
+      });
+
+      let valid = true;
+      act(() => {
+        valid = result.current.validateAll();
+      });
+
+      expect(result.current.exclusionZoneErrors.front).toContain('exceed');
+      expect(valid).toBe(false);
+    });
+
+    it('states size limits in inches when entering inches', () => {
+      const { result } = renderHook(() => useCustomPrinter(false));
+
+      act(() => {
+        result.current.handleInputChange('x', '24');
+      });
+      act(() => {
+        result.current.validateSingleDimension('x');
+      });
+
+      expect(result.current.errors.x).toBe('Maximum 23.62 in');
     });
   });
 });

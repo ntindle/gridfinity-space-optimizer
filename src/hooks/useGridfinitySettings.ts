@@ -1,19 +1,39 @@
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import { usePersistedState } from './usePersistedState';
-import type { DrawerSize, PrinterSize } from '@/types';
+import { migrateLegacySettings } from './useLegacyMigration';
+import { sanitizeBins, sanitizeDividerCount } from '@/utils/bins';
+import {
+  DEFAULT_ESTIMATE_SETTINGS,
+  sanitizeEstimateSettings,
+  type EstimateSettings,
+} from '@/utils/partVolumes';
+import type { Bin, DrawerSize, PrinterSize } from '@/types';
 
-/**
- * Return type for the Gridfinity settings hook
- */
+export const TEST_FIT_STORAGE_KEY = 'gridfinity_testFit';
+export const ESTIMATE_SETTINGS_STORAGE_KEY = 'gridfinity_estimateSettings';
+export const LABEL_TABS_STORAGE_KEY = 'gridfinity_labelTabs';
+export const DIVIDERS_STORAGE_KEY = 'gridfinity_dividers';
+export const LIDS_STORAGE_KEY = 'gridfinity_lids';
+export const MAGNETS_STORAGE_KEY = 'gridfinity_magnets';
+export const SCREWS_STORAGE_KEY = 'gridfinity_screwHoles';
+export const SCOOP_STORAGE_KEY = 'gridfinity_scoop';
+
+const estimateSettingsStorage = {
+  deserialize: (value: string): EstimateSettings =>
+    sanitizeEstimateSettings(JSON.parse(value)),
+};
+
+const binStorage = {
+  deserialize: (value: string): Bin[] => sanitizeBins(JSON.parse(value)),
+};
+
 export interface GridfinitySettings {
-  // Drawer settings
   drawerSize: DrawerSize;
   setDrawerSize: (size: DrawerSize) => void;
   
-  // Printer settings
   selectedPrinter: string;
   setSelectedPrinter: (printer: string) => void;
   
-  // Bin options
   useHalfSize: boolean;
   setUseHalfSize: (value: boolean) => void;
   preferHalfSize: boolean;
@@ -21,40 +41,58 @@ export interface GridfinitySettings {
   preferUniformBaseplates: boolean;
   setPreferUniformBaseplates: (value: boolean) => void;
   
-  // Drawer count
   numDrawers: number;
   setNumDrawers: (count: number) => void;
   
-  // Unit preference
   useMm: boolean;
   setUseMm: (value: boolean) => void;
   
-  // Custom printer
   customPrinterSize: PrinterSize;
   setCustomPrinterSize: (size: PrinterSize) => void;
-  
-  // Utility functions
+
+  bins: Bin[];
+  setBins: Dispatch<SetStateAction<Bin[]>>;
+
+  testFit: boolean;
+  setTestFit: (value: boolean) => void;
+
+  labelTabs: boolean;
+  setLabelTabs: (value: boolean) => void;
+
+  dividerCount: number;
+  setDividerCount: (value: number) => void;
+
+  lids: boolean;
+  setLids: (value: boolean) => void;
+
+  magnets: boolean;
+  setMagnets: (value: boolean) => void;
+
+  screws: boolean;
+  setScrews: (value: boolean) => void;
+
+  scoop: boolean;
+  setScoop: (value: boolean) => void;
+
+  estimateSettings: EstimateSettings;
+  setEstimateSettings: (settings: EstimateSettings) => void;
+
   resetSettings: () => void;
 }
 
-/**
- * Custom hook for managing all Gridfinity settings
- * Centralizes all settings state and provides a clean API
- */
 export const useGridfinitySettings = (): GridfinitySettings => {
-  // Drawer dimensions (stored in inches internally)
+  useState(migrateLegacySettings);
+
   const [drawerSize, setDrawerSize] = usePersistedState<DrawerSize>(
     'gridfinity_drawerSize',
     { width: 22.5, height: 16.5 }
   );
 
-  // Selected printer
   const [selectedPrinter, setSelectedPrinter] = usePersistedState<string>(
     'gridfinity_selectedPrinter',
     'Bambu Lab A1'
   );
 
-  // Bin options
   const [useHalfSize, setUseHalfSize] = usePersistedState<boolean>(
     'gridfinity_useHalfSize',
     false
@@ -70,25 +108,47 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     false
   );
 
-  // Number of drawers
   const [numDrawers, setNumDrawers] = usePersistedState<number>(
     'gridfinity_numDrawers',
     1
   );
 
-  // Unit preference
   const [useMm, setUseMm] = usePersistedState<boolean>(
     'gridfinity_useMm',
     false
   );
 
-  // Custom printer dimensions
   const [customPrinterSize, setCustomPrinterSize] = usePersistedState<PrinterSize>(
     'gridfinity_customPrinterSize',
     { x: 200, y: 200, z: 200 }
   );
 
-  // Handle mutual exclusivity of bin options
+  const [bins, setBins] = usePersistedState<Bin[]>('gridfinity_bins', [], binStorage);
+
+  const [testFit, setTestFit] = usePersistedState<boolean>(TEST_FIT_STORAGE_KEY, false);
+
+  const [labelTabs, setLabelTabs] = usePersistedState<boolean>(LABEL_TABS_STORAGE_KEY, false);
+
+  const [dividerCount, setDividerCount] = usePersistedState<number>(
+    DIVIDERS_STORAGE_KEY,
+    0,
+    { deserialize: (value: string): number => sanitizeDividerCount(JSON.parse(value)) }
+  );
+
+  const [lids, setLids] = usePersistedState<boolean>(LIDS_STORAGE_KEY, false);
+
+  const [magnets, setMagnets] = usePersistedState<boolean>(MAGNETS_STORAGE_KEY, false);
+
+  const [screws, setScrews] = usePersistedState<boolean>(SCREWS_STORAGE_KEY, false);
+
+  const [scoop, setScoop] = usePersistedState<boolean>(SCOOP_STORAGE_KEY, false);
+
+  const [estimateSettings, setEstimateSettings] = usePersistedState<EstimateSettings>(
+    ESTIMATE_SETTINGS_STORAGE_KEY,
+    DEFAULT_ESTIMATE_SETTINGS,
+    estimateSettingsStorage
+  );
+
   const handleUseHalfSizeChange = (value: boolean) => {
     setUseHalfSize(value);
     if (value) setPreferHalfSize(false);
@@ -99,7 +159,6 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     if (value) setUseHalfSize(false);
   };
 
-  // Reset all settings to defaults
   const resetSettings = () => {
     setDrawerSize({ width: 22.5, height: 16.5 });
     setSelectedPrinter('Bambu Lab A1');
@@ -109,18 +168,16 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     setNumDrawers(1);
     setUseMm(false);
     setCustomPrinterSize({ x: 200, y: 200, z: 200 });
+    setBins([]);
   };
 
   return {
-    // Drawer settings
     drawerSize,
     setDrawerSize,
     
-    // Printer settings
     selectedPrinter,
     setSelectedPrinter,
     
-    // Bin options
     useHalfSize,
     setUseHalfSize: handleUseHalfSizeChange,
     preferHalfSize,
@@ -128,19 +185,42 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     preferUniformBaseplates,
     setPreferUniformBaseplates,
     
-    // Drawer count
     numDrawers,
     setNumDrawers,
     
-    // Unit preference
     useMm,
     setUseMm,
     
-    // Custom printer
     customPrinterSize,
     setCustomPrinterSize,
-    
-    // Utility functions
+
+    bins,
+    setBins,
+
+    testFit,
+    setTestFit,
+
+    labelTabs,
+    setLabelTabs,
+
+    dividerCount,
+    setDividerCount,
+
+    lids,
+    setLids,
+
+    magnets,
+    setMagnets,
+
+    screws,
+    setScrews,
+
+    scoop,
+    setScoop,
+
+    estimateSettings,
+    setEstimateSettings,
+
     resetSettings,
   };
 };

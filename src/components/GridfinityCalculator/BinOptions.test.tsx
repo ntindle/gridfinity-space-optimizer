@@ -1,0 +1,157 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { describe, it, expect, vi } from 'vitest';
+import type { ComponentProps } from 'react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import BinOptions from './BinOptions';
+
+const renderOptions = (overrides: Partial<ComponentProps<typeof BinOptions>> = {}) => {
+  const props = {
+    useHalfSize: false,
+    setUseHalfSize: vi.fn(),
+    preferHalfSize: false,
+    setPreferHalfSize: vi.fn(),
+    preferUniformBaseplates: false,
+    setPreferUniformBaseplates: vi.fn(),
+    labelTabs: false,
+    setLabelTabs: vi.fn(),
+    dividerCount: 0,
+    setDividerCount: vi.fn(),
+    lids: false,
+    setLids: vi.fn(),
+    magnets: false,
+    setMagnets: vi.fn(),
+    screws: false,
+    setScrews: vi.fn(),
+    scoop: false,
+    setScoop: vi.fn(),
+    ...overrides,
+  };
+  render(<BinOptions {...props} />);
+  return props;
+};
+
+describe('BinOptions', () => {
+  it('describes each option on its switch', () => {
+    renderOptions();
+    expect(screen.getByRole('switch', { name: 'Half-size grid' })).toHaveAccessibleDescription(
+      /21 × 21 mm grid/
+    );
+    expect(screen.getByRole('switch', { name: 'Uniform baseplates' })).toBeEnabled();
+  });
+
+  it('turns the gap filler off when the half-size grid is switched on', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions({ preferHalfSize: true });
+
+    await user.click(screen.getByRole('switch', { name: 'Half-size grid' }));
+
+    expect(props.setUseHalfSize).toHaveBeenCalledWith(true);
+    expect(props.setPreferHalfSize).toHaveBeenCalledWith(false);
+  });
+
+  it('toggles label tabs on bins', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Label tabs on bins' }));
+
+    expect(props.setLabelTabs).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toHaveAccessibleDescription(
+      /raised tab above the stacking lip/
+    );
+  });
+
+  it('toggles scoop in bins', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Scoop in bins' }));
+
+    expect(props.setScoop).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Scoop in bins' })).toHaveAccessibleDescription(
+      /dips to half its height/
+    );
+  });
+
+  it('disables label tabs when scoop is on, and scoop when label tabs are on', () => {
+    renderOptions({ scoop: true });
+    expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toHaveAccessibleDescription(
+      /float above the dipped front wall/
+    );
+    expect(screen.getByRole('switch', { name: 'Scoop in bins' })).toBeEnabled();
+  });
+
+  it('disables scoop when label tabs are on', () => {
+    renderOptions({ labelTabs: true });
+    expect(screen.getByRole('switch', { name: 'Scoop in bins' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Scoop in bins' })).toHaveAccessibleDescription(
+      /float above the dipped front wall/
+    );
+    expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toBeEnabled();
+  });
+
+  it('steps the divider count up and down', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions({ dividerCount: 1 });
+
+    await user.click(screen.getByRole('button', { name: 'More dividers' }));
+    expect(props.setDividerCount).toHaveBeenCalledWith(2);
+    await user.click(screen.getByRole('button', { name: 'Fewer dividers' }));
+    expect(props.setDividerCount).toHaveBeenCalledWith(0);
+  });
+
+  it('disables the divider stepper at the bounds', () => {
+    renderOptions({ dividerCount: 0 });
+    expect(screen.getByRole('button', { name: 'Fewer dividers' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'More dividers' })).toBeEnabled();
+  });
+
+  it('toggles lids for bins', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Lids for bins' }));
+
+    expect(props.setLids).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Lids for bins' })).toHaveAccessibleDescription(
+      /flat 3 mm cover lid/
+    );
+  });
+
+  it('toggles magnet holes in bins', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Magnet holes in bins' }));
+
+    expect(props.setMagnets).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Magnet holes in bins' })).toHaveAccessibleDescription(
+      /Ø6.2 mm magnet pocket/
+    );
+  });
+
+  it('toggles screw holes in bins', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Screw holes in bins' }));
+
+    expect(props.setScrews).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Screw holes in bins' })).toHaveAccessibleDescription(
+      /Ø3.2 mm hole through the floor/
+    );
+  });
+
+  it('disables uniform baseplates on a half-size grid, since it has no effect', () => {
+    renderOptions({ useHalfSize: true, preferUniformBaseplates: true });
+    const uniform = screen.getByRole('switch', { name: 'Uniform baseplates' });
+
+    expect(uniform).toBeDisabled();
+    expect(uniform).not.toBeChecked();
+    expect(uniform).toHaveAccessibleDescription('Not used with a half-size grid.');
+  });
+});

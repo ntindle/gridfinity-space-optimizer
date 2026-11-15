@@ -1,0 +1,383 @@
+import { describe, it, expect } from 'vitest';
+import { baseplateMesh, spacerMesh } from './export/gridfinityMesh';
+import { binMesh } from './export/binMesh';
+import { lidMesh } from './export/lidMesh';
+import { meshVolume } from './export/mesh';
+import {
+  baseplateVolumeMm3,
+  binVolumeMm3,
+  DEFAULT_ESTIMATE_SETTINGS,
+  dividerVolumeMm3,
+  estimatePrint,
+  formatEstimateCost,
+  formatEstimateDuration,
+  formatEstimateGrams,
+  lidVolumeMm3,
+  magnetPocketVolumeMm3,
+  partVolumeMm3,
+  sanitizeEstimateSettings,
+  scoopVolumeMm3,
+  screwHoleVolumeMm3,
+  spacerVolumeMm3,
+} from './partVolumes';
+import { magnetHoleCount, screwHoleCount, MAGNET_HOLE_DEPTH_MM } from '@/utils/bins';
+import { BIN_BASE_HEIGHT } from './export/gridfinityProfiles';
+import type { PrintPartSummary } from './printParts';
+
+const relativeError = (actual: number, expected: number): number =>
+  Math.abs(actual - expected) / expected;
+
+const baseplatePart = (
+  columns: number,
+  rows: number,
+  cellSize: number,
+  count: number
+): PrintPartSummary => ({
+  key: `baseplate-${columns}x${rows}`,
+  kind: 'baseplate',
+  swatch: 'baseplate',
+  label: `Baseplate ${columns} × ${rows}`,
+  stem: `baseplate-${columns}x${rows}`,
+  width: columns * cellSize,
+  depth: rows * cellSize,
+  height: 5,
+  count,
+  gridGeometry: { columns, rows, cellSize },
+});
+
+const binPart = (
+  columns: number,
+  rows: number,
+  cellSize: number,
+  height: number,
+  count: number
+): PrintPartSummary => ({
+  key: `bin-${columns}x${rows}-${height}u`,
+  kind: 'bin',
+  swatch: 'bin',
+  label: `Bin ${columns} × ${rows} · ${height}u`,
+  stem: `bin-${columns}x${rows}-${height}u`,
+  width: columns * cellSize - 0.5,
+  depth: rows * cellSize - 0.5,
+  height: height * 7 + 4.4,
+  count,
+  binGeometry: { columns, rows, cellSize, height },
+});
+
+const spacerPart = (width: number, depth: number, count: number): PrintPartSummary => ({
+  key: `spacer-${width}x${depth}`,
+  kind: 'spacer',
+  swatch: 'spacer',
+  label: `Spacer ${width} × ${depth} mm`,
+  stem: `spacer-${width}x${depth}`,
+  width,
+  depth,
+  height: 5,
+  count,
+});
+
+describe('baseplateVolumeMm3', () => {
+  it.each([
+    [1, 1, 42],
+    [3, 2, 42],
+    [1, 4, 42],
+    [2, 5, 21],
+    [1, 1, 21],
+  ])('matches the mesh volume for a %i × %i plate on a %i mm grid', (columns, rows, cellSize) => {
+    const volume = baseplateVolumeMm3(columns, rows, cellSize);
+    const mesh = meshVolume(baseplateMesh(columns, rows, cellSize));
+    expect(relativeError(volume, mesh)).toBeLessThan(1e-6);
+  });
+
+  it('is about 1.4 cm³ of plastic for one 42 mm cell', () => {
+    expect(baseplateVolumeMm3(1, 1, 42)).toBeCloseTo(1382, -1);
+  });
+});
+
+describe('binVolumeMm3', () => {
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+    [1, 1, 21, 2],
+  ])('matches the mesh volume for a %i × %i bin on %i mm cells, %iu tall', (columns, rows, cellSize, height) => {
+    const volume = binVolumeMm3(columns, rows, cellSize, height);
+    const mesh = meshVolume(binMesh({ columns, rows, cellSize, height }));
+    expect(relativeError(volume, mesh)).toBeLessThan(1e-6);
+  });
+});
+
+describe('spacerVolumeMm3', () => {
+  it('is the box volume and matches the mesh', () => {
+    expect(spacerVolumeMm3(25.5, 252, 5)).toBeCloseTo(25.5 * 252 * 5, 6);
+    expect(spacerVolumeMm3(25.5, 252, 5)).toBeCloseTo(
+      meshVolume(spacerMesh(25.5, 252)),
+      6
+    );
+  });
+});
+
+describe('partVolumeMm3', () => {
+  it('dispatches on the part kind and its geometry', () => {
+    expect(partVolumeMm3(baseplatePart(3, 2, 42, 1))).toBeCloseTo(
+      baseplateVolumeMm3(3, 2, 42),
+      6
+    );
+    expect(partVolumeMm3(binPart(2, 1, 42, 6, 1))).toBeCloseTo(
+      binVolumeMm3(2, 1, 42, 6),
+      6
+    );
+    expect(partVolumeMm3(spacerPart(25.5, 252, 1))).toBeCloseTo(25.5 * 252 * 5, 6);
+  });
+
+  it('adds the tab volume to a tabbed bin and matches the tabbed mesh', () => {
+    const tabbed = binPart(2, 1, 42, 6, 1);
+    tabbed.binGeometry = { ...tabbed.binGeometry, labelTab: true };
+    expect(partVolumeMm3(tabbed)).toBeCloseTo(
+      binVolumeMm3(2, 1, 42, 6) + 36 * 1.2 * 20,
+      6
+    );
+    expect(partVolumeMm3(tabbed)).toBeCloseTo(
+      meshVolume(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, labelTab: true })),
+      0
+    );
+  });
+
+  it('subtracts the magnet pocket volume for a magnet bin and matches the magnet mesh', () => {
+    const magnet = binPart(2, 1, 42, 6, 1);
+    magnet.binGeometry = { ...magnet.binGeometry, magnetHoles: true };
+    expect(partVolumeMm3(magnet)).toBeCloseTo(
+      binVolumeMm3(2, 1, 42, 6) - magnetHoleCount(2, 1) * magnetPocketVolumeMm3(),
+      6
+    );
+    expect(partVolumeMm3(magnet)).toBeCloseTo(
+      meshVolume(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, magnetHoles: true })),
+      0
+    );
+  });
+
+  it('subtracts the screw hole volume for a screw bin and matches the screw mesh', () => {
+    const screwed = binPart(2, 1, 42, 6, 1);
+    screwed.binGeometry = { ...screwed.binGeometry, screwHoles: true };
+    expect(partVolumeMm3(screwed)).toBeCloseTo(
+      binVolumeMm3(2, 1, 42, 6) - screwHoleCount(2, 1) * screwHoleVolumeMm3(BIN_BASE_HEIGHT),
+      6
+    );
+    expect(partVolumeMm3(screwed)).toBeCloseTo(
+      meshVolume(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, screwHoles: true })),
+      0
+    );
+  });
+
+  it('subtracts the scoop volume for a scoop bin and matches the scoop mesh', () => {
+    const scooped = binPart(2, 1, 42, 6, 1);
+    scooped.binGeometry = { ...scooped.binGeometry, scoop: true };
+    expect(partVolumeMm3(scooped)).toBeCloseTo(
+      binVolumeMm3(2, 1, 42, 6) - scoopVolumeMm3(2, 42, 6),
+      6
+    );
+    expect(partVolumeMm3(scooped)).toBeCloseTo(
+      meshVolume(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, scoop: true })),
+      0
+    );
+  });
+
+  it('subtracts the pocket and the shorter screw hole for a magnet and screw bin', () => {
+    const both = binPart(2, 1, 42, 6, 1);
+    both.binGeometry = { ...both.binGeometry, magnetHoles: true, screwHoles: true };
+    expect(partVolumeMm3(both)).toBeCloseTo(
+      binVolumeMm3(2, 1, 42, 6) -
+        magnetHoleCount(2, 1) * magnetPocketVolumeMm3() -
+        screwHoleCount(2, 1) *
+          screwHoleVolumeMm3(BIN_BASE_HEIGHT - MAGNET_HOLE_DEPTH_MM),
+      6
+    );
+    expect(partVolumeMm3(both)).toBeCloseTo(
+      meshVolume(
+        binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, magnetHoles: true, screwHoles: true })
+      ),
+      0
+    );
+  });
+
+  it('prices a lid as its cover plus locating lip and matches the lid mesh', () => {
+    const lid: PrintPartSummary = {
+      key: 'lid-2x1',
+      kind: 'lid',
+      swatch: 'bin',
+      label: 'Lid 2 × 1',
+      stem: 'lid-2x1',
+      width: 83.5,
+      depth: 41.5,
+      height: 5.5,
+      count: 1,
+    };
+    expect(partVolumeMm3(lid)).toBeCloseTo(lidVolumeMm3(83.5, 41.5), 6);
+    expect(
+      Math.abs(partVolumeMm3(lid) - meshVolume(lidMesh(83.5, 41.5))) /
+        partVolumeMm3(lid)
+    ).toBeLessThan(1e-6);
+  });
+});
+
+describe('estimatePrint', () => {
+  it('is zero for an empty print', () => {
+    expect(estimatePrint([])).toEqual({ volumeMm3: 0, grams: 0, minutes: 0, costUsd: 0 });
+  });
+
+  it('turns volume into grams, time, and cost with the stated assumptions', () => {
+    const parts = [baseplatePart(1, 1, 42, 2), spacerPart(25.5, 252, 1)];
+    const estimate = estimatePrint(parts);
+    const volume = 2 * baseplateVolumeMm3(1, 1, 42) + 25.5 * 252 * 5;
+    expect(estimate.volumeMm3).toBeCloseTo(volume, 6);
+    expect(estimate.grams).toBeCloseTo((volume * 1.24) / 1000, 6);
+    expect(estimate.minutes).toBeCloseTo(volume / (8 * 60), 6);
+    expect(estimate.costUsd).toBeCloseTo(((volume * 1.24) / 1000) * (20 / 1000), 6);
+  });
+
+  it('multiplies each part by its count', () => {
+    const single = estimatePrint([baseplatePart(1, 1, 42, 1)]);
+    const triple = estimatePrint([baseplatePart(1, 1, 42, 3)]);
+    expect(triple.grams).toBeCloseTo(single.grams * 3, 6);
+    expect(triple.minutes).toBeCloseTo(single.minutes * 3, 6);
+    expect(triple.costUsd).toBeCloseTo(single.costUsd * 3, 6);
+  });
+
+  it('scales grams by the chosen material density', () => {
+    const parts = [baseplatePart(1, 1, 42, 1)];
+    const pla = estimatePrint(parts);
+    const petg = estimatePrint(parts, { ...DEFAULT_ESTIMATE_SETTINGS, material: 'PETG' });
+    const abs = estimatePrint(parts, { ...DEFAULT_ESTIMATE_SETTINGS, material: 'ABS' });
+    expect(petg.grams).toBeCloseTo((pla.grams * 1.27) / 1.24, 6);
+    expect(abs.grams).toBeCloseTo((pla.grams * 1.04) / 1.24, 6);
+    expect(petg.minutes).toBeCloseTo(pla.minutes, 6);
+  });
+
+  it('lowers the estimate for scoop bins by the scoop volume', () => {
+    const plain = binPart(2, 1, 42, 6, 1);
+    const scooped = binPart(2, 1, 42, 6, 1);
+    scooped.binGeometry = { ...scooped.binGeometry, scoop: true };
+    const plainEstimate = estimatePrint([plain]);
+    const scoopedEstimate = estimatePrint([scooped]);
+    expect(scoopedEstimate.volumeMm3).toBeCloseTo(
+      plainEstimate.volumeMm3 - scoopVolumeMm3(2, 42, 6),
+      6
+    );
+    expect(scoopedEstimate.grams).toBeLessThan(plainEstimate.grams);
+    expect(scoopedEstimate.minutes).toBeLessThan(plainEstimate.minutes);
+  });
+
+  it('lowers the estimate for magnet bins by the pocket volume', () => {
+    const plain = binPart(2, 1, 42, 6, 1);
+    const magnet = binPart(2, 1, 42, 6, 1);
+    magnet.binGeometry = { ...magnet.binGeometry, magnetHoles: true };
+    const plainEstimate = estimatePrint([plain]);
+    const magnetEstimate = estimatePrint([magnet]);
+    expect(magnetEstimate.volumeMm3).toBeCloseTo(
+      plainEstimate.volumeMm3 - magnetHoleCount(2, 1) * magnetPocketVolumeMm3(),
+      6
+    );
+    expect(magnetEstimate.grams).toBeLessThan(plainEstimate.grams);
+    expect(magnetEstimate.minutes).toBeLessThan(plainEstimate.minutes);
+  });
+
+  it('lowers the estimate for screw bins by the hole volume', () => {
+    const plain = binPart(2, 1, 42, 6, 1);
+    const screwed = binPart(2, 1, 42, 6, 1);
+    screwed.binGeometry = { ...screwed.binGeometry, screwHoles: true };
+    const plainEstimate = estimatePrint([plain]);
+    const screwedEstimate = estimatePrint([screwed]);
+    expect(screwedEstimate.volumeMm3).toBeCloseTo(
+      plainEstimate.volumeMm3 - screwHoleCount(2, 1) * screwHoleVolumeMm3(BIN_BASE_HEIGHT),
+      6
+    );
+    expect(screwedEstimate.grams).toBeLessThan(plainEstimate.grams);
+    expect(screwedEstimate.minutes).toBeLessThan(plainEstimate.minutes);
+  });
+
+  it('scales cost by the filament price and time by the flow rate', () => {
+    const parts = [baseplatePart(1, 1, 42, 1)];
+    const base = estimatePrint(parts);
+    const pricey = estimatePrint(parts, { ...DEFAULT_ESTIMATE_SETTINGS, priceUsdPerKg: 40 });
+    expect(pricey.costUsd).toBeCloseTo(base.costUsd * 2, 6);
+    expect(pricey.minutes).toBeCloseTo(base.minutes, 6);
+    const faster = estimatePrint(parts, { ...DEFAULT_ESTIMATE_SETTINGS, flowMm3PerS: 16 });
+    expect(faster.minutes).toBeCloseTo(base.minutes / 2, 6);
+    expect(faster.costUsd).toBeCloseTo(base.costUsd, 6);
+  });
+});
+
+describe('sanitizeEstimateSettings', () => {
+  it('returns defaults for non-objects', () => {
+    expect(sanitizeEstimateSettings(null)).toEqual(DEFAULT_ESTIMATE_SETTINGS);
+    expect(sanitizeEstimateSettings('PLA')).toEqual(DEFAULT_ESTIMATE_SETTINGS);
+    expect(sanitizeEstimateSettings(42)).toEqual(DEFAULT_ESTIMATE_SETTINGS);
+  });
+
+  it('keeps valid settings', () => {
+    expect(
+      sanitizeEstimateSettings({ material: 'PETG', priceUsdPerKg: 25, flowMm3PerS: 10 })
+    ).toEqual({ material: 'PETG', priceUsdPerKg: 25, flowMm3PerS: 10 });
+  });
+
+  it('falls back per field for unknown materials and out-of-range numbers', () => {
+    expect(
+      sanitizeEstimateSettings({ material: 'Nylon', priceUsdPerKg: 500, flowMm3PerS: 0 })
+    ).toEqual({ material: 'PLA', priceUsdPerKg: 200, flowMm3PerS: 1 });
+    expect(
+      sanitizeEstimateSettings({ material: 'ABS', priceUsdPerKg: 'cheap', flowMm3PerS: NaN })
+    ).toEqual({ material: 'ABS', priceUsdPerKg: 20, flowMm3PerS: 8 });
+  });
+});
+
+describe('estimate formatting', () => {
+  it('formats durations in minutes, then hours and minutes', () => {
+    expect(formatEstimateDuration(45)).toBe('45 min');
+    expect(formatEstimateDuration(60)).toBe('1 h 0 min');
+    expect(formatEstimateDuration(65)).toBe('1 h 5 min');
+    expect(formatEstimateDuration(370)).toBe('6 h 10 min');
+  });
+
+  it('formats grams as whole grams', () => {
+    expect(formatEstimateGrams(180.4)).toBe('180 g');
+    expect(formatEstimateGrams(1.7)).toBe('2 g');
+  });
+
+  it('formats cost as dollars and cents', () => {
+    expect(formatEstimateCost(4.7)).toBe('$4.70');
+    expect(formatEstimateCost(0)).toBe('$0.00');
+    expect(formatEstimateCost(12.05)).toBe('$12.05');
+    expect(formatEstimateCost(0.865)).toBe('$0.87');
+  });
+});
+
+describe("partVolumeMm3 divider counts", () => {
+  it.each([
+    [0, 42],
+    [1, 42],
+    [2, 42],
+    [3, 42],
+    [0, 21],
+    [1, 21],
+    [2, 21],
+    [3, 21],
+  ])("adds count × divider volume for %i dividers on %i mm cells", (count, cellSize) => {
+    const part = binPart(2, 1, cellSize, 6, 1);
+    part.binGeometry = { ...part.binGeometry, dividerCount: count };
+    const expected =
+      binVolumeMm3(2, 1, cellSize, 6) + count * dividerVolumeMm3(2, 1, cellSize, 6);
+    expect(relativeError(partVolumeMm3(part), expected)).toBeLessThan(1e-9);
+  });
+
+  it("scales the estimate with the number of printed divided bins", () => {
+    const single = binPart(2, 1, 42, 6, 1);
+    single.binGeometry = { ...single.binGeometry, dividerCount: 2 };
+    const pair = binPart(2, 1, 42, 6, 2);
+    pair.binGeometry = { ...pair.binGeometry, dividerCount: 2 };
+    const one = estimatePrint([single]);
+    const two = estimatePrint([pair]);
+    expect(relativeError(two.grams, 2 * one.grams)).toBeLessThan(1e-9);
+    expect(relativeError(two.minutes, 2 * one.minutes)).toBeLessThan(1e-9);
+  });
+});
