@@ -33,6 +33,7 @@ const baseSnapshot = (drawerSize: SavedLayoutSnapshot["drawerSize"]): SavedLayou
   magnets: false,
   screws: false,
   scoop: false,
+  stackBins: false,
   estimateSettings: DEFAULT_ESTIMATE_SETTINGS,
 });
 

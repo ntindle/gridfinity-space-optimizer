@@ -27,6 +27,7 @@ const renderOptions = (overrides: Partial<ComponentProps<typeof BinOptions>> = {
     setScrews: vi.fn(),
     scoop: false,
     setScoop: vi.fn(),
+    stackBins: false,
     ...overrides,
   };
   render(<BinOptions {...props} />);
@@ -92,6 +93,13 @@ describe('BinOptions', () => {
       /float above the dipped front wall/
     );
     expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toBeEnabled();
+  });
+
+  it('disables label tabs when stacked bins are on', () => {
+    renderOptions({ stackBins: true });
+    const toggle = screen.getByRole('switch', { name: 'Label tabs on bins' });
+    expect(toggle).toBeDisabled();
+    expect(toggle).toHaveAccessibleDescription(/cannot stack on top of a tabbed bin/);
   });
 
   it('steps the divider count up and down', async () => {

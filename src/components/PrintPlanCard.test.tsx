@@ -41,17 +41,22 @@ const props = {
 const StatefulCard: FC<{
   initialTestFit?: boolean;
   onTestFitChange?: (value: boolean) => void;
+  initialStackBins?: boolean;
+  onStackBinsChange?: (value: boolean) => void;
   initialEstimateSettings?: EstimateSettings;
   onEstimateSettingsChange?: (settings: EstimateSettings) => void;
   overrides?: Partial<typeof props>;
 }> = ({
   initialTestFit = false,
   onTestFitChange,
+  initialStackBins = false,
+  onStackBinsChange,
   initialEstimateSettings = DEFAULT_ESTIMATE_SETTINGS,
   onEstimateSettingsChange,
   overrides = {},
 }) => {
   const [testFit, setTestFit] = useState(initialTestFit);
+  const [stackBins, setStackBins] = useState(initialStackBins);
   const [estimateSettings, setEstimateSettings] = useState(initialEstimateSettings);
   return (
     <PrintPlanCard
@@ -61,6 +66,11 @@ const StatefulCard: FC<{
       onTestFitChange={(value) => {
         setTestFit(value);
         onTestFitChange?.(value);
+      }}
+      stackBins={stackBins}
+      onStackBinsChange={(value) => {
+        setStackBins(value);
+        onStackBinsChange?.(value);
       }}
       estimateSettings={estimateSettings}
       onEstimateSettingsChange={(settings) => {
@@ -282,6 +292,55 @@ describe('PrintPlanCard', () => {
     render(<StatefulCard onTestFitChange={onTestFitChange} />);
     fireEvent.click(screen.getByRole('switch', { name: 'Test fit first' }));
     expect(onTestFitChange).toHaveBeenCalledWith(true);
+  });
+
+  it('shows the stack switch off by default', () => {
+    render(<StatefulCard />);
+    const toggle = screen.getByRole('switch', { name: 'Stack identical bins' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(toggle).toBeEnabled();
+  });
+
+  it('stacks identical bins into fewer print jobs and notes the stack height', () => {
+    const bins: Bin[] = [
+      { id: 'a', x: 0, y: 0, width: 84, depth: 42, height: 6, label: '' },
+      { id: 'b', x: 84, y: 0, width: 84, depth: 42, height: 6, label: '' },
+      { id: 'c', x: 0, y: 42, width: 84, depth: 42, height: 6, label: '' },
+      { id: 'd', x: 84, y: 42, width: 84, depth: 42, height: 6, label: '' },
+    ];
+    const { parts } = collectPrintParts({ layout, bins, numDrawers: 10, printerSize: A1 });
+    const prints = (stackBins: boolean) =>
+      planPlates(
+        parts.map(({ key, width, depth, height, count, kind }) => ({
+          key,
+          width,
+          depth,
+          height,
+          stackable: kind === 'bin',
+          count,
+        })),
+        A1,
+        { stackBins }
+      ).reduce((sum, plate) => sum + plate.copies, 0);
+    expect(prints(true)).toBeLessThan(prints(false));
+    render(<StatefulCard overrides={{ bins, numDrawers: 10 }} />);
+    expect(screen.queryByText(/stacks up to 5 high/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('switch', { name: 'Stack identical bins' }));
+    expect(screen.getAllByText(/stacks up to 5 high/).length).toBeGreaterThan(0);
+  });
+
+  it('disables the stack switch when label tabs are on', () => {
+    render(<StatefulCard overrides={{ labelTabs: true }} />);
+    const toggle = screen.getByRole('switch', { name: 'Stack identical bins' });
+    expect(toggle).toBeDisabled();
+    expect(toggle).toHaveAccessibleDescription(/cannot stack on top of a tabbed bin/);
+  });
+
+  it('reports the stack switch change to its parent', () => {
+    const onStackBinsChange = vi.fn();
+    render(<StatefulCard onStackBinsChange={onStackBinsChange} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Stack identical bins' }));
+    expect(onStackBinsChange).toHaveBeenCalledWith(true);
   });
 
   it('copies the test-fit pieces with the list when on', async () => {

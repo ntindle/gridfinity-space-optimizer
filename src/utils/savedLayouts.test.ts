@@ -27,6 +27,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   magnets: false,
   screws: false,
   scoop: false,
+  stackBins: false,
   estimateSettings: { material: "PLA", priceUsdPerKg: 20, flowMm3PerS: 8 },
 });
 
@@ -90,6 +91,20 @@ describe("parseSavedLayouts", () => {
 
   it("round-trips a snapshot with scoop on", () => {
     const layouts = [entry({ snapshot: { ...snapshot(), scoop: true } })];
+    expect(parseSavedLayouts(serializeSavedLayouts(layouts))).toEqual(layouts);
+  });
+
+  it("defaults stack bins to false for a legacy snapshot without the field", () => {
+    const legacy = entry({
+      snapshot: { ...snapshot(), stackBins: undefined } as unknown as SavedLayoutSnapshot,
+    });
+    const parsed = parseSavedLayouts(JSON.stringify([legacy]));
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].snapshot.stackBins).toBe(false);
+  });
+
+  it("round-trips a snapshot with stack bins on", () => {
+    const layouts = [entry({ snapshot: { ...snapshot(), stackBins: true } })];
     expect(parseSavedLayouts(serializeSavedLayouts(layouts))).toEqual(layouts);
   });
 

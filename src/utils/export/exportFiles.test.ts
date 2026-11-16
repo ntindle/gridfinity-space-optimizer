@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { strFromU8, unzipSync } from 'fflate';
+import { binTotalHeight } from '@/utils/bins';
 import { calculateGrids } from '@/utils/gridfinityUtils';
+import { stackPitchMm } from '@/utils/printPlan';
 import { createPrintFiles, type ExportRequest } from './exportFiles';
 import type { Bin, DrawerSize, PrinterSize } from '@/types';
 
@@ -388,6 +390,77 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
 
   it('refuses to export an empty layout', () => {
     expect(() => createPrintFiles(request({ layout: [] }))).toThrow(/nothing to print/);
+  });
+
+  it('stacks identical bins in the 3MF plates when stack bins is on', () => {
+    const bins = [
+      bin({ id: 'a' }),
+      bin({ id: 'b', x: 84 }),
+      bin({ id: 'c', y: 42 }),
+      bin({ id: 'd', x: 84, y: 42 }),
+    ];
+    const stacked = createPrintFiles(
+      request({ bins, numDrawers: 10, stackBins: true })
+    );
+    const base = createPrintFiles(request({ bins, numDrawers: 10 }));
+    expect(stacked.parts).toBe(base.parts);
+    expect(stacked.plates).toBe(base.plates);
+    expect(stacked.prints).toBeLessThan(base.prints);
+    expect(stacked.prints).toBe(5);
+    expect(base.prints).toBe(8);
+    expect(Object.keys(files(base))).toContain('3mf/plate-4-bins-x4.3mf');
+    expect(Object.keys(files(stacked))).toContain('3mf/plate-4-bins.3mf');
+    const stlNames = Object.keys(files(stacked)).filter((name) => name.startsWith('stl/'));
+    expect(stlNames).toEqual(Object.keys(files(base)).filter((name) => name.startsWith('stl/')));
+    const pitch = stackPitchMm(binTotalHeight(6));
+    const binPlates = Object.entries(files(stacked)).filter(
+      ([name]) => name.startsWith('3mf/') && name.includes('-bins')
+    );
+    expect(binPlates).toHaveLength(1);
+    const transforms: number[][] = [];
+    for (const [, plate] of binPlates) {
+      const doc = model(plate);
+      expect(doc.getElementsByTagName('parsererror')).toHaveLength(0);
+      for (const item of doc.getElementsByTagName('item')) {
+        transforms.push((item.getAttribute('transform') ?? '').split(' ').map(Number));
+      }
+    }
+    expect(transforms).toHaveLength(40);
+    const zs = transforms.map((values) => values[11]);
+    expect(zs.some((z) => z > 0)).toBe(true);
+    expect(Math.max(...zs) + binTotalHeight(6)).toBeLessThanOrEqual(A1.z);
+    for (const z of zs) {
+      expect(Math.abs(z / pitch - Math.round(z / pitch))).toBeLessThan(1e-6);
+    }
+    const readme = strFromU8(files(stacked)['README.txt']);
+    expect(readme).toContain('Stacked bins:');
+    expect(readme).toContain('stacks up to 5 high');
+    expect(readme).toContain('0.4 mm separation gap');
+  });
+
+  it('does not stack bins when label tabs are on', () => {
+    const bins = [
+      bin({ id: 'a' }),
+      bin({ id: 'b', x: 84 }),
+      bin({ id: 'c', y: 42 }),
+      bin({ id: 'd', x: 84, y: 42 }),
+    ];
+    const stacked = createPrintFiles(
+      request({ bins, numDrawers: 10, stackBins: true, labelTabs: true })
+    );
+    const tabbed = createPrintFiles(request({ bins, numDrawers: 10, labelTabs: true }));
+    expect(stacked.plates).toBe(tabbed.plates);
+    expect(stacked.prints).toBe(tabbed.prints);    const binPlates = Object.entries(files(stacked)).filter(
+      ([name]) => name.startsWith('3mf/') && name.includes('-bins')
+    );
+    for (const [, plate] of binPlates) {
+      const doc = model(plate);
+      for (const item of doc.getElementsByTagName('item')) {
+        const values = (item.getAttribute('transform') ?? '').split(' ').map(Number);
+        expect(values[11]).toBe(0);
+      }
+    }
+    expect(strFromU8(files(stacked)['README.txt'])).not.toContain('Stacked bins:');
   });
 
   it('is byte-for-byte deterministic', () => {

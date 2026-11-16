@@ -45,6 +45,7 @@ export type DownloadSummary = LayoutSummary & {
   magnets: boolean;
   screws: boolean;
   scoop: boolean;
+  stack_bins: boolean;
 };
 
 type NoProperties = Record<never, never>;
@@ -235,6 +236,7 @@ export const trackFilesDownloaded = (
     magnets: Boolean(request.magnets),
     screws: Boolean(request.screws),
     scoop: Boolean(request.scoop),
+    stack_bins: Boolean(request.stackBins),
   });
 };
 
@@ -270,6 +272,7 @@ export const withLayoutTracking = (settings: GridfinitySettings): GridfinitySett
     setMagnets: trackedSetter(settings.setMagnets, settings.magnets, "bin_options"),
     setScrews: trackedSetter(settings.setScrews, settings.screws, "bin_options"),
     setScoop: trackedSetter(settings.setScoop, settings.scoop, "bin_options"),
+    setStackBins: trackedSetter(settings.setStackBins, settings.stackBins, "bin_options"),
   };
 };
 

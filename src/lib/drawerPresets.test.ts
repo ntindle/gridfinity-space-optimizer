@@ -26,6 +26,12 @@ describe("drawerPresets", () => {
     );
   });
 
+  it("finds the preset for mm-mode dims converted back to inches", () => {
+    expect(findDrawerPreset({ width: 292.1 / 25.4, height: 523.24 / 25.4 })?.id).toBe(
+      "ikea-alex"
+    );
+  });
+
   it("finds no preset for custom dims", () => {
     expect(findDrawerPreset({ width: 22.5, height: 16.5 })).toBeUndefined();
     expect(findDrawerPreset({ width: 11.5, height: 20.5 })).toBeUndefined();

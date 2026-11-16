@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest';
+import { BIN_HEIGHT_UNIT_MM, STACKING_LIP_HEIGHT_MM } from './bins';
+import { FOOT_PROFILE, binWallProfile } from './export/gridfinityProfiles';
 import {
   PLATE_GAP_MM,
+  STACK_GAP_MM,
   findPlateProblems,
   planPlates,
+  plateStackDepth,
+  stackCapacityMm,
+  stackPitchMm,
   usableBed,
   type PlanPart,
   type Plate,
@@ -60,7 +66,7 @@ describe('planPlates', () => {
       {
         copies: 3,
         parts: [{ key: 'plate', count: 1 }],
-        placements: [{ key: 'plate', x: 2, y: 2, width: 252, depth: 252, rotated: false }],
+        placements: [{ key: 'plate', x: 2, y: 2, width: 252, depth: 252, rotated: false, z: 0 }],
       },
     ]);
   });
@@ -158,6 +164,62 @@ describe('planPlates', () => {
     expectValid(plates, A1);
   });
 
+  it('plans a drawer whose remainder strip is one ulp short of its nominal size', () => {
+    const parts: PlanPart[] = [
+      {
+        key: 'bin:42:42x42x3',
+        width: 41.5,
+        depth: 41.5,
+        height: 3 * BIN_HEIGHT_UNIT_MM + STACKING_LIP_HEIGHT_MM,
+        stackable: true,
+        count: 42,
+      },
+      { key: 'baseplate:252x252', width: 252, depth: 252, count: 2 },
+      { key: 'spacer:40.1x252', width: 40.1, depth: 252, count: 2 },
+      { key: 'spacer:252x19.2', width: 252, depth: 19.1999999999999, count: 1 },
+      { key: 'spacer:40.1x19.2', width: 40.1, depth: 19.1999999999999, count: 1 },
+    ];
+    const flat = planPlates(parts, A1, { stackBins: false });
+    expect(flat).toHaveLength(4);
+    expect(prints(flat)).toBe(5);
+    expect(totals(flat)).toEqual(
+      Object.fromEntries(parts.map((part) => [part.key, part.count]))
+    );
+    expectValid(flat, A1);
+    const stacked = planPlates(parts, A1, { stackBins: true });
+    expect(stacked).toHaveLength(2);
+    expect(prints(stacked)).toBe(3);
+    expect(totals(stacked)).toEqual(
+      Object.fromEntries(parts.map((part) => [part.key, part.count]))
+    );
+    expectValid(stacked, A1);
+  });
+
+  it('forgives a sub-nanometre gap shortfall from centring but still reports a real one', () => {
+    expect(
+      findPlateProblems(
+        {
+          placements: [
+            { key: 'a', x: 94.75000000000006, y: 2, width: 19.1999999999999, depth: 252, rotated: true },
+            { key: 'b', x: 116.94999999999995, y: 2, width: 41.5, depth: 41.5, rotated: false },
+          ],
+        },
+        A1
+      )
+    ).toEqual([]);
+    expect(
+      findPlateProblems(
+        {
+          placements: [
+            { key: 'a', x: 0, y: 0, width: 100, depth: 100, rotated: false },
+            { key: 'b', x: 102, y: 0, width: 100, depth: 100, rotated: false },
+          ],
+        },
+        A1
+      )
+    ).toEqual(['a and b are closer than 3 mm']);
+  });
+
   it('scales to many drawers without producing a plate per part', () => {
     const plates = planPlates(
       [
@@ -169,5 +231,114 @@ describe('planPlates', () => {
     expect(plates.length).toBeLessThanOrEqual(3);
     expect(totals(plates)).toEqual({ big: 200, strip: 200 });
     expectValid(plates, A1);
+  });
+});
+
+describe('stacking identical bins', () => {
+  const bin6u: PlanPart = {
+    key: 'bin 2x1 6u',
+    width: 83.5,
+    depth: 41.5,
+    height: 45.55,
+    stackable: true,
+    count: 40,
+  };
+
+  it('stacks identical bins in Z instead of spreading them across plates', () => {
+    const stacked = planPlates([bin6u], A1, { stackBins: true });
+    const spread = planPlates([bin6u], A1);
+    expect(prints(stacked)).toBe(1);
+    expect(prints(spread)).toBe(4);
+    expect(totals(stacked)).toEqual({ 'bin 2x1 6u': 40 });
+    expectValid(stacked, A1);
+    expect(stacked.every((plate) => plateStackDepth(plate) > 1)).toBe(true);
+    const zs = stacked.flatMap((plate) => plate.placements.map((item) => item.z ?? 0));
+    expect(zs.every((z) => Math.abs(z / stackPitchMm(bin6u.height) - Math.round(z / stackPitchMm(bin6u.height))) < 1e-9)).toBe(true);
+  });
+
+  it('caps each stack at the printer Z height', () => {
+    const shortPrinter: PrinterSize = { x: 256, y: 256, z: 100 };
+    expect(stackCapacityMm(bin6u.height, shortPrinter.z)).toBe(2);
+    const plates = planPlates([bin6u], shortPrinter, { stackBins: true });
+    expect(totals(plates)).toEqual({ 'bin 2x1 6u': 40 });
+    expectValid(plates, shortPrinter);
+    for (const plate of plates) {
+      expect(plateStackDepth(plate)).toBeLessThanOrEqual(2);
+      const top = Math.max(
+        ...plate.placements.map((item) => (item.z ?? 0) + bin6u.height)
+      );
+      expect(top).toBeLessThanOrEqual(shortPrinter.z);
+    }
+  });
+
+  it('does not stack parts without a height, parts that are not stackable, or different keys', () => {
+    const plates = planPlates(
+      [
+        { key: 'a', width: 83.5, depth: 41.5, height: 45.55, count: 10 },
+        { key: 'b', width: 83.5, depth: 41.5, height: 45.55, stackable: true, count: 10 },
+        { key: 'c', width: 41.5, depth: 41.5, height: 45.55, stackable: true, count: 10 },
+      ],
+      A1,
+      { stackBins: true }
+    );
+    expect(totals(plates)).toEqual({ a: 10, b: 10, c: 10 });
+    expectValid(plates, A1);
+    const byKey = new Map<string, number[]>();
+    for (const plate of plates) {
+      for (const item of plate.placements) {
+        byKey.set(item.key, [...(byKey.get(item.key) ?? []), item.z ?? 0]);
+      }
+    }
+    expect(byKey.get('a')?.every((z) => z === 0)).toBe(true);
+    expect(byKey.get('b')?.some((z) => z > 0)).toBe(true);
+    expect(byKey.get('c')?.some((z) => z > 0)).toBe(true);
+    expect(
+      plates.flatMap((plate) => plate.placements).filter((item) => (item.z ?? 0) > 0).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('keeps stacked plates valid and deterministic', () => {
+    expect(planPlates([bin6u], A1, { stackBins: true })).toEqual(
+      planPlates([bin6u], A1, { stackBins: true })
+    );
+  });
+});
+
+describe('stack nesting geometry', () => {
+  const insetAt = (points: { inset: number; z: number }[], z: number): number => {
+    for (let i = 1; i < points.length; i += 1) {
+      if (z <= points[i].z) {
+        const a = points[i - 1];
+        const b = points[i];
+        if (b.z === a.z) return b.inset;
+        return a.inset + ((z - a.z) / (b.z - a.z)) * (b.inset - a.inset);
+      }
+    }
+    return points[points.length - 1].inset;
+  };
+
+  it('nests a stacked bin foot inside the lip below with clearance everywhere', () => {
+    for (const height of [2, 3, 6, 9]) {
+      const bodyTop = height * BIN_HEIGHT_UNIT_MM;
+      const total = bodyTop + STACKING_LIP_HEIGHT_MM;
+      const pitch = stackPitchMm(total);
+      expect(pitch).toBeCloseTo(bodyTop + STACK_GAP_MM, 6);
+      const base = pitch;
+      const profile = binWallProfile(height);
+      const crest = profile.reduce((max, point) => Math.max(max, point.z), 0);
+      const inner = [...profile.slice(profile.findIndex((point) => point.z === crest))]
+        .reverse()
+        .filter((point) => point.z >= bodyTop);
+      const foot = FOOT_PROFILE.map((point) => ({ inset: point.inset, z: base + point.z }));
+      expect(base + FOOT_PROFILE[FOOT_PROFILE.length - 1].z).toBeGreaterThan(total);
+      let minClearance = Infinity;
+      for (let z = base; z <= total; z += 0.05) {
+        minClearance = Math.min(
+          minClearance,
+          insetAt(foot, z) - insetAt(inner, z)
+        );
+      }
+      expect(minClearance).toBeGreaterThan(0.2);
+    }
   });
 });

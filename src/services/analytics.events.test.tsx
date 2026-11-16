@@ -60,6 +60,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   magnets: false,
   screws: false,
   scoop: false,
+  stackBins: false,
   estimateSettings: { material: "PLA", priceUsdPerKg: 20, flowMm3PerS: 8 },
 });
 
@@ -196,6 +197,7 @@ describe("events sent by each feature", () => {
         magnets={true}
         screws={false}
         scoop={true}
+        stackBins={false}
       />
     );
     fireEvent.click(screen.getByRole("button", { name: /download files/i }));
