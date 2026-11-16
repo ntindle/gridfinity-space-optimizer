@@ -85,7 +85,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.8",
+    "@testing-library/user-event": "^14.6.10",
     "@types/mathjs": "^9.4.2",
     "@types/node": "^26.6.5",
     "@types/react": "^18.3.23",
@@ -109,7 +109,7 @@
     "tsx": "^4.23.15",
     "typescript": "^5.9.2",
     "vite": "^8.3.4",
-    "vitest": "^5.0.4"
+    "vitest": "^5.1.0"
   },
   "overrides": {
     "postcss-selector-parser": "^7.1.6"
