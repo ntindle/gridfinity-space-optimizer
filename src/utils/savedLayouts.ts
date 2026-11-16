@@ -25,6 +25,7 @@ export interface SavedLayoutSnapshot {
   magnets: boolean;
   screws: boolean;
   scoop: boolean;
+  stackBins: boolean;
   estimateSettings: EstimateSettings;
 }
 
@@ -122,6 +123,7 @@ const sanitizeSnapshot = (value: unknown): SavedLayoutSnapshot | null => {
     magnets: typeof value.magnets === "boolean" ? value.magnets : false,
     screws: typeof value.screws === "boolean" ? value.screws : false,
     scoop: typeof value.scoop === "boolean" ? value.scoop : false,
+    stackBins: typeof value.stackBins === "boolean" ? value.stackBins : false,
     estimateSettings: sanitizeEstimateSettings(value.estimateSettings),
   };
 };

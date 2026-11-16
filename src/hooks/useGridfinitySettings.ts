@@ -17,6 +17,7 @@ export const LIDS_STORAGE_KEY = 'gridfinity_lids';
 export const MAGNETS_STORAGE_KEY = 'gridfinity_magnets';
 export const SCREWS_STORAGE_KEY = 'gridfinity_screwHoles';
 export const SCOOP_STORAGE_KEY = 'gridfinity_scoop';
+export const STACK_BINS_STORAGE_KEY = 'gridfinity_stackBins';
 
 const estimateSettingsStorage = {
   deserialize: (value: string): EstimateSettings =>
@@ -73,6 +74,9 @@ export interface GridfinitySettings {
 
   scoop: boolean;
   setScoop: (value: boolean) => void;
+
+  stackBins: boolean;
+  setStackBins: (value: boolean) => void;
 
   estimateSettings: EstimateSettings;
   setEstimateSettings: (settings: EstimateSettings) => void;
@@ -142,6 +146,8 @@ export const useGridfinitySettings = (): GridfinitySettings => {
   const [screws, setScrews] = usePersistedState<boolean>(SCREWS_STORAGE_KEY, false);
 
   const [scoop, setScoop] = usePersistedState<boolean>(SCOOP_STORAGE_KEY, false);
+
+  const [stackBins, setStackBins] = usePersistedState<boolean>(STACK_BINS_STORAGE_KEY, false);
 
   const [estimateSettings, setEstimateSettings] = usePersistedState<EstimateSettings>(
     ESTIMATE_SETTINGS_STORAGE_KEY,
@@ -217,6 +223,9 @@ export const useGridfinitySettings = (): GridfinitySettings => {
 
     scoop,
     setScoop,
+
+    stackBins,
+    setStackBins,
 
     estimateSettings,
     setEstimateSettings,

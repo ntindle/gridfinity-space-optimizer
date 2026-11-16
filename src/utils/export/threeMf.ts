@@ -30,9 +30,9 @@ const RELATIONSHIPS = `<?xml version="1.0" encoding="UTF-8"?>
 </Relationships>
 `;
 
-export const translation = (x: number, y: number): number[] => [1, 0, 0, 0, 1, 0, 0, 0, 1, x, y, 0];
+export const translation = (x: number, y: number, z: number = 0): number[] => [1, 0, 0, 0, 1, 0, 0, 0, 1, x, y, z];
 
-export const quarterTurn = (x: number, y: number): number[] => [0, 1, 0, -1, 0, 0, 0, 0, 1, x, y, 0];
+export const quarterTurn = (x: number, y: number, z: number = 0): number[] => [0, 1, 0, -1, 0, 0, 0, 0, 1, x, y, z];
 
 const escapeXml = (value: string): string =>
   value

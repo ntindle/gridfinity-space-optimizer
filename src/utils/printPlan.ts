@@ -1,12 +1,36 @@
 import { unitMath } from "@/services/unitMath";
+import { STACKING_LIP_HEIGHT_MM } from "@/utils/bins";
 import type { PrinterSize } from "@/types";
 
 export const PLATE_GAP_MM = 3;
+
+export const PLATE_GAP_EPSILON_MM = 0.000000001;
+
+export const STACK_GAP_MM = 0.4;
+
+export const stackPitchMm = (height: number): number =>
+  unitMath.add(
+    unitMath.subtract(height, STACKING_LIP_HEIGHT_MM),
+    STACK_GAP_MM
+  );
+
+export const stackCapacityMm = (height: number, printerZ: number): number =>
+  unitMath.max(
+    1,
+    unitMath.add(
+      unitMath.floor(
+        unitMath.divide(unitMath.subtract(printerZ, height), stackPitchMm(height))
+      ),
+      1
+    )
+  );
 
 export interface PlanPart {
   key: string;
   width: number;
   depth: number;
+  height?: number;
+  stackable?: boolean;
   count: number;
 }
 
@@ -17,6 +41,7 @@ export interface PlatePlacement {
   width: number;
   depth: number;
   rotated: boolean;
+  z?: number;
 }
 
 export interface Plate {
@@ -99,7 +124,56 @@ const splitFree = (free: Rect[], used: Rect): Rect[] => {
   );
 };
 
-const place = (state: PlateState, part: PlanPart, gap: number): PlateState | null => {
+interface StackConfig {
+  pitch: number;
+  capacity: number;
+}
+
+const place = (
+  state: PlateState,
+  part: PlanPart,
+  gap: number,
+  stack: StackConfig | null
+): PlateState | null => {
+  if (stack) {
+    const footprints = new Map<
+      string,
+      { item: PlatePlacement; count: number; topZ: number }
+    >();
+    for (const item of state.placements) {
+      if (item.key !== part.key) continue;
+      const id = `${item.x}|${item.y}|${item.width}|${item.depth}|${item.rotated}`;
+      const existing = footprints.get(id);
+      if (existing) {
+        existing.count = unitMath.add(existing.count, 1);
+        existing.topZ = unitMath.max(existing.topZ, item.z ?? 0);
+      } else {
+        footprints.set(id, { item, count: 1, topZ: item.z ?? 0 });
+      }
+    }
+    let best: { item: PlatePlacement; count: number; topZ: number } | null = null;
+    for (const entry of footprints.values()) {
+      if (entry.count >= stack.capacity) continue;
+      if (!best || entry.count > best.count) best = entry;
+    }
+    if (best) {
+      return {
+        free: state.free,
+        placements: [
+          ...state.placements,
+          {
+            key: part.key,
+            x: best.item.x,
+            y: best.item.y,
+            width: best.item.width,
+            depth: best.item.depth,
+            rotated: best.item.rotated,
+            z: unitMath.add(best.topZ, stack.pitch),
+          },
+        ],
+      };
+    }
+  }
   const width = unitMath.add(part.width, gap);
   const depth = unitMath.add(part.depth, gap);
   const turns = part.width === part.depth ? [false] : [false, true];
@@ -135,16 +209,23 @@ const place = (state: PlateState, part: PlanPart, gap: number): PlateState | nul
         width: best.rotated ? part.depth : part.width,
         depth: best.rotated ? part.width : part.depth,
         rotated: best.rotated,
+        z: 0,
       },
     ],
   };
 };
 
-const fill = (state: PlateState, part: PlanPart, limit: number, gap: number) => {
+const fill = (
+  state: PlateState,
+  part: PlanPart,
+  limit: number,
+  gap: number,
+  stack: StackConfig | null
+) => {
   let current = state;
   let placed = 0;
   while (placed < limit) {
-    const next = place(current, part, gap);
+    const next = place(current, part, gap, stack);
     if (!next) break;
     current = next;
     placed = unitMath.add(placed, 1);
@@ -181,7 +262,10 @@ const signature = (placements: PlatePlacement[]): string =>
   JSON.stringify(
     [...placements].sort(
       (a, b) =>
-        unitMath.subtract(a.x, b.x) || unitMath.subtract(a.y, b.y) || a.key.localeCompare(b.key)
+        unitMath.subtract(a.x, b.x) ||
+        unitMath.subtract(a.y, b.y) ||
+        unitMath.subtract(a.z ?? 0, b.z ?? 0) ||
+        a.key.localeCompare(b.key)
     )
   );
 
@@ -189,6 +273,18 @@ const countParts = (placements: PlatePlacement[]): Plate["parts"] => {
   const counts = new Map<string, number>();
   for (const { key } of placements) counts.set(key, unitMath.add(counts.get(key) ?? 0, 1));
   return [...counts].map(([key, count]) => ({ key, count }));
+};
+
+export const plateStackDepth = (plate: Pick<Plate, "placements">): number => {
+  const counts = new Map<string, number>();
+  let max = 0;
+  for (const item of plate.placements) {
+    const id = `${item.x}|${item.y}|${item.key}`;
+    const count = unitMath.add(counts.get(id) ?? 0, 1);
+    counts.set(id, count);
+    max = unitMath.max(max, count);
+  }
+  return max;
 };
 
 export const findPlateProblems = (
@@ -201,11 +297,12 @@ export const findPlateProblems = (
   plate.placements.forEach((item, index) => {
     if (!contains(bed, item)) problems.push(`${item.key} sits outside the printable area`);
     plate.placements.slice(index + 1).forEach((other) => {
+      if ((item.z ?? 0) !== (other.z ?? 0)) return;
       const apart =
-        unitMath.add(right(item), gap) <= other.x ||
-        unitMath.add(right(other), gap) <= item.x ||
-        unitMath.add(top(item), gap) <= other.y ||
-        unitMath.add(top(other), gap) <= item.y;
+        unitMath.subtract(unitMath.add(right(item), gap), PLATE_GAP_EPSILON_MM) <= other.x ||
+        unitMath.subtract(unitMath.add(right(other), gap), PLATE_GAP_EPSILON_MM) <= item.x ||
+        unitMath.subtract(unitMath.add(top(item), gap), PLATE_GAP_EPSILON_MM) <= other.y ||
+        unitMath.subtract(unitMath.add(top(other), gap), PLATE_GAP_EPSILON_MM) <= item.y;
       if (!apart) problems.push(`${item.key} and ${other.key} are closer than ${gap} mm`);
     });
   });
@@ -215,7 +312,7 @@ export const findPlateProblems = (
 export const planPlates = (
   parts: PlanPart[],
   printerSize: PrinterSize,
-  { gap = PLATE_GAP_MM }: { gap?: number } = {}
+  { gap = PLATE_GAP_MM, stackBins = false }: { gap?: number; stackBins?: boolean } = {}
 ): Plate[] => {
   const bed = usableBed(printerSize);
   const empty: PlateState = {
@@ -226,13 +323,20 @@ export const planPlates = (
 
   for (const part of parts.filter((candidate) => candidate.count > 0).sort(byFootprint)) {
     let remaining = part.count;
+    const stack: StackConfig | null =
+      stackBins && part.stackable === true && part.height !== undefined
+        ? {
+            pitch: stackPitchMm(part.height),
+            capacity: stackCapacityMm(part.height, printerSize.z),
+          }
+        : null;
     const next: PlateGroup[] = [];
     for (const group of groups) {
       if (remaining === 0) {
         next.push(group);
         continue;
       }
-      const first = fill(group.state, part, remaining, gap);
+      const first = fill(group.state, part, remaining, gap, stack);
       if (first.placed === 0) {
         next.push(group);
         continue;
@@ -248,14 +352,14 @@ export const planPlates = (
       remaining = unitMath.subtract(remaining, unitMath.multiply(full, first.placed));
       let untouched = unitMath.subtract(group.copies, full);
       if (untouched > 0 && remaining > 0) {
-        next.push({ state: fill(group.state, part, remaining, gap).state, copies: 1 });
+        next.push({ state: fill(group.state, part, remaining, gap, stack).state, copies: 1 });
         remaining = 0;
         untouched = unitMath.subtract(untouched, 1);
       }
       if (untouched > 0) next.push({ state: group.state, copies: untouched });
     }
     if (remaining > 0) {
-      const first = fill(empty, part, remaining, gap);
+      const first = fill(empty, part, remaining, gap, stack);
       if (first.placed === 0) {
         throw new Error(`${part.key} is larger than the printer bed`);
       }
@@ -265,7 +369,7 @@ export const planPlates = (
         const full = unitMath.floor(unitMath.divide(remaining, first.placed));
         next.push({ state: first.state, copies: full });
         const leftover = unitMath.subtract(remaining, unitMath.multiply(full, first.placed));
-        if (leftover > 0) next.push({ state: fill(empty, part, leftover, gap).state, copies: 1 });
+        if (leftover > 0) next.push({ state: fill(empty, part, leftover, gap, stack).state, copies: 1 });
       }
     }
     groups = next;

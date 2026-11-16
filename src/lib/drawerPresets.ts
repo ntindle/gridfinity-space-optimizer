@@ -1,3 +1,4 @@
+import { unitMath } from "@/services/unitMath";
 import type { DrawerSize } from "@/types";
 
 export interface DrawerPreset {
@@ -50,5 +51,7 @@ export const drawerPresetById = (id: string): DrawerPreset => {
 
 export const findDrawerPreset = (size: DrawerSize): DrawerPreset | undefined =>
   DRAWER_PRESETS.find(
-    (preset) => preset.size.width === size.width && preset.size.height === size.height
+    (preset) =>
+      unitMath.approxEqual(preset.size.width, size.width) &&
+      unitMath.approxEqual(preset.size.height, size.height)
   );

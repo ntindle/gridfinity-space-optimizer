@@ -141,6 +141,7 @@ const GridfinityCalculator: React.FC = () => {
     settings.setMagnets(snapshot.magnets);
     settings.setScrews(snapshot.screws);
     settings.setScoop(snapshot.scoop);
+    settings.setStackBins(snapshot.stackBins);
     settings.setEstimateSettings(snapshot.estimateSettings);
   };
 
@@ -161,6 +162,7 @@ const GridfinityCalculator: React.FC = () => {
     magnets: settings.magnets,
     screws: settings.screws,
     scoop: settings.scoop,
+    stackBins: settings.stackBins,
     estimateSettings: settings.estimateSettings,
   };
 
@@ -264,6 +266,7 @@ const GridfinityCalculator: React.FC = () => {
                 setScrews={settings.setScrews}
                 scoop={settings.scoop}
                 setScoop={settings.setScoop}
+                stackBins={settings.stackBins}
               />
             </CollapsibleCard>
 
@@ -311,6 +314,7 @@ const GridfinityCalculator: React.FC = () => {
                       magnets={settings.magnets}
                       screws={settings.screws}
                       scoop={settings.scoop}
+                      stackBins={settings.stackBins}
                     />
                     <ShareLayoutButton />
                   </div>
@@ -348,6 +352,8 @@ const GridfinityCalculator: React.FC = () => {
               magnets={settings.magnets}
               screws={settings.screws}
               scoop={settings.scoop}
+              stackBins={settings.stackBins}
+              onStackBinsChange={settings.setStackBins}
               estimateSettings={settings.estimateSettings}
               onEstimateSettingsChange={settings.setEstimateSettings}
             />

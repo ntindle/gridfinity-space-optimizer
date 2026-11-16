@@ -1,6 +1,6 @@
 import { unitMath } from "@/services/unitMath";
 import { drawerSizeMm, formatDrawerSize, formatSize, pluralize } from "@/utils/format";
-import { PLATE_GAP_MM, planPlates, usableBed, type Plate } from "@/utils/printPlan";
+import { PLATE_GAP_MM, STACK_GAP_MM, planPlates, plateStackDepth, usableBed, type Plate } from "@/utils/printPlan";
 import {
   collectPrintParts,
   mergeTestFitParts,
@@ -34,6 +34,7 @@ export interface ExportRequest {
   magnets?: boolean;
   screws?: boolean;
   scoop?: boolean;
+  stackBins?: boolean;
 }
 
 export interface ExportBundle {
@@ -114,10 +115,19 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
 
   const byKey = new Map(exportParts.map((part) => [part.key, part]));
   const labels = new Map(exportParts.map((part) => [part.key, part.label]));
+  const stackBins = request.stackBins === true && request.labelTabs !== true;
   const plan = (kind: "grid" | "bin" | "lid", members: PrintPartSummary[]) =>
     planPlates(
-      members.map(({ key, width, depth, count }) => ({ key, width, depth, count })),
-      request.printerSize
+      members.map(({ key, width, depth, height, count }) => ({
+        key,
+        width,
+        depth,
+        height,
+        stackable: kind === "bin",
+        count,
+      })),
+      request.printerSize,
+      { stackBins }
     ).map((plate) => ({ kind, plate }));
   const grid = parts.filter((part) => part.kind === "baseplate" || part.kind === "spacer");
   const bins = parts.filter((part) => part.kind === "bin");
@@ -148,8 +158,8 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     const items = plate.placements.map((placement) => ({
       object: keys.indexOf(placement.key),
       transform: placement.rotated
-        ? quarterTurn(unitMath.add(placement.x, placement.width), placement.y)
-        : translation(placement.x, placement.y),
+        ? quarterTurn(unitMath.add(placement.x, placement.width), placement.y, placement.z ?? 0)
+        : translation(placement.x, placement.y, placement.z ?? 0),
     }));
     entries.push([
       file,
@@ -164,7 +174,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       { store: true },
     ]);
     plateLines.push(
-      `  ${pad(file, 36)} ${pad(plate.copies === 1 ? "print once" : `print ${plate.copies} times`, 16)} ${describePlate(plate, labels)}`
+      `  ${pad(file, 36)} ${pad(plate.copies === 1 ? "print once" : `print ${plate.copies} times`, 16)} ${describePlate(plate, labels)}${plateStackDepth(plate) > 1 ? ` · stacks up to ${plateStackDepth(plate)} high` : ""}`
     );
   });
 
@@ -195,6 +205,9 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     bins.length > 0 &&
       request.scoop &&
       "- Scoop: the front wall of every bin dips to half its height over the middle half of the front, with vertical step sides, so you can reach in and grab parts; the stacking lip is cut flat at the dip height.",
+    bins.length > 0 &&
+      stackBins &&
+      `- Stacked bins: identical bins print stacked in Z, nested on the stacking lip with a ${STACK_GAP_MM} mm separation gap, up to the printer's Z height, so fewer plates print; pull the stacked bins apart after printing.`,
     bins.length > 0 &&
       request.labelTabs &&
       "- Label tabs: every bin has a raised tab above the stacking lip for a stuck-on label; another bin cannot stack on top of a tabbed bin.",

@@ -23,6 +23,7 @@ interface BinOptionsProps {
   setScrews: (value: boolean) => void;
   scoop: boolean;
   setScoop: (value: boolean) => void;
+  stackBins: boolean;
 }
 
 const BinOptions: React.FC<BinOptionsProps> = ({
@@ -44,6 +45,7 @@ const BinOptions: React.FC<BinOptionsProps> = ({
   setScrews,
   scoop,
   setScoop,
+  stackBins,
 }) => {
   return (
     <div className="-my-1 divide-y divide-border/70">
@@ -85,10 +87,12 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         description={
           scoop
             ? "Not used with a scoop in bins — the tab would float above the dipped front wall."
-            : "Printed bins get a raised tab above the stacking lip for a stuck-on label. Another bin cannot stack on top of a tabbed bin."
+            : stackBins
+              ? "Not used with stacked bins — another bin cannot stack on top of a tabbed bin."
+              : "Printed bins get a raised tab above the stacking lip for a stuck-on label. Another bin cannot stack on top of a tabbed bin."
         }
         checked={labelTabs}
-        disabled={scoop}
+        disabled={scoop || stackBins}
         onCheckedChange={setLabelTabs}
       />
       <div className="relative flex items-start justify-between gap-4 py-2.5">

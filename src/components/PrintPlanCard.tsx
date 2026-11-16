@@ -14,7 +14,7 @@ import {
   type PrintPartSummary,
 } from "@/utils/printParts";
 import { buildPrintListText } from "@/utils/printList";
-import { planPlates, usableBed, type Plate } from "@/utils/printPlan";
+import { planPlates, plateStackDepth, usableBed, type Plate } from "@/utils/printPlan";
 import {
   ESTIMATE_MATERIAL_DENSITY_G_PER_CM3,
   estimatePrint,
@@ -40,6 +40,8 @@ interface PrintPlanCardProps {
   magnets: boolean;
   screws: boolean;
   scoop: boolean;
+  stackBins: boolean;
+  onStackBinsChange: (value: boolean) => void;
   estimateSettings: EstimateSettings;
   onEstimateSettingsChange: (settings: EstimateSettings) => void;
 }
@@ -75,6 +77,7 @@ const PlateRow: React.FC<PlateRowProps> = ({ label, plate, byKey }) => {
     (sum, item) => unitMath.add(sum, item.count),
     0
   );
+  const stackDepth = plateStackDepth(plate);
   return (
     <li className="flex min-h-14 items-center gap-3 rounded-md border border-border/70 px-3 py-2">
       <span className="w-16 shrink-0 text-[13px] font-medium tabular-nums text-muted-foreground">
@@ -97,6 +100,7 @@ const PlateRow: React.FC<PlateRowProps> = ({ label, plate, byKey }) => {
       </span>
       <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground">
         {pluralize(plateParts, "part")}
+        {stackDepth > 1 ? ` · stacks up to ${stackDepth} high` : null}
         {plate.copies > 1 ? ` · print ${plate.copies} times` : null}
       </span>
     </li>
@@ -118,6 +122,8 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
   magnets,
   screws,
   scoop,
+  stackBins,
+  onStackBinsChange,
   estimateSettings,
   onEstimateSettingsChange,
 }) => {
@@ -149,10 +155,18 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
   const plates: Plate[] = useMemo(
     () =>
       planPlates(
-        parts.map(({ key, width, depth, count }) => ({ key, width, depth, count })),
-        printerSize
+        parts.map(({ key, width, depth, height, count, kind }) => ({
+          key,
+          width,
+          depth,
+          height,
+          stackable: kind === "bin",
+          count,
+        })),
+        printerSize,
+        { stackBins: stackBins && !labelTabs }
       ),
-    [parts, printerSize]
+    [parts, printerSize, stackBins, labelTabs]
   );
   const testParts = useMemo(
     () => (testFit ? testFitParts(parts) : []),
@@ -263,6 +277,18 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
           description="Print one corner (1 × 1 baseplate + edge spacer) before the rest."
           checked={testFit}
           onCheckedChange={onTestFitChange}
+        />
+        <OptionRow
+          id="stack-identical-bins"
+          title="Stack identical bins"
+          description={
+            labelTabs
+              ? "Not used with label tabs on bins — another bin cannot stack on top of a tabbed bin."
+              : "Identical bins print stacked in Z, nested on the stacking lip with a 0.4 mm gap, up to the printer's Z height, so fewer plates print."
+          }
+          checked={stackBins}
+          disabled={labelTabs}
+          onCheckedChange={onStackBinsChange}
         />
       </div>
       <ol className="mt-4 space-y-2">
