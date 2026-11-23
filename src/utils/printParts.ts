@@ -43,6 +43,7 @@ export interface PrintPartSummary {
     magnetHoles?: boolean;
     screwHoles?: boolean;
     scoop?: boolean;
+    vaseMode?: boolean;
   };
   gridGeometry?: { columns: number; rows: number; cellSize: number };
 }
@@ -58,6 +59,7 @@ export interface CollectPrintPartsRequest {
   magnets?: boolean;
   screws?: boolean;
   scoop?: boolean;
+  vaseMode?: boolean;
 }
 
 export const slug = (text: string): string =>
@@ -80,7 +82,8 @@ const binParts = (
   lids: boolean,
   magnets: boolean,
   screws: boolean,
-  scoop: boolean
+  scoop: boolean,
+  vaseMode: boolean
 ): { parts: PrintPartSummary[]; skipped: number } => {
   const index = indexCells(gridCells(layout));
   const bed = usableBed(printerSize);
@@ -105,7 +108,7 @@ const binParts = (
     const size = binSizeLabel(group);
     const label = `Bin ${size} · ${group.height}u${half ? " · half-grid feet" : ""}${
       group.dividerPositions ? ` · dividers at ${dividerPositionsText(group.dividerPositions)}` : ""
-    }${magnets ? " · magnet holes" : ""}${screws ? " · screw holes" : ""}${scoop ? " · scoop" : ""}`;
+    }${magnets ? " · magnet holes" : ""}${screws ? " · screw holes" : ""}${scoop ? " · scoop" : ""}${vaseMode ? " · vase mode" : ""}`;
     const outer = binOuterSize(group);
     return {
       key: group.key,
@@ -115,7 +118,7 @@ const binParts = (
       stem: slug(
         `bin ${size} ${group.height}u${half ? " half grid" : ""}${
           group.dividerPositions ? ` dividers ${dividerPositionsText(group.dividerPositions)}` : ""
-        }${magnets ? " magnets" : ""}${screws ? " screws" : ""}${scoop ? " scoop" : ""}`
+        }${magnets ? " magnets" : ""}${screws ? " screws" : ""}${scoop ? " scoop" : ""}${vaseMode ? " vase-mode" : ""}`
       ),
       width: outer.width,
       depth: outer.depth,
@@ -132,6 +135,7 @@ const binParts = (
         ...(magnets ? { magnetHoles: true as const } : {}),
         ...(screws ? { screwHoles: true as const } : {}),
         ...(scoop ? { scoop: true as const } : {}),
+        ...(vaseMode ? { vaseMode: true as const } : {}),
       },
     };
   });
@@ -227,7 +231,8 @@ export const collectPrintParts = (
     request.lids === true,
     request.magnets === true,
     request.screws === true,
-    request.scoop === true
+    request.scoop === true,
+    request.vaseMode === true
   );
   const grid = gridParts(request.layout, request.numDrawers);
   return { parts: [...bins, ...grid], skippedBins: skipped };

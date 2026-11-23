@@ -45,6 +45,7 @@ export type DownloadSummary = LayoutSummary & {
   magnets: boolean;
   screws: boolean;
   scoop: boolean;
+  vase_mode: boolean;
   stack_bins: boolean;
 };
 
@@ -236,6 +237,7 @@ export const trackFilesDownloaded = (
     magnets: Boolean(request.magnets),
     screws: Boolean(request.screws),
     scoop: Boolean(request.scoop),
+    vase_mode: Boolean(request.vaseMode),
     stack_bins: Boolean(request.stackBins),
   });
 };
@@ -272,6 +274,7 @@ export const withLayoutTracking = (settings: GridfinitySettings): GridfinitySett
     setMagnets: trackedSetter(settings.setMagnets, settings.magnets, "bin_options"),
     setScrews: trackedSetter(settings.setScrews, settings.screws, "bin_options"),
     setScoop: trackedSetter(settings.setScoop, settings.scoop, "bin_options"),
+    setVaseMode: trackedSetter(settings.setVaseMode, settings.vaseMode, "bin_options"),
     setStackBins: trackedSetter(settings.setStackBins, settings.stackBins, "bin_options"),
   };
 };

@@ -323,6 +323,23 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(strFromU8(files(base)['README.txt'])).not.toContain('Scoop:');
   });
 
+  it('uses the vase-mode stem and documents the single wall when vase mode is on', () => {
+    const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
+    const vased = createPrintFiles(
+      request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })], vaseMode: true })
+    );
+    expect(vased.parts).toBe(base.parts);
+    expect(vased.plates).toBe(base.plates);
+    const names = Object.keys(files(vased));
+    expect(names).toContain('stl/bin-2x1-6u-vase-mode-x2.stl');
+    expect(names).not.toContain('stl/bin-2x1-6u-x2.stl');
+    const readme = strFromU8(files(vased)['README.txt']);
+    expect(readme).toContain('single 0.45 mm wall');
+    expect(readme).toContain('spiralize/vase mode on');
+    expect(readme).toMatch(/2\s+Bin 2 × 1 · 6u · vase mode\s+83\.5 × 41\.5 × 45\.55 mm\s+stl\/bin-2x1-6u-vase-mode-x2\.stl/);
+    expect(strFromU8(files(base)['README.txt'])).not.toContain('Vase mode:');
+  });
+
   it('uses the magnets and screws stem and notes the hole through the pocket floor when both are on', () => {
     const base = createPrintFiles(request({ bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })] }));
     const both = createPrintFiles(

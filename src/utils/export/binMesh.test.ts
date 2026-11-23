@@ -4,7 +4,7 @@ import {
   labelTabWidthMm,
 } from './binMesh';
 import { binWallProfile, BIN_BASE_HEIGHT, scoopTopZMm } from './gridfinityProfiles';
-import { binVolumeMm3, dividerVolumeMm3, labelTabVolumeMm3, magnetPocketVolumeMm3, scoopVolumeMm3, screwHoleVolumeMm3 } from '@/utils/partVolumes';
+import { binVolumeMm3, dividerVolumeMm3, labelTabVolumeMm3, magnetPocketVolumeMm3, scoopVolumeMm3, screwHoleVolumeMm3, vaseVolumeMm3 } from '@/utils/partVolumes';
 import { meshBounds, meshVolume, type Mesh } from './mesh';
 import { binTotalHeight, MAGNET_HOLE_DEPTH_MM, MAGNET_HOLE_DIAMETER_MM, SCREW_HOLE_DIAMETER_MM, magnetHoleCount, screwHoleCount } from '@/utils/bins';
 import { HOLE_SEGMENTS } from './shapes';
@@ -549,6 +549,65 @@ describe('binMesh', () => {
       magnetHoleCount(2, 1) * magnetPocketVolumeMm3() -
       screwHoleCount(2, 1) * screwHoleVolumeMm3(BIN_BASE_HEIGHT - MAGNET_HOLE_DEPTH_MM) -
       scoopVolumeMm3(2, 42, 6);
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+    [1, 1, 21, 2],
+  ])('builds a closed, outward-facing vase-mode %i × %i bin on %i mm cells, %iu tall', (columns, rows, cellSize, height) => {
+    const mesh = binMesh({ columns, rows, cellSize, height, vaseMode: true });
+    expect(edgeProblems(mesh)).toEqual([]);
+    expect(meshVolume(mesh)).toBeGreaterThan(0);
+    expect(meshVolume(mesh)).toBeLessThan(meshVolume(binMesh({ columns, rows, cellSize, height })));
+  });
+
+  it.each([
+    [1, 1, 42, 3],
+    [2, 1, 42, 6],
+    [3, 2, 42, 2],
+    [2, 3, 21, 4],
+  ])('matches the vase-mode bin volume for %i × %i on %i mm, %iu', (columns, rows, cellSize, height) => {
+    const volume = meshVolume(binMesh({ columns, rows, cellSize, height, vaseMode: true }));
+    const expected = vaseVolumeMm3(columns, rows, cellSize, height);
+    expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+  });
+
+  it('keeps the outer size and height of a vase-mode bin', () => {
+    expect(meshBounds(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, vaseMode: true }))).toEqual({
+      min: [0, 0, 0],
+      max: [83.5, 41.5, expect.closeTo(binTotalHeight(6), 5)],
+    });
+  });
+
+  it('spans the floor to the single wall, 0.45 mm inside the outer wall', () => {
+    const vased = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, vaseMode: true });
+    let floorMaxX = 0;
+    for (let index = 0; index < vased.positions.length; index += 3) {
+      const [x, , z] = [vased.positions[index], vased.positions[index + 1], vased.positions[index + 2]];
+      if (z === BIN_BASE_HEIGHT) floorMaxX = Math.max(floorMaxX, x);
+    }
+    expect(floorMaxX).toBeCloseTo(83.05, 5);
+    const plain = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6 });
+    let plainFloorMaxX = 0;
+    for (let index = 0; index < plain.positions.length; index += 3) {
+      const [x, , z] = [plain.positions[index], plain.positions[index + 1], plain.positions[index + 2]];
+      if (z === BIN_BASE_HEIGHT) plainFloorMaxX = Math.max(plainFloorMaxX, x);
+    }
+    expect(plainFloorMaxX).toBeCloseTo(82.55, 5);
+  });
+
+  it('builds a closed vase-mode bin with magnets and screw holes', () => {
+    const mesh = binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, magnetHoles: true, screwHoles: true, vaseMode: true });
+    expect(edgeProblems(mesh)).toEqual([]);
+    const volume = meshVolume(mesh);
+    const expected =
+      vaseVolumeMm3(2, 1, 42, 6) -
+      magnetHoleCount(2, 1) * magnetPocketVolumeMm3() -
+      screwHoleCount(2, 1) * screwHoleVolumeMm3(BIN_BASE_HEIGHT - MAGNET_HOLE_DEPTH_MM);
     expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
   });
 });

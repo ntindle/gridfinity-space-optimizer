@@ -27,6 +27,8 @@ const renderOptions = (overrides: Partial<ComponentProps<typeof BinOptions>> = {
     setScrews: vi.fn(),
     scoop: false,
     setScoop: vi.fn(),
+    vaseMode: false,
+    setVaseMode: vi.fn(),
     stackBins: false,
     ...overrides,
   };
@@ -77,6 +79,45 @@ describe('BinOptions', () => {
     );
   });
 
+  it('toggles vase-mode bins', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Vase-mode bins' }));
+
+    expect(props.setVaseMode).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Vase-mode bins' })).toHaveAccessibleDescription(
+      /single 0.45 mm wall/
+    );
+  });
+
+  it('disables label tabs and dividers when vase mode is on', () => {
+    renderOptions({ vaseMode: true });
+    expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toHaveAccessibleDescription(
+      /nothing to hold a tab/
+    );
+    expect(screen.getByRole('button', { name: 'More dividers' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Vase-mode bins' })).toBeEnabled();
+  });
+
+  it('disables vase mode when label tabs are on', () => {
+    renderOptions({ labelTabs: true });
+    expect(screen.getByRole('switch', { name: 'Vase-mode bins' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Vase-mode bins' })).toHaveAccessibleDescription(
+      /nothing to hold a tab/
+    );
+    expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toBeEnabled();
+  });
+
+  it('disables vase mode when dividers are on', () => {
+    renderOptions({ dividerCount: 2 });
+    expect(screen.getByRole('switch', { name: 'Vase-mode bins' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Vase-mode bins' })).toHaveAccessibleDescription(
+      /no dividers to print/
+    );
+  });
+
   it('disables label tabs when scoop is on, and scoop when label tabs are on', () => {
     renderOptions({ scoop: true });
     expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toBeDisabled();
@@ -93,6 +134,24 @@ describe('BinOptions', () => {
       /float above the dipped front wall/
     );
     expect(screen.getByRole('switch', { name: 'Label tabs on bins' })).toBeEnabled();
+  });
+
+  it('disables vase mode when scoop is on, and scoop when vase mode is on', () => {
+    renderOptions({ scoop: true });
+    expect(screen.getByRole('switch', { name: 'Vase-mode bins' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Vase-mode bins' })).toHaveAccessibleDescription(
+      /scoop in bins/
+    );
+    expect(screen.getByRole('switch', { name: 'Scoop in bins' })).toBeEnabled();
+  });
+
+  it('disables scoop when vase mode is on', () => {
+    renderOptions({ vaseMode: true });
+    expect(screen.getByRole('switch', { name: 'Scoop in bins' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Scoop in bins' })).toHaveAccessibleDescription(
+      /vase-mode bins/
+    );
+    expect(screen.getByRole('switch', { name: 'Vase-mode bins' })).toBeEnabled();
   });
 
   it('disables label tabs when stacked bins are on', () => {

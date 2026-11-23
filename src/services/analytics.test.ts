@@ -77,6 +77,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   magnets: false,
   screws: false,
   scoop: false,
+  vaseMode: false,
   stackBins: false,
   estimateSettings: { material: "PLA", priceUsdPerKg: 20, flowMm3PerS: 8 },
 });
@@ -431,6 +432,7 @@ describe("event properties", () => {
           magnets: false,
           screws: true,
           scoop: true,
+          vase_mode: false,
           stack_bins: false,
         },
       ],

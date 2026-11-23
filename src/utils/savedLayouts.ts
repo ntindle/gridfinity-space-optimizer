@@ -25,6 +25,7 @@ export interface SavedLayoutSnapshot {
   magnets: boolean;
   screws: boolean;
   scoop: boolean;
+  vaseMode: boolean;
   stackBins: boolean;
   estimateSettings: EstimateSettings;
 }
@@ -102,6 +103,12 @@ const sanitizeSnapshot = (value: unknown): SavedLayoutSnapshot | null => {
   if (!isSnapshot(value)) return null;
   const printerSize = sanitizePrinterSize(value.customPrinterSize);
   if (printerSize === null) return null;
+  const scoop = typeof value.scoop === "boolean" ? value.scoop : false;
+  const vaseMode = scoop
+    ? false
+    : typeof value.vaseMode === "boolean"
+      ? value.vaseMode
+      : false;
   return {
     drawerSize: value.drawerSize,
     selectedPrinter: value.selectedPrinter,
@@ -122,7 +129,8 @@ const sanitizeSnapshot = (value: unknown): SavedLayoutSnapshot | null => {
     lids: value.lids,
     magnets: typeof value.magnets === "boolean" ? value.magnets : false,
     screws: typeof value.screws === "boolean" ? value.screws : false,
-    scoop: typeof value.scoop === "boolean" ? value.scoop : false,
+    scoop,
+    vaseMode,
     stackBins: typeof value.stackBins === "boolean" ? value.stackBins : false,
     estimateSettings: sanitizeEstimateSettings(value.estimateSettings),
   };
