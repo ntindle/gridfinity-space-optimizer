@@ -36,6 +36,7 @@ const props = {
   magnets: false,
   screws: false,
   scoop: false,
+  vaseMode: false,
 };
 
 const StatefulCard: FC<{
@@ -142,6 +143,21 @@ describe('PrintPlanCard', () => {
     unmount();
     render(<StatefulCard overrides={{ bins: [bin], scoop: false }} />);
     expect(screen.queryByText(/scoop/)).not.toBeInTheDocument();
+  });
+
+  it('labels a bin with vase mode and drops the estimate when vase mode is on', () => {
+    const bin: Bin = { id: 'one', x: 0, y: 0, width: 84, depth: 42, height: 6, label: '' };
+    const { unmount } = render(<StatefulCard overrides={{ bins: [bin], vaseMode: true }} />);
+    expect(screen.getByText(/Bin 2 × 1 · 6u · vase mode/)).toBeInTheDocument();
+    const vased = estimatePrint(
+      collectPrintParts({ layout, bins: [bin], numDrawers: 1, printerSize: A1, vaseMode: true }).parts
+    );
+    expect(
+      screen.getByText(new RegExp(`~${formatEstimateGrams(vased.grams)} PLA`))
+    ).toBeInTheDocument();
+    unmount();
+    render(<StatefulCard overrides={{ bins: [bin], vaseMode: false }} />);
+    expect(screen.queryByText(/vase mode/)).not.toBeInTheDocument();
   });
 
   it('numbers plates and notes repeated prints', () => {

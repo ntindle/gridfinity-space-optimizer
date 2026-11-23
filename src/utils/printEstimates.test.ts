@@ -19,6 +19,7 @@ import {
   scoopVolumeMm3,
   screwHoleVolumeMm3,
   spacerVolumeMm3,
+  vaseVolumeMm3,
 } from './partVolumes';
 import { magnetHoleCount, screwHoleCount, MAGNET_HOLE_DEPTH_MM } from '@/utils/bins';
 import { BIN_BASE_HEIGHT } from './export/gridfinityProfiles';
@@ -183,6 +184,16 @@ describe('partVolumeMm3', () => {
     );
   });
 
+  it('uses the vase-mode volume for a vase-mode bin and matches the vase-mode mesh', () => {
+    const vased = binPart(2, 1, 42, 6, 1);
+    vased.binGeometry = { ...vased.binGeometry, vaseMode: true };
+    expect(partVolumeMm3(vased)).toBeCloseTo(vaseVolumeMm3(2, 1, 42, 6), 6);
+    expect(partVolumeMm3(vased)).toBeCloseTo(
+      meshVolume(binMesh({ columns: 2, rows: 1, cellSize: 42, height: 6, vaseMode: true })),
+      0
+    );
+  });
+
   it('subtracts the pocket and the shorter screw hole for a magnet and screw bin', () => {
     const both = binPart(2, 1, 42, 6, 1);
     both.binGeometry = { ...both.binGeometry, magnetHoles: true, screwHoles: true };
@@ -266,6 +277,17 @@ describe('estimatePrint', () => {
     );
     expect(scoopedEstimate.grams).toBeLessThan(plainEstimate.grams);
     expect(scoopedEstimate.minutes).toBeLessThan(plainEstimate.minutes);
+  });
+
+  it('lowers the estimate for vase-mode bins to the single-wall volume', () => {
+    const plain = binPart(2, 1, 42, 6, 1);
+    const vased = binPart(2, 1, 42, 6, 1);
+    vased.binGeometry = { ...vased.binGeometry, vaseMode: true };
+    const plainEstimate = estimatePrint([plain]);
+    const vasedEstimate = estimatePrint([vased]);
+    expect(vasedEstimate.volumeMm3).toBeCloseTo(vaseVolumeMm3(2, 1, 42, 6), 6);
+    expect(vasedEstimate.grams).toBeLessThan(plainEstimate.grams);
+    expect(vasedEstimate.minutes).toBeLessThan(plainEstimate.minutes);
   });
 
   it('lowers the estimate for magnet bins by the pocket volume', () => {

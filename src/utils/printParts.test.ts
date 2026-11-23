@@ -174,6 +174,28 @@ describe('collectPrintParts', () => {
     expect(scooped.parts[0].height).toBe(plain.parts[0].height);
   });
 
+  it('marks vase-mode bins with the vase-mode flag, label suffix, and vase-mode stem', () => {
+    const plain = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+    });
+    const vased = collectPrintParts({
+      layout,
+      bins: [bin({ id: 'one', label: 'Screws' })],
+      numDrawers: 1,
+      printerSize: A1,
+      vaseMode: true,
+    });
+    expect(plain.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6 });
+    expect(vased.parts[0].binGeometry).toEqual({ columns: 2, rows: 1, cellSize: 42, height: 6, vaseMode: true });
+    expect(vased.parts[0].label).toBe('Bin 2 × 1 · 6u · vase mode');
+    expect(vased.parts[0].stem).toBe('bin-2x1-6u-vase-mode');
+    expect(vased.parts[0].key).toBe(plain.parts[0].key);
+    expect(vased.parts[0].height).toBe(plain.parts[0].height);
+  });
+
   it('marks magnet and screw bins with both flags, suffixes, and stem parts', () => {
     const plain = collectPrintParts({
       layout,

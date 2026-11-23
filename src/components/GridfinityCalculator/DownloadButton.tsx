@@ -23,6 +23,7 @@ interface DownloadButtonProps {
   magnets: boolean;
   screws: boolean;
   scoop: boolean;
+  vaseMode: boolean;
   stackBins: boolean;
 }
 
@@ -41,6 +42,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
   magnets,
   screws,
   scoop,
+  vaseMode,
   stackBins,
 }) => {
   const [busy, setBusy] = useState(false);
@@ -68,6 +70,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
         magnets,
         screws,
         scoop,
+        vaseMode,
         stackBins,
       };
       const bundle = createPrintFiles(request);

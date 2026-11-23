@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { usePersistedState } from './usePersistedState';
 import { migrateLegacySettings } from './useLegacyMigration';
 import { sanitizeBins, sanitizeDividerCount } from '@/utils/bins';
@@ -17,6 +17,7 @@ export const LIDS_STORAGE_KEY = 'gridfinity_lids';
 export const MAGNETS_STORAGE_KEY = 'gridfinity_magnets';
 export const SCREWS_STORAGE_KEY = 'gridfinity_screwHoles';
 export const SCOOP_STORAGE_KEY = 'gridfinity_scoop';
+export const VASE_MODE_STORAGE_KEY = 'gridfinity_vaseMode';
 export const STACK_BINS_STORAGE_KEY = 'gridfinity_stackBins';
 
 const estimateSettingsStorage = {
@@ -74,6 +75,9 @@ export interface GridfinitySettings {
 
   scoop: boolean;
   setScoop: (value: boolean) => void;
+
+  vaseMode: boolean;
+  setVaseMode: (value: boolean) => void;
 
   stackBins: boolean;
   setStackBins: (value: boolean) => void;
@@ -147,6 +151,8 @@ export const useGridfinitySettings = (): GridfinitySettings => {
 
   const [scoop, setScoop] = usePersistedState<boolean>(SCOOP_STORAGE_KEY, false);
 
+  const [vaseMode, setVaseMode] = usePersistedState<boolean>(VASE_MODE_STORAGE_KEY, false);
+
   const [stackBins, setStackBins] = usePersistedState<boolean>(STACK_BINS_STORAGE_KEY, false);
 
   const [estimateSettings, setEstimateSettings] = usePersistedState<EstimateSettings>(
@@ -164,6 +170,20 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     setPreferHalfSize(value);
     if (value) setUseHalfSize(false);
   };
+
+  const handleScoopChange = (value: boolean) => {
+    setScoop(value);
+    if (value) setVaseMode(false);
+  };
+
+  const handleVaseModeChange = (value: boolean) => {
+    setVaseMode(value);
+    if (value) setScoop(false);
+  };
+
+  useEffect(() => {
+    if (scoop && vaseMode) setVaseMode(false);
+  }, [scoop, vaseMode, setVaseMode]);
 
   const resetSettings = () => {
     setDrawerSize({ width: 22.5, height: 16.5 });
@@ -222,7 +242,10 @@ export const useGridfinitySettings = (): GridfinitySettings => {
     setScrews,
 
     scoop,
-    setScoop,
+    setScoop: handleScoopChange,
+
+    vaseMode,
+    setVaseMode: handleVaseModeChange,
 
     stackBins,
     setStackBins,

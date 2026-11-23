@@ -27,6 +27,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   magnets: false,
   screws: false,
   scoop: false,
+  vaseMode: false,
   stackBins: false,
   estimateSettings: { material: "PLA", priceUsdPerKg: 20, flowMm3PerS: 8 },
 });
@@ -92,6 +93,30 @@ describe("parseSavedLayouts", () => {
   it("round-trips a snapshot with scoop on", () => {
     const layouts = [entry({ snapshot: { ...snapshot(), scoop: true } })];
     expect(parseSavedLayouts(serializeSavedLayouts(layouts))).toEqual(layouts);
+  });
+
+  it("defaults vase mode to false for a legacy snapshot without the field", () => {
+    const legacy = entry({
+      snapshot: { ...snapshot(), vaseMode: undefined } as unknown as SavedLayoutSnapshot,
+    });
+    const parsed = parseSavedLayouts(JSON.stringify([legacy]));
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].snapshot.vaseMode).toBe(false);
+  });
+
+  it("round-trips a snapshot with vase mode on", () => {
+    const layouts = [entry({ snapshot: { ...snapshot(), vaseMode: true } })];
+    expect(parseSavedLayouts(serializeSavedLayouts(layouts))).toEqual(layouts);
+  });
+
+  it("drops vase mode from a snapshot with scoop and vase mode on", () => {
+    const layouts = [
+      entry({ snapshot: { ...snapshot(), scoop: true, vaseMode: true } }),
+    ];
+    const parsed = parseSavedLayouts(serializeSavedLayouts(layouts));
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].snapshot.scoop).toBe(true);
+    expect(parsed[0].snapshot.vaseMode).toBe(false);
   });
 
   it("defaults stack bins to false for a legacy snapshot without the field", () => {

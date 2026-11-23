@@ -28,6 +28,7 @@ import {
   STACKING_LIP_INNER_INSET_MM,
   binWallProfile,
   scoopTopZMm,
+  vaseWallProfile,
   type ProfilePoint,
 } from "@/utils/export/gridfinityProfiles";
 import { magnetHoleRing, screwHoleRing, type Point } from "@/utils/export/shapes";
@@ -191,11 +192,12 @@ const footVolume = (cellSize: number): number => {
 const abs = (value: number): number =>
   unitMath.max(value, unitMath.multiply(value, -1));
 
-export const binVolumeMm3 = (
+const binShellVolumeMm3 = (
   columns: number,
   rows: number,
   cellSize: number,
-  height: number
+  height: number,
+  profile: ProfilePoint[]
 ): number => {
   const a = unitMath.subtract(
     unitMath.multiply(columns, cellSize),
@@ -210,7 +212,7 @@ export const binVolumeMm3 = (
     roundedArea(a, b, BIN_TOP_RADIUS),
     unitMath.subtract(BIN_BASE_HEIGHT, FOOT_PROFILE[FOOT_PROFILE.length - 1].z)
   );
-  const polygon = binWallProfile(height).map((point, index) =>
+  const polygon = profile.map((point, index) =>
     index === 0 ? { ...point, z: BIN_BASE_HEIGHT } : point
   );
   let area = 0;
@@ -246,6 +248,20 @@ export const binVolumeMm3 = (
   );
   return unitMath.add(unitMath.add(feet, bridge), walls);
 };
+
+export const binVolumeMm3 = (
+  columns: number,
+  rows: number,
+  cellSize: number,
+  height: number
+): number => binShellVolumeMm3(columns, rows, cellSize, height, binWallProfile(height));
+
+export const vaseVolumeMm3 = (
+  columns: number,
+  rows: number,
+  cellSize: number,
+  height: number
+): number => binShellVolumeMm3(columns, rows, cellSize, height, vaseWallProfile(height));
 
 export const spacerVolumeMm3 = (
   width: number,
@@ -413,12 +429,19 @@ export const lidVolumeMm3 = (width: number, depth: number): number =>
 
 export const partVolumeMm3 = (part: PrintPartSummary): number => {
   if (part.kind === "bin" && part.binGeometry) {
-    let bin = binVolumeMm3(
-      part.binGeometry.columns,
-      part.binGeometry.rows,
-      part.binGeometry.cellSize,
-      part.binGeometry.height
-    );
+    let bin = part.binGeometry.vaseMode
+      ? vaseVolumeMm3(
+          part.binGeometry.columns,
+          part.binGeometry.rows,
+          part.binGeometry.cellSize,
+          part.binGeometry.height
+        )
+      : binVolumeMm3(
+          part.binGeometry.columns,
+          part.binGeometry.rows,
+          part.binGeometry.cellSize,
+          part.binGeometry.height
+        );
     if (part.binGeometry.labelTab) {
       bin = unitMath.add(
         bin,

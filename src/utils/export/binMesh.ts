@@ -23,6 +23,7 @@ import {
   FOOT_PROFILE,
   binWallProfile,
   scoopTopZMm,
+  vaseWallProfile,
   type ProfilePoint,
 } from "./gridfinityProfiles";
 import {
@@ -50,6 +51,7 @@ export interface BinShape {
   magnetHoles?: boolean;
   screwHoles?: boolean;
   scoop?: boolean;
+  vaseMode?: boolean;
 }
 
 export const labelTabWidthMm = (columns: number, cellSize: number): number => {
@@ -529,7 +531,7 @@ const outwardFacing = (center: Point, a: Point, b: Point, lower: ProfilePoint, u
   ];
 };
 
-export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCount, dividerPositions, magnetHoles, screwHoles, scoop }: BinShape): Mesh => {
+export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCount, dividerPositions, magnetHoles, screwHoles, scoop, vaseMode }: BinShape): Mesh => {
   if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns < 1 || rows < 1) {
     throw new Error("A bin needs a whole number of cells");
   }
@@ -674,7 +676,7 @@ export const binMesh = ({ columns, rows, cellSize, height, labelTab, dividerCoun
     }
   }
 
-  const baseProfile = binWallProfile(height);
+  const baseProfile = vaseMode === true ? vaseWallProfile(height) : binWallProfile(height);
   const profile =
     scoopSpan === undefined ? baseProfile : splitProfileAtDip(baseProfile, scoopTopZMm(height));
   const rings = profile.map(({ inset }) => bodyRing(width, depth, cellSize, inset, scoopSpan));

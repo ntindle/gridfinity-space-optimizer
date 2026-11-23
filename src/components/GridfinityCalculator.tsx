@@ -141,6 +141,7 @@ const GridfinityCalculator: React.FC = () => {
     settings.setMagnets(snapshot.magnets);
     settings.setScrews(snapshot.screws);
     settings.setScoop(snapshot.scoop);
+    settings.setVaseMode(snapshot.vaseMode);
     settings.setStackBins(snapshot.stackBins);
     settings.setEstimateSettings(snapshot.estimateSettings);
   };
@@ -162,6 +163,7 @@ const GridfinityCalculator: React.FC = () => {
     magnets: settings.magnets,
     screws: settings.screws,
     scoop: settings.scoop,
+    vaseMode: settings.vaseMode,
     stackBins: settings.stackBins,
     estimateSettings: settings.estimateSettings,
   };
@@ -266,6 +268,8 @@ const GridfinityCalculator: React.FC = () => {
                 setScrews={settings.setScrews}
                 scoop={settings.scoop}
                 setScoop={settings.setScoop}
+                vaseMode={settings.vaseMode}
+                setVaseMode={settings.setVaseMode}
                 stackBins={settings.stackBins}
               />
             </CollapsibleCard>
@@ -314,6 +318,7 @@ const GridfinityCalculator: React.FC = () => {
                       magnets={settings.magnets}
                       screws={settings.screws}
                       scoop={settings.scoop}
+                      vaseMode={settings.vaseMode}
                       stackBins={settings.stackBins}
                     />
                     <ShareLayoutButton />
@@ -352,6 +357,7 @@ const GridfinityCalculator: React.FC = () => {
               magnets={settings.magnets}
               screws={settings.screws}
               scoop={settings.scoop}
+              vaseMode={settings.vaseMode}
               stackBins={settings.stackBins}
               onStackBinsChange={settings.setStackBins}
               estimateSettings={settings.estimateSettings}

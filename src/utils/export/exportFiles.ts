@@ -34,6 +34,7 @@ export interface ExportRequest {
   magnets?: boolean;
   screws?: boolean;
   scoop?: boolean;
+  vaseMode?: boolean;
   stackBins?: boolean;
 }
 
@@ -65,6 +66,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     magnets: request.magnets,
     screws: request.screws,
     scoop: request.scoop,
+    vaseMode: request.vaseMode,
   });
   if (parts.length === 0) throw new Error("There is nothing to print yet");
 
@@ -195,8 +197,8 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       "- Spacers are solid 5 mm blocks that fill the gap between the grid and the drawer wall.",
     bins.length > 0 &&
       (request.magnets
-        ? "- Bins follow the Gridfinity spec: 7 mm height units plus a stacking lip, 0.95 mm walls, with a Ø6.2 × 2 mm magnet pocket centered under each corner cell; press a 6 × 2 mm magnet into each pocket from below."
-        : "- Bins follow the Gridfinity spec: 7 mm height units plus a stacking lip, 0.95 mm walls, no magnet holes."),
+        ? `- Bins follow the Gridfinity spec: 7 mm height units plus a stacking lip, ${request.vaseMode ? "a single 0.45 mm wall" : "0.95 mm walls"}, with a Ø6.2 × 2 mm magnet pocket centered under each corner cell; press a 6 × 2 mm magnet into each pocket from below.`
+        : `- Bins follow the Gridfinity spec: 7 mm height units plus a stacking lip, ${request.vaseMode ? "a single 0.45 mm wall" : "0.95 mm walls"}, no magnet holes.`),
     bins.length > 0 &&
       request.screws &&
       (request.magnets
@@ -205,6 +207,9 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     bins.length > 0 &&
       request.scoop &&
       "- Scoop: the front wall of every bin dips to half its height over the middle half of the front, with vertical step sides, so you can reach in and grab parts; the stacking lip is cut flat at the dip height.",
+    bins.length > 0 &&
+      request.vaseMode &&
+      "- Vase mode: every bin is a single wall with no infill or top layers, so it prints fast as one continuous spiral; slice it with spiralize/vase mode on, one perimeter, and no top layers.",
     bins.length > 0 &&
       stackBins &&
       `- Stacked bins: identical bins print stacked in Z, nested on the stacking lip with a ${STACK_GAP_MM} mm separation gap, up to the printer's Z height, so fewer plates print; pull the stacked bins apart after printing.`,

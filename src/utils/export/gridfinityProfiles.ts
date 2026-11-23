@@ -1,5 +1,9 @@
 import { unitMath } from "@/services/unitMath";
-import { BIN_HEIGHT_UNIT_MM, STACKING_LIP_FILLET_RADIUS } from "@/utils/bins";
+import {
+  BIN_HEIGHT_UNIT_MM,
+  STACKING_LIP_FILLET_RADIUS,
+  VASE_MODE_WALL_MM,
+} from "@/utils/bins";
 import { BASEPLATE_HEIGHT_MM } from "@/utils/printParts";
 
 export interface ProfilePoint {
@@ -66,3 +70,23 @@ export const scoopTopZMm = (height: number): number =>
       2
     )
   );
+
+export const vaseWallProfile = (height: number): ProfilePoint[] => {
+  const profile = binWallProfile(height);
+  const lipTopIndex = profile.findIndex(
+    (point) => point.inset === STACKING_LIP_INNER_INSET_MM
+  );
+  const outer = profile.slice(0, lipTopIndex + 1);
+  const inner = outer
+    .slice(1)
+    .map((point) => ({
+      inset: unitMath.add(point.inset, VASE_MODE_WALL_MM),
+      z: point.z,
+    }))
+    .reverse();
+  return [
+    ...outer,
+    ...inner,
+    { inset: VASE_MODE_WALL_MM, z: BIN_BASE_HEIGHT },
+  ];
+};

@@ -372,6 +372,22 @@ Verdict: no credible regression. The pair 1–2 load gap (Lighthouse −5 in bot
 
 Fix round, same PR (2026-11-16): Lane B found the app crashes to the error boundary when the IKEA ALEX preset's own displayed dims (292.1 × 523.2 mm) are typed with bins placed — `planPlates` threw "spacer:252x19.2 and bin:42:42x42x3 are closer than 3 mm". Root cause is a pre-existing trunk bug, not the approxEqual fold-in (trunk build crashes identically on the same steps): the mm→inch→mm round-trip leaves the drawer remainder strip at 19.1999999999999 mm instead of 19.2, and after `center()` shifts the plate the exactly-3 mm gap between that strip and the next bin reads one ulp short, so the exact `<=` check in `findPlateProblems` rejects a placement the packer itself produced. Fix: `findPlateProblems` now forgives a 1e-9 mm (sub-nanometre) shortfall, `PLATE_GAP_EPSILON_MM`, in the gap check — a real shortfall (the existing 1 mm test case still reports) still throws, and the "21 of 42 bins need attention" state after the resize is legitimate (bins that no longer fit are flagged off-grid, not planned). The approxEqual fold-in is kept: the preset matches in mm mode (picker shows "IKEA ALEX" for 292.1 × 523.2 mm, no crash, verified in headless Chromium against the local build). Two regression tests in `src/utils/printPlan.test.ts` fail without the fix and pass with it. Confirmatory perf pair 4 (same box, back-to-back): branch LH 73 / TTI 3639 ms / input-to-preview 56.3 ms / layout 528 ms / share 78 ms vs trunk LH 75 / TTI 3598 ms / 55.7 ms / 530 ms / 74 ms — no credible regression (both sides' input-to-preview is elevated vs pairs 1–3, box warmth; the branch–trunk gap is 0.6 ms). Bundle after the fix round: index chunk 268,742 B (+72 B vs the pre-fix head), export chunk unchanged at 36,418 B.
 
+## 2026-11-23, PR #188 (vase-mode bins, F20)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, two pairs, second reversed).
+
+| Metric | Branch (pair 1 / pair 2) | Trunk (pair 1 / pair 2) |
+| --- | --- | --- |
+| Parity | 70.0% (35 ✅ + 0 🟡 / 50) | 68.0% |
+| Lighthouse perf | 73 / 75 | 76 / 73 |
+| TTI | 3633 / 3562 ms | 3529 / 3665 ms |
+| Input-to-preview (median) | 36.8 / 37.7 ms | 34.0 / 36.1 ms |
+| Layout task | 4 steps, 517 / 505 ms | 4 steps, 519 / 511 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 70 / 71 ms | 1 click, 75 / 78 ms |
+
+Verdict: no credible regression — Lighthouse and TTI overlap across both pairs (branch 73/75 vs trunk 76/73; TTI 3633/3562 vs 3529/3665 ms, the pair-1 gap reversing in pair 2), and layout/share overlap too (layout 505–517 vs 511–519 ms; share 70–71 vs 75–78 ms). Input-to-preview reads ~2 ms slower on the branch in both pairs (36.8/37.7 vs 34.0/36.1 ms), but trunk alone swung 2.1 ms between its own pairs and the drawer-width-edit → preview path is untouched by this diff — the new work is a Bin options switch plus bin-mesh generation that runs in the lazy export chunk on download — so the gap is box noise, not a branch effect. Parity +2.0pp (F20 ❌→✅); the new work is a "Vase-mode bins" switch in Bin options — every placed bin prints as a single-wall spiralized bin (a 0.45 mm shell: the wall profile keeps the outer wall and stacking lip and returns inside at one extrusion width, with the floor spanning to the single wall); mesh, estimates, print plan, STL stems, and the download README follow it; persisted as `gridfinity_vaseMode`, local-only; saved-layout snapshots carry it; the switch disables dividers and label tabs with a reason, and vice versa. The single-wall geometry is verified in tests (the vase mesh volume matches the analytic thin-shell volume to 1e-6, and the floor spans to 0.45 mm inside the outer wall). Bundle delta: index chunk 268,742 → 270,193 B (+0.54%) for the switch, settings, and snapshot plumbing; the lazy export chunk 36,418 → 36,763 B (+0.95%) for the vase wall profile and volume.
+
 ## 2026-11-08, PR #173 (magnet holes in bins, F17)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, plus a reversed-order second pair).

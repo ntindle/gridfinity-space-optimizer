@@ -23,6 +23,8 @@ interface BinOptionsProps {
   setScrews: (value: boolean) => void;
   scoop: boolean;
   setScoop: (value: boolean) => void;
+  vaseMode: boolean;
+  setVaseMode: (value: boolean) => void;
   stackBins: boolean;
 }
 
@@ -45,6 +47,8 @@ const BinOptions: React.FC<BinOptionsProps> = ({
   setScrews,
   scoop,
   setScoop,
+  vaseMode,
+  setVaseMode,
   stackBins,
 }) => {
   return (
@@ -87,26 +91,30 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         description={
           scoop
             ? "Not used with a scoop in bins — the tab would float above the dipped front wall."
-            : stackBins
-              ? "Not used with stacked bins — another bin cannot stack on top of a tabbed bin."
-              : "Printed bins get a raised tab above the stacking lip for a stuck-on label. Another bin cannot stack on top of a tabbed bin."
+            : vaseMode
+              ? "Not used with vase-mode bins — a single-wall bin has nothing to hold a tab."
+              : stackBins
+                ? "Not used with stacked bins — another bin cannot stack on top of a tabbed bin."
+                : "Printed bins get a raised tab above the stacking lip for a stuck-on label. Another bin cannot stack on top of a tabbed bin."
         }
         checked={labelTabs}
-        disabled={scoop || stackBins}
+        disabled={scoop || vaseMode || stackBins}
         onCheckedChange={setLabelTabs}
       />
       <div className="relative flex items-start justify-between gap-4 py-2.5">
         <div className="min-w-0">
           <p className="text-sm font-medium">Dividers in bins</p>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Every printed bin gets dividers down its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack. Positions start evenly spaced and can be moved per bin in the piece details.
+            {vaseMode
+              ? "Not used with vase-mode bins — a single-wall bin has no dividers to print."
+              : "Every printed bin gets dividers down its long side, from the bin floor up to the top of the bin units, below the stacking lip so bins still stack. Positions start evenly spaced and can be moved per bin in the piece details."}
           </p>
         </div>
         <Stepper
           label="Dividers in bins"
           value={String(dividerCount)}
-          canDecrease={dividerCount > 0}
-          canIncrease={dividerCount < MAX_DIVIDER_COUNT}
+          canDecrease={dividerCount > 0 && !vaseMode}
+          canIncrease={dividerCount < MAX_DIVIDER_COUNT && !vaseMode}
           onDecrease={() => setDividerCount(dividerCount - 1)}
           onIncrease={() => setDividerCount(dividerCount + 1)}
           decreaseLabel="Fewer dividers"
@@ -140,11 +148,29 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         description={
           labelTabs
             ? "Not used with label tabs on bins — the tab would float above the dipped front wall."
-            : "The front wall of every printed bin dips to half its height over the middle half of the front, with vertical step sides, so you can reach in and grab parts. The stacking lip is cut flat at the dip height."
+            : vaseMode
+              ? "Not used with vase-mode bins — a single-wall bin has no wall to dip."
+              : "The front wall of every printed bin dips to half its height over the middle half of the front, with vertical step sides, so you can reach in and grab parts. The stacking lip is cut flat at the dip height."
         }
         checked={scoop}
-        disabled={labelTabs}
+        disabled={labelTabs || vaseMode}
         onCheckedChange={setScoop}
+      />
+      <OptionRow
+        id="vase-mode"
+        title="Vase-mode bins"
+        description={
+          labelTabs
+            ? "Not used with label tabs on bins — a single-wall bin has nothing to hold a tab."
+            : dividerCount > 0
+              ? "Not used with dividers in bins — a single-wall bin has no dividers to print."
+              : scoop
+                ? "Not used with a scoop in bins — the scoop dip needs a full bin wall."
+                : "Every printed bin is a single 0.45 mm wall with no infill or top layers, so it prints fast as one continuous spiral. Slice it with spiralize/vase mode on."
+        }
+        checked={vaseMode}
+        disabled={labelTabs || dividerCount > 0 || scoop}
+        onCheckedChange={setVaseMode}
       />
     </div>
   );
