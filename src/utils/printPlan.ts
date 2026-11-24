@@ -25,6 +25,13 @@ export const stackCapacityMm = (height: number, printerZ: number): number =>
     )
   );
 
+export interface PartProtrusion {
+  left?: number;
+  right?: number;
+  top?: number;
+  bottom?: number;
+}
+
 export interface PlanPart {
   key: string;
   width: number;
@@ -32,6 +39,7 @@ export interface PlanPart {
   height?: number;
   stackable?: boolean;
   count: number;
+  protrusion?: PartProtrusion;
 }
 
 export interface PlatePlacement {
@@ -84,6 +92,18 @@ export const usableBed = (printerSize: PrinterSize): BedArea => {
   };
 };
 
+export const placementMeshOrigin = (
+  placement: PlatePlacement,
+  protrusion: PartProtrusion = {}
+): { x: number; y: number } => {
+  const left = protrusion.left ?? 0;
+  const top = protrusion.top ?? 0;
+  const bottom = protrusion.bottom ?? 0;
+  return placement.rotated
+    ? { x: unitMath.add(placement.x, top), y: unitMath.add(placement.y, left) }
+    : { x: unitMath.add(placement.x, left), y: unitMath.add(placement.y, bottom) };
+};
+
 const right = (rect: Rect) => unitMath.add(rect.x, rect.width);
 const top = (rect: Rect) => unitMath.add(rect.y, rect.depth);
 
@@ -128,6 +148,20 @@ interface StackConfig {
   pitch: number;
   capacity: number;
 }
+
+const trueFootprint = (part: PlanPart): { width: number; depth: number } => {
+  const protrusion = part.protrusion ?? {};
+  return {
+    width: unitMath.add(
+      unitMath.add(part.width, protrusion.left ?? 0),
+      protrusion.right ?? 0
+    ),
+    depth: unitMath.add(
+      unitMath.add(part.depth, protrusion.top ?? 0),
+      protrusion.bottom ?? 0
+    ),
+  };
+};
 
 const place = (
   state: PlateState,
@@ -174,9 +208,10 @@ const place = (
       };
     }
   }
-  const width = unitMath.add(part.width, gap);
-  const depth = unitMath.add(part.depth, gap);
-  const turns = part.width === part.depth ? [false] : [false, true];
+  const { width: trueWidth, depth: trueDepth } = trueFootprint(part);
+  const width = unitMath.add(trueWidth, gap);
+  const depth = unitMath.add(trueDepth, gap);
+  const turns = trueWidth === trueDepth ? [false] : [false, true];
   let best: { rect: Rect; rotated: boolean; short: number; long: number } | null = null;
   for (const free of state.free) {
     for (const rotated of turns) {
@@ -206,8 +241,8 @@ const place = (
         key: part.key,
         x: best.rect.x,
         y: best.rect.y,
-        width: best.rotated ? part.depth : part.width,
-        depth: best.rotated ? part.width : part.depth,
+        width: best.rotated ? trueDepth : trueWidth,
+        depth: best.rotated ? trueWidth : trueDepth,
         rotated: best.rotated,
         z: 0,
       },
@@ -233,10 +268,15 @@ const fill = (
   return { state: current, placed };
 };
 
-const byFootprint = (a: PlanPart, b: PlanPart): number =>
-  unitMath.subtract(unitMath.multiply(b.width, b.depth), unitMath.multiply(a.width, a.depth)) ||
-  unitMath.subtract(unitMath.max(b.width, b.depth), unitMath.max(a.width, a.depth)) ||
-  a.key.localeCompare(b.key);
+const byFootprint = (a: PlanPart, b: PlanPart): number => {
+  const ea = trueFootprint(a);
+  const eb = trueFootprint(b);
+  return (
+    unitMath.subtract(unitMath.multiply(eb.width, eb.depth), unitMath.multiply(ea.width, ea.depth)) ||
+    unitMath.subtract(unitMath.max(eb.width, eb.depth), unitMath.max(ea.width, ea.depth)) ||
+    a.key.localeCompare(b.key)
+  );
+};
 
 const center = (placements: PlatePlacement[], bed: BedArea): PlatePlacement[] => {
   const minX = placements.reduce((value, item) => unitMath.min(value, item.x), Infinity);

@@ -1,6 +1,7 @@
 import { unitMath } from "@/services/unitMath";
 import { drawerSizeMm, formatDrawerSize, formatSize, pluralize } from "@/utils/format";
-import { PLATE_GAP_MM, STACK_GAP_MM, planPlates, plateStackDepth, usableBed, type Plate } from "@/utils/printPlan";
+import { PLATE_GAP_MM, STACK_GAP_MM, placementMeshOrigin, planPlates, plateStackDepth, usableBed, type Plate } from "@/utils/printPlan";
+import { connectorProtrusion } from "./gridfinityProfiles";
 import {
   collectPrintParts,
   mergeTestFitParts,
@@ -36,6 +37,7 @@ export interface ExportRequest {
   scoop?: boolean;
   vaseMode?: boolean;
   stackBins?: boolean;
+  connectors?: boolean;
 }
 
 export interface ExportBundle {
@@ -67,6 +69,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     screws: request.screws,
     scoop: request.scoop,
     vaseMode: request.vaseMode,
+    connectors: request.connectors,
   });
   if (parts.length === 0) throw new Error("There is nothing to print yet");
 
@@ -98,7 +101,8 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       mesh = baseplateMesh(
         part.gridGeometry.columns,
         part.gridGeometry.rows,
-        part.gridGeometry.cellSize
+        part.gridGeometry.cellSize,
+        part.gridGeometry.connectors
       );
     } else {
       throw new Error(`No geometry for ${part.key}`);
@@ -120,13 +124,14 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
   const stackBins = request.stackBins === true && request.labelTabs !== true;
   const plan = (kind: "grid" | "bin" | "lid", members: PrintPartSummary[]) =>
     planPlates(
-      members.map(({ key, width, depth, height, count }) => ({
+      members.map(({ key, width, depth, height, count, gridGeometry }) => ({
         key,
         width,
         depth,
         height,
         stackable: kind === "bin",
         count,
+        protrusion: connectorProtrusion(gridGeometry?.connectors),
       })),
       request.printerSize,
       { stackBins }
@@ -157,12 +162,23 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     });
     const keys = members.map((part) => part.key);
     const objects = members.map((part) => ({ name: part.label, mesh: meshFor(part) }));
-    const items = plate.placements.map((placement) => ({
-      object: keys.indexOf(placement.key),
-      transform: placement.rotated
-        ? quarterTurn(unitMath.add(placement.x, placement.width), placement.y, placement.z ?? 0)
-        : translation(placement.x, placement.y, placement.z ?? 0),
-    }));
+    const items = plate.placements.map((placement) => {
+      const part = byKey.get(placement.key);
+      const origin = placementMeshOrigin(
+        placement,
+        connectorProtrusion(part?.gridGeometry?.connectors)
+      );
+      return {
+        object: keys.indexOf(placement.key),
+        transform: placement.rotated
+          ? quarterTurn(
+              unitMath.add(origin.x, part?.depth ?? placement.width),
+              origin.y,
+              placement.z ?? 0
+            )
+          : translation(origin.x, origin.y, placement.z ?? 0),
+      };
+    });
     entries.push([
       file,
       createThreeMf({
@@ -195,6 +211,8 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       "- Half-size baseplates are the same frame on a 21 mm grid.",
     grid.some((part) => part.kind === "spacer") &&
       "- Spacers are solid 5 mm blocks that fill the gap between the grid and the drawer wall.",
+    grid.some((part) => part.gridGeometry?.connectors !== undefined) &&
+      "- Baseplate connectors: split baseplates join by vertical drop-in with a dovetail tab on one side of each split seam and a matching recess on the other, 2.5 mm tall at the base of the 5 mm frame, 2 mm deep with 0.4 mm clearance; lift one plate and lower its recess onto the tab.",
     bins.length > 0 &&
       (request.magnets
         ? `- Bins follow the Gridfinity spec: 7 mm height units plus a stacking lip, ${request.vaseMode ? "a single 0.45 mm wall" : "0.95 mm walls"}, with a Ø6.2 × 2 mm magnet pocket centered under each corner cell; press a 6 × 2 mm magnet into each pocket from below.`

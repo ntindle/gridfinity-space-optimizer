@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { BIN_HEIGHT_UNIT_MM, STACKING_LIP_HEIGHT_MM } from './bins';
-import { FOOT_PROFILE, binWallProfile } from './export/gridfinityProfiles';
+import { FOOT_PROFILE, binWallProfile, connectorProtrusion } from './export/gridfinityProfiles';
+import { baseplateMesh, spacerMesh } from './export/gridfinityMesh';
+import { meshBounds } from './export/mesh';
+import { calculateGrids } from '@/utils/gridfinityUtils';
+import { collectPrintParts } from '@/utils/printParts';
 import {
   PLATE_GAP_MM,
   STACK_GAP_MM,
@@ -13,7 +17,7 @@ import {
   type PlanPart,
   type Plate,
 } from './printPlan';
-import type { PrinterSize } from '@/types';
+import type { DrawerSize, PrinterSize } from '@/types';
 
 const A1: PrinterSize = { x: 256, y: 256, z: 256 };
 
@@ -340,5 +344,90 @@ describe('stack nesting geometry', () => {
       }
       expect(minClearance).toBeGreaterThan(0.2);
     }
+  });
+});
+
+describe('planPlates with connector tabs', () => {
+  it('keeps the true tabbed mesh inside the bed', () => {
+    const drawers: [string, DrawerSize][] = [
+      ['9x3cells', { width: 14.8819, height: 4.9606 }],
+      ['13x10cells', { width: 22.5, height: 16.5 }],
+      ['15x9cells', { width: 24.8031, height: 14.8819 }],
+      ['12x6cells', { width: 19.8425, height: 9.9213 }],
+      ['18x6cells', { width: 29.7638, height: 9.9213 }],
+    ];
+    const bed = usableBed(A1);
+    let worst = 0;
+    for (const [, drawerSize] of drawers) {
+      for (const uniform of [false, true]) {
+        const layout = calculateGrids(drawerSize, A1, false, false, uniform).layout;
+        const { parts } = collectPrintParts({
+          layout,
+          bins: [],
+          numDrawers: 1,
+          printerSize: A1,
+          connectors: true,
+        });
+        const grid = parts.filter((p) => p.kind === 'baseplate' || p.kind === 'spacer');
+        const plates = planPlates(
+          grid.map((part) => ({
+            key: part.key,
+            width: part.width,
+            depth: part.depth,
+            height: part.height,
+            count: part.count,
+            protrusion: connectorProtrusion(part.gridGeometry?.connectors),
+          })),
+          A1,
+          {}
+        );
+        const byKey = new Map(grid.map((p) => [p.key, p]));
+        for (const plate of plates) {
+          for (const pl of plate.placements) {
+            const part = byKey.get(pl.key);
+            if (part === undefined) throw new Error(`Missing part for ${pl.key}`);
+            const mesh =
+              part.kind === 'baseplate'
+                ? baseplateMesh(
+                    part.gridGeometry!.columns,
+                    part.gridGeometry!.rows,
+                    part.gridGeometry!.cellSize,
+                    part.gridGeometry!.connectors
+                  )
+                : spacerMesh(part.width, part.depth);
+            const b = meshBounds(mesh);
+            const tab = connectorProtrusion(part.gridGeometry?.connectors);
+            let minX: number;
+            let minY: number;
+            let maxX: number;
+            let maxY: number;
+            if (!pl.rotated) {
+              const originX = pl.x + tab.left;
+              const originY = pl.y + tab.bottom;
+              minX = originX + b.min[0];
+              maxX = originX + b.max[0];
+              minY = originY + b.min[1];
+              maxY = originY + b.max[1];
+            } else {
+              const tx = pl.x + tab.top + part.depth;
+              const originY = pl.y + tab.left;
+              minX = tx - b.max[1];
+              maxX = tx - b.min[1];
+              minY = originY + b.min[0];
+              maxY = originY + b.max[0];
+            }
+            const over = Math.max(
+              0,
+              bed.x - minX,
+              bed.y - minY,
+              maxX - (bed.x + bed.width),
+              maxY - (bed.y + bed.depth)
+            );
+            worst = Math.max(worst, over);
+          }
+        }
+      }
+    }
+    expect(worst).toBe(0);
   });
 });

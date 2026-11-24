@@ -29,6 +29,8 @@ const renderOptions = (overrides: Partial<ComponentProps<typeof BinOptions>> = {
     setScoop: vi.fn(),
     vaseMode: false,
     setVaseMode: vi.fn(),
+    connectors: false,
+    setConnectors: vi.fn(),
     stackBins: false,
     ...overrides,
   };
@@ -76,6 +78,18 @@ describe('BinOptions', () => {
     expect(props.setScoop).toHaveBeenCalledWith(true);
     expect(screen.getByRole('switch', { name: 'Scoop in bins' })).toHaveAccessibleDescription(
       /dips to half its height/
+    );
+  });
+
+  it('toggles connectors between baseplates', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Connectors between baseplates' }));
+
+    expect(props.setConnectors).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Connectors between baseplates' })).toHaveAccessibleDescription(
+      /dovetail tab/
     );
   });
 

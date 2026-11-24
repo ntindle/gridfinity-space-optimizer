@@ -25,6 +25,8 @@ interface BinOptionsProps {
   setScoop: (value: boolean) => void;
   vaseMode: boolean;
   setVaseMode: (value: boolean) => void;
+  connectors: boolean;
+  setConnectors: (value: boolean) => void;
   stackBins: boolean;
 }
 
@@ -49,6 +51,8 @@ const BinOptions: React.FC<BinOptionsProps> = ({
   setScoop,
   vaseMode,
   setVaseMode,
+  connectors,
+  setConnectors,
   stackBins,
 }) => {
   return (
@@ -84,6 +88,13 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         checked={preferUniformBaseplates && !useHalfSize}
         disabled={useHalfSize}
         onCheckedChange={setPreferUniformBaseplates}
+      />
+      <OptionRow
+        id="baseplate-connectors"
+        title="Connectors between baseplates"
+        description="Where the grid is split for the print bed, each split seam gets a dovetail tab on one side and a matching recess on the other, so the printed pieces slide together and lock. The tab is 2.5 mm tall at the base of the 5 mm frame."
+        checked={connectors}
+        onCheckedChange={setConnectors}
       />
       <OptionRow
         id="label-tabs"

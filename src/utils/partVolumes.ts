@@ -23,12 +23,15 @@ import {
   BIN_BASE_HEIGHT,
   BIN_GAP,
   BIN_TOP_RADIUS,
+  CONNECTOR_BAND_HEIGHT_MM,
   FOOT_PROFILE,
   POCKET_PROFILE,
   STACKING_LIP_INNER_INSET_MM,
   binWallProfile,
+  connectorTrapezoidAreaMm2,
   scoopTopZMm,
   vaseWallProfile,
+  type BaseplateConnectors,
   type ProfilePoint,
 } from "@/utils/export/gridfinityProfiles";
 import { magnetHoleRing, screwHoleRing, type Point } from "@/utils/export/shapes";
@@ -144,7 +147,8 @@ const pocketVolume = (cellSize: number): number => {
 export const baseplateVolumeMm3 = (
   columns: number,
   rows: number,
-  cellSize: number
+  cellSize: number,
+  connectors?: BaseplateConnectors
 ): number => {
   const outlineArea = unitMath.subtract(
     unitMath.multiply(
@@ -156,10 +160,20 @@ export const baseplateVolumeMm3 = (
       unitMath.multiply(BASEPLATE_CORNER_RADIUS, BASEPLATE_CORNER_RADIUS)
     )
   );
-  return unitMath.subtract(
+  const frame = unitMath.subtract(
     unitMath.multiply(outlineArea, BASEPLATE_HEIGHT_MM),
     unitMath.multiply(unitMath.multiply(columns, rows), pocketVolume(cellSize))
   );
+  if (connectors === undefined) return frame;
+  const kinds = [connectors.left, connectors.right, connectors.top, connectors.bottom];
+  return kinds.reduce((volume, kind) => {
+    if (kind === undefined) return volume;
+    const delta = unitMath.multiply(
+      connectorTrapezoidAreaMm2(cellSize, kind),
+      CONNECTOR_BAND_HEIGHT_MM
+    );
+    return kind === "tab" ? unitMath.add(volume, delta) : unitMath.subtract(volume, delta);
+  }, frame);
 };
 
 const footVolume = (cellSize: number): number => {
@@ -500,7 +514,8 @@ export const partVolumeMm3 = (part: PrintPartSummary): number => {
     return baseplateVolumeMm3(
       part.gridGeometry.columns,
       part.gridGeometry.rows,
-      part.gridGeometry.cellSize
+      part.gridGeometry.cellSize,
+      part.gridGeometry.connectors
     );
   }
   if (part.kind === "lid") {

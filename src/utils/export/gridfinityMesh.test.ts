@@ -5,6 +5,7 @@ import {
   spacerMesh,
 } from './gridfinityMesh';
 import { baseplateVolumeMm3 } from '@/utils/partVolumes';
+import type { BaseplateConnectors } from '@/utils/export/gridfinityProfiles';
 import { meshBounds, meshVolume, triangleCount, type Mesh } from './mesh';
 
 const edgeProblems = (mesh: Mesh): string[] => {
@@ -74,6 +75,70 @@ describe('baseplateMesh', () => {
     expect(() => baseplateMesh(0, 2, 42)).toThrow(/whole number of cells/);
     expect(() => baseplateMesh(1.5, 2, 42)).toThrow(/whole number of cells/);
     expect(() => baseplateMesh(1, 1, 8)).toThrow(/too small/);
+  });
+});
+
+describe('baseplateMesh connectors', () => {
+  const cases: [number, number, number, BaseplateConnectors][] = [
+    [3, 2, 42, { right: 'tab' }],
+    [3, 2, 42, { left: 'recess' }],
+    [3, 2, 42, { right: 'tab', left: 'recess', top: 'tab', bottom: 'recess' }],
+    [1, 1, 42, { right: 'tab', left: 'recess', top: 'tab', bottom: 'recess' }],
+    [2, 5, 21, { right: 'tab', left: 'recess' }],
+    [1, 1, 21, { right: 'tab', bottom: 'recess' }],
+    [4, 2, 42, { top: 'recess' }],
+    [2, 4, 42, { left: 'tab' }],
+    [4, 3, 42, { right: 'tab', left: 'recess', top: 'tab', bottom: 'recess' }],
+  ];
+
+  it.each(cases)(
+    'builds a closed %i × %i plate with connectors on a %i mm grid',
+    (columns, rows, cellSize, connectors) => {
+      const mesh = baseplateMesh(columns, rows, cellSize, connectors);
+      expect(edgeProblems(mesh)).toEqual([]);
+      expect(meshVolume(mesh)).toBeGreaterThan(0);
+    }
+  );
+
+  it.each(cases)(
+    'matches the analytic connector volume for %i × %i on %i mm',
+    (columns, rows, cellSize, connectors) => {
+      const volume = meshVolume(baseplateMesh(columns, rows, cellSize, connectors));
+      const expected = baseplateVolumeMm3(columns, rows, cellSize, connectors);
+      expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+    }
+  );
+
+  it('extends the footprint by the tab protrusion and never by a recess', () => {
+    expect(meshBounds(baseplateMesh(3, 2, 42, { right: 'tab' }))).toEqual({
+      min: [0, 0, 0],
+      max: [128, 84, BASEPLATE_HEIGHT],
+    });
+    expect(meshBounds(baseplateMesh(3, 2, 42, { left: 'recess' }))).toEqual({
+      min: [0, 0, 0],
+      max: [126, 84, BASEPLATE_HEIGHT],
+    });
+    expect(meshBounds(baseplateMesh(2, 4, 42, { left: 'tab' }))).toEqual({
+      min: [-2, 0, 0],
+      max: [84, 168, BASEPLATE_HEIGHT],
+    });
+  });
+
+  it('cuts the recess 2 mm into the frame and the tab 2 mm out', () => {
+    const recessed = baseplateMesh(3, 2, 42, { left: 'recess' });
+    const recessXs = recessed.positions.filter((_, index) => index % 3 === 0);
+    expect(Math.min(...recessXs)).toBe(0);
+    expect(recessXs).toContain(2);
+    const tabbed = baseplateMesh(3, 2, 42, { right: 'tab' });
+    const tabXs = tabbed.positions.filter((_, index) => index % 3 === 0);
+    expect(Math.max(...tabXs)).toBe(128);
+  });
+
+  it('leaves the plain mesh untouched when no connectors are given', () => {
+    const plain = baseplateMesh(3, 2, 42);
+    const empty = baseplateMesh(3, 2, 42, {});
+    expect(triangleCount(empty)).toBe(triangleCount(plain));
+    expect(meshVolume(empty)).toBe(meshVolume(plain));
   });
 });
 

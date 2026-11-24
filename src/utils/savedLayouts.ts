@@ -26,6 +26,7 @@ export interface SavedLayoutSnapshot {
   screws: boolean;
   scoop: boolean;
   vaseMode: boolean;
+  connectors: boolean;
   stackBins: boolean;
   estimateSettings: EstimateSettings;
 }
@@ -131,6 +132,7 @@ const sanitizeSnapshot = (value: unknown): SavedLayoutSnapshot | null => {
     screws: typeof value.screws === "boolean" ? value.screws : false,
     scoop,
     vaseMode,
+    connectors: typeof value.connectors === "boolean" ? value.connectors : false,
     stackBins: typeof value.stackBins === "boolean" ? value.stackBins : false,
     estimateSettings: sanitizeEstimateSettings(value.estimateSettings),
   };
