@@ -1,5 +1,6 @@
 import { unitMath } from "@/services/unitMath";
 import { FULL_GRID_SIZE, HALF_GRID_SIZE } from "@/utils/gridfinityUtils";
+import type { BaseplateConnectors } from "@/utils/export/gridfinityProfiles";
 import {
   BIN_HEIGHT_UNIT_MM,
   LABEL_TAB_ABOVE_LIP_MM,
@@ -45,7 +46,12 @@ export interface PrintPartSummary {
     scoop?: boolean;
     vaseMode?: boolean;
   };
-  gridGeometry?: { columns: number; rows: number; cellSize: number };
+  gridGeometry?: {
+    columns: number;
+    rows: number;
+    cellSize: number;
+    connectors?: BaseplateConnectors;
+  };
 }
 
 export interface CollectPrintPartsRequest {
@@ -60,6 +66,7 @@ export interface CollectPrintPartsRequest {
   screws?: boolean;
   scoop?: boolean;
   vaseMode?: boolean;
+  connectors?: boolean;
 }
 
 export const slug = (text: string): string =>
@@ -167,21 +174,70 @@ const binParts = (
   return { parts: [...parts, ...lidsByFootprint.values()], skipped };
 };
 
+const connectorSignature = (spec: BaseplateConnectors): string =>
+  [
+    spec.left === "recess" ? "rL" : undefined,
+    spec.right === "tab" ? "tR" : undefined,
+    spec.top === "tab" ? "tT" : undefined,
+    spec.bottom === "recess" ? "rB" : undefined,
+  ]
+    .filter((code): code is string => code !== undefined)
+    .join("-");
+
+const connectorsFor = (
+  item: LayoutItem,
+  layout: LayoutItem[],
+  enabled: boolean
+): BaseplateConnectors | undefined => {
+  if (!enabled || item.type === "spacer") return undefined;
+  const overlapsX = (other: LayoutItem): boolean =>
+    other.y < unitMath.add(item.y, item.height) && item.y < unitMath.add(other.y, other.height);
+  const overlapsY = (other: LayoutItem): boolean =>
+    other.x < unitMath.add(item.x, item.width) && item.x < unitMath.add(other.x, other.width);
+  const neighbour = (edge: "left" | "right" | "top" | "bottom"): boolean =>
+    layout.some((other) => {
+      if (other === item || other.type !== item.type) return false;
+      if (edge === "left")
+        return (
+          unitMath.add(other.x, other.width) === item.x && overlapsX(other)
+        );
+      if (edge === "right")
+        return other.x === unitMath.add(item.x, item.width) && overlapsX(other);
+      if (edge === "bottom")
+        return (
+          unitMath.add(other.y, other.height) === item.y && overlapsY(other)
+        );
+      return other.y === unitMath.add(item.y, item.height) && overlapsY(other);
+    });
+  const spec: BaseplateConnectors = {};
+  if (neighbour("left")) spec.left = "recess";
+  if (neighbour("right")) spec.right = "tab";
+  if (neighbour("top")) spec.top = "tab";
+  if (neighbour("bottom")) spec.bottom = "recess";
+  return Object.keys(spec).length > 0 ? spec : undefined;
+};
+
 const gridParts = (
   layout: LayoutItem[],
-  numDrawers: number
+  numDrawers: number,
+  connectors: boolean
 ): PrintPartSummary[] => {
-  const groups = new Map<string, { item: LayoutItem; count: number }>();
+  const groups = new Map<
+    string,
+    { item: LayoutItem; count: number; connectors?: BaseplateConnectors }
+  >();
   for (const item of layout) {
-    const key = `${item.type}:${unitMath.round(item.pixelWidth, 2)}x${unitMath.round(item.pixelHeight, 2)}`;
+    const spec = connectorsFor(item, layout, connectors);
+    const signature = spec === undefined ? "" : connectorSignature(spec);
+    const key = `${item.type}:${unitMath.round(item.pixelWidth, 2)}x${unitMath.round(item.pixelHeight, 2)}${signature === "" ? "" : `:conn:${signature}`}`;
     const group = groups.get(key);
     if (group) {
       group.count = unitMath.add(group.count, 1);
     } else {
-      groups.set(key, { item, count: 1 });
+      groups.set(key, { item, count: 1, connectors: spec });
     }
   }
-  return [...groups].map(([key, { item, count }]): PrintPartSummary => {
+  return [...groups].map(([key, { item, count, connectors: spec }]): PrintPartSummary => {
     const width = item.pixelWidth;
     const depth = item.pixelHeight;
     const total = unitMath.multiply(count, numDrawers);
@@ -202,18 +258,21 @@ const gridParts = (
     const cellSize = item.type === "half-size" ? HALF_GRID_SIZE : FULL_GRID_SIZE;
     const columns = unitMath.round(unitMath.divide(width, cellSize), 0);
     const rows = unitMath.round(unitMath.divide(depth, cellSize), 0);
-    const label = `${item.type === "half-size" ? "Half-size baseplate" : "Baseplate"} ${columns} × ${rows}`;
+    const label = `${item.type === "half-size" ? "Half-size baseplate" : "Baseplate"} ${columns} × ${rows}${spec === undefined ? "" : " · connectors"}`;
     return {
       key,
       kind: "baseplate",
       swatch: item.type,
       label,
-      stem: slug(label),
+      stem:
+        spec === undefined
+          ? slug(label)
+          : `${slug(label)}-${connectorSignature(spec).toLowerCase()}`,
       width,
       depth,
       height: BASEPLATE_HEIGHT_MM,
       count: total,
-      gridGeometry: { columns, rows, cellSize },
+      gridGeometry: { columns, rows, cellSize, connectors: spec },
     };
   });
 };
@@ -234,7 +293,7 @@ export const collectPrintParts = (
     request.scoop === true,
     request.vaseMode === true
   );
-  const grid = gridParts(request.layout, request.numDrawers);
+  const grid = gridParts(request.layout, request.numDrawers, request.connectors === true);
   return { parts: [...bins, ...grid], skippedBins: skipped };
 };
 

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { strFromU8, unzipSync } from 'fflate';
 import { binTotalHeight } from '@/utils/bins';
 import { calculateGrids } from '@/utils/gridfinityUtils';
-import { stackPitchMm } from '@/utils/printPlan';
+import { stackPitchMm, usableBed } from '@/utils/printPlan';
 import { createPrintFiles, type ExportRequest } from './exportFiles';
 import type { Bin, DrawerSize, PrinterSize } from '@/types';
 
@@ -273,6 +273,83 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(readme).toContain('Dividers:');
     expect(readme).toContain('custom positions');
     expect(readme).toContain('piece details panel');
+  });
+
+  it('uses connector stems and documents the dovetail when connectors are on', () => {
+    const base = createPrintFiles(request({ drawerSize: exampleDrawer }));
+    const connected = createPrintFiles(request({ drawerSize: exampleDrawer, connectors: true }));
+    expect(connected.parts).toBeGreaterThan(base.parts);
+    expect(connected.plates).toBeGreaterThanOrEqual(base.plates);
+    const names = Object.keys(files(connected));
+    expect(names).toContain('stl/baseplate-6x6-connectors-tr-tt-x1.stl');
+    expect(names).toContain('stl/baseplate-6x6-connectors-rl-tr-tt-x1.stl');
+    expect(names).not.toContain('stl/baseplate-6x6-x2.stl');
+    const readme = strFromU8(files(connected)['README.txt']);
+    expect(readme).toContain('Baseplate connectors:');
+    expect(readme).toContain('dovetail tab');
+    expect(strFromU8(files(base)['README.txt'])).not.toContain('Baseplate connectors:');
+  });
+
+  it('keeps tabbed baseplates and bins inside the bed in the emitted 3MF', () => {
+    const drawerSize: DrawerSize = { width: 14.8819, height: 4.9606 };
+    const bundle = createPrintFiles(
+      request({
+        drawerSize,
+        layout: calculateGrids(drawerSize, A1, false, false, true).layout,
+        bins: [bin({ id: 'a' }), bin({ id: 'b', x: 84 })],
+        connectors: true,
+      })
+    );
+    const entries = files(bundle);
+    const names = Object.keys(entries);
+    expect(names.some((name) => name.startsWith('stl/bin-'))).toBe(true);
+    expect(names.some((name) => name.includes('connectors'))).toBe(true);
+    const bed = usableBed(A1);
+    const plates = Object.entries(entries).filter(([name]) => name.endsWith('.3mf'));
+    expect(plates.length).toBeGreaterThan(0);
+    for (const [, plate] of plates) {
+      const doc = model(plate);
+      expect(doc.getElementsByTagName('parsererror')).toHaveLength(0);
+      const bounds = new Map<
+        number,
+        { minX: number; minY: number; maxX: number; maxY: number }
+      >();
+      for (const object of doc.getElementsByTagName('object')) {
+        const id = Number(object.getAttribute('id'));
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        for (const vertex of object.getElementsByTagName('vertex')) {
+          const x = Number(vertex.getAttribute('x'));
+          const y = Number(vertex.getAttribute('y'));
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+        bounds.set(id, { minX, minY, maxX, maxY });
+      }
+      for (const item of doc.getElementsByTagName('item')) {
+        const objectId = Number(item.getAttribute('objectid'));
+        const v = (item.getAttribute('transform') ?? '').split(' ').map(Number);
+        expect(v).toHaveLength(12);
+        const b = bounds.get(objectId);
+        if (b === undefined) throw new Error(`Missing object ${objectId}`);
+        const corners = [
+          [b.minX, b.minY],
+          [b.minX, b.maxY],
+          [b.maxX, b.minY],
+          [b.maxX, b.maxY],
+        ].map(([x, y]) => [v[0] * x + v[3] * y + v[9], v[1] * x + v[4] * y + v[10]]);
+        const xs = corners.map((corner) => corner[0]);
+        const ys = corners.map((corner) => corner[1]);
+        expect(Math.min(...xs)).toBeGreaterThanOrEqual(bed.x - 1e-6);
+        expect(Math.min(...ys)).toBeGreaterThanOrEqual(bed.y - 1e-6);
+        expect(Math.max(...xs)).toBeLessThanOrEqual(bed.x + bed.width + 1e-6);
+        expect(Math.max(...ys)).toBeLessThanOrEqual(bed.y + bed.depth + 1e-6);
+      }
+    }
   });
 
   it('uses the magnets stem and documents the pocket when magnets are on', () => {

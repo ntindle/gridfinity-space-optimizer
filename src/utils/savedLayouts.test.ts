@@ -28,6 +28,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   screws: false,
   scoop: false,
   vaseMode: false,
+  connectors: false,
   stackBins: false,
   estimateSettings: { material: "PLA", priceUsdPerKg: 20, flowMm3PerS: 8 },
 });
@@ -130,6 +131,11 @@ describe("parseSavedLayouts", () => {
 
   it("round-trips a snapshot with stack bins on", () => {
     const layouts = [entry({ snapshot: { ...snapshot(), stackBins: true } })];
+    expect(parseSavedLayouts(serializeSavedLayouts(layouts))).toEqual(layouts);
+  });
+
+  it("round-trips a snapshot with connectors on", () => {
+    const layouts = [entry({ snapshot: { ...snapshot(), connectors: true } })];
     expect(parseSavedLayouts(serializeSavedLayouts(layouts))).toEqual(layouts);
   });
 

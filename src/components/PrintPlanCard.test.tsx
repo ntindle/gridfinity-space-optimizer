@@ -37,6 +37,7 @@ const props = {
   screws: false,
   scoop: false,
   vaseMode: false,
+  connectors: false,
 };
 
 const StatefulCard: FC<{

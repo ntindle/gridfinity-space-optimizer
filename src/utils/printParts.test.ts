@@ -41,6 +41,38 @@ describe('collectPrintParts', () => {
     expect(baseplates[0].height).toBe(5);
   });
 
+  it('splits split seams into tabbed and recessed baseplates when connectors are on', () => {
+    const example = calculateGrids({ width: 22.5, height: 16.5 }, A1, false, false).layout;
+    const off = collectPrintParts({ layout: example, bins: [], numDrawers: 1, printerSize: A1 });
+    const on = collectPrintParts({
+      layout: example,
+      bins: [],
+      numDrawers: 1,
+      printerSize: A1,
+      connectors: true,
+    });
+    const offBaseplates = off.parts.filter((part) => part.kind === 'baseplate');
+    const onBaseplates = on.parts.filter((part) => part.kind === 'baseplate');
+    expect(offBaseplates).toHaveLength(4);
+    expect(onBaseplates).toHaveLength(6);
+    for (const part of onBaseplates) {
+      expect(part.gridGeometry?.connectors).toBeDefined();
+      expect(part.label).toContain('· connectors');
+    }
+    expect(new Set(onBaseplates.map((part) => part.stem)).size).toBe(6);
+    const corner = onBaseplates.find(
+      (part) => part.gridGeometry?.columns === 6 && part.gridGeometry?.rows === 6 && part.gridGeometry?.connectors?.left === undefined
+    );
+    expect(corner?.gridGeometry?.connectors).toEqual({ right: 'tab', top: 'tab' });
+    const middle = onBaseplates.find(
+      (part) => part.gridGeometry?.columns === 6 && part.gridGeometry?.rows === 6 && part.gridGeometry?.connectors?.left === 'recess'
+    );
+    expect(middle?.gridGeometry?.connectors).toEqual({ left: 'recess', right: 'tab', top: 'tab' });
+    expect(on.parts.filter((part) => part.kind === 'spacer')).toHaveLength(
+      off.parts.filter((part) => part.kind === 'spacer').length
+    );
+  });
+
   it('labels spacers with their millimetre size', () => {
     const { parts } = collectPrintParts({ layout, bins: [], numDrawers: 1, printerSize: A1 });
     const spacers = parts.filter((part) => part.kind === 'spacer');

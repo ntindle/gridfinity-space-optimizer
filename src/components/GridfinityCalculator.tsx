@@ -120,6 +120,7 @@ const GridfinityCalculator: React.FC = () => {
       settings.useHalfSize && "Half-size grid",
       settings.preferHalfSize && "Half-size gaps",
       settings.preferUniformBaseplates && !settings.useHalfSize && "Uniform",
+      settings.connectors && "Connectors",
     ]
       .filter(Boolean)
       .join(" · ") || "Standard";
@@ -142,6 +143,7 @@ const GridfinityCalculator: React.FC = () => {
     settings.setScrews(snapshot.screws);
     settings.setScoop(snapshot.scoop);
     settings.setVaseMode(snapshot.vaseMode);
+    settings.setConnectors(snapshot.connectors);
     settings.setStackBins(snapshot.stackBins);
     settings.setEstimateSettings(snapshot.estimateSettings);
   };
@@ -164,6 +166,7 @@ const GridfinityCalculator: React.FC = () => {
     screws: settings.screws,
     scoop: settings.scoop,
     vaseMode: settings.vaseMode,
+    connectors: settings.connectors,
     stackBins: settings.stackBins,
     estimateSettings: settings.estimateSettings,
   };
@@ -270,6 +273,8 @@ const GridfinityCalculator: React.FC = () => {
                 setScoop={settings.setScoop}
                 vaseMode={settings.vaseMode}
                 setVaseMode={settings.setVaseMode}
+                connectors={settings.connectors}
+                setConnectors={settings.setConnectors}
                 stackBins={settings.stackBins}
               />
             </CollapsibleCard>
@@ -319,6 +324,7 @@ const GridfinityCalculator: React.FC = () => {
                       screws={settings.screws}
                       scoop={settings.scoop}
                       vaseMode={settings.vaseMode}
+                      connectors={settings.connectors}
                       stackBins={settings.stackBins}
                     />
                     <ShareLayoutButton />
@@ -358,6 +364,7 @@ const GridfinityCalculator: React.FC = () => {
               screws={settings.screws}
               scoop={settings.scoop}
               vaseMode={settings.vaseMode}
+              connectors={settings.connectors}
               stackBins={settings.stackBins}
               onStackBinsChange={settings.setStackBins}
               estimateSettings={settings.estimateSettings}

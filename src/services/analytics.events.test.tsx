@@ -61,6 +61,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   screws: false,
   scoop: false,
   vaseMode: false,
+  connectors: false,
   stackBins: false,
   estimateSettings: { material: "PLA", priceUsdPerKg: 20, flowMm3PerS: 8 },
 });
@@ -199,6 +200,7 @@ describe("events sent by each feature", () => {
         screws={false}
         scoop={true}
         vaseMode={true}
+        connectors={false}
         stackBins={false}
       />
     );

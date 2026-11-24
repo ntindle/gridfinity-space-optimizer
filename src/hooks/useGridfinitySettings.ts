@@ -18,6 +18,7 @@ export const MAGNETS_STORAGE_KEY = 'gridfinity_magnets';
 export const SCREWS_STORAGE_KEY = 'gridfinity_screwHoles';
 export const SCOOP_STORAGE_KEY = 'gridfinity_scoop';
 export const VASE_MODE_STORAGE_KEY = 'gridfinity_vaseMode';
+export const CONNECTORS_STORAGE_KEY = 'gridfinity_connectors';
 export const STACK_BINS_STORAGE_KEY = 'gridfinity_stackBins';
 
 const estimateSettingsStorage = {
@@ -78,6 +79,9 @@ export interface GridfinitySettings {
 
   vaseMode: boolean;
   setVaseMode: (value: boolean) => void;
+
+  connectors: boolean;
+  setConnectors: (value: boolean) => void;
 
   stackBins: boolean;
   setStackBins: (value: boolean) => void;
@@ -152,6 +156,8 @@ export const useGridfinitySettings = (): GridfinitySettings => {
   const [scoop, setScoop] = usePersistedState<boolean>(SCOOP_STORAGE_KEY, false);
 
   const [vaseMode, setVaseMode] = usePersistedState<boolean>(VASE_MODE_STORAGE_KEY, false);
+
+  const [connectors, setConnectors] = usePersistedState<boolean>(CONNECTORS_STORAGE_KEY, false);
 
   const [stackBins, setStackBins] = usePersistedState<boolean>(STACK_BINS_STORAGE_KEY, false);
 
@@ -246,6 +252,9 @@ export const useGridfinitySettings = (): GridfinitySettings => {
 
     vaseMode,
     setVaseMode: handleVaseModeChange,
+
+    connectors,
+    setConnectors,
 
     stackBins,
     setStackBins,

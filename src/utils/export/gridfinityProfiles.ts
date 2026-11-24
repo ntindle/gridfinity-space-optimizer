@@ -23,6 +23,53 @@ export const POCKET_PROFILE = [
   { z: BASEPLATE_HEIGHT_MM, inset: 0 },
 ] as const;
 
+export const CONNECTOR_BAND_HEIGHT_MM = 2.5;
+export const CONNECTOR_PROTRUSION_MM = 2;
+export const CONNECTOR_DEPTH_MM = 2;
+export const CONNECTOR_CLEARANCE_MM = 0.4;
+
+export type BaseplateConnectorKind = "tab" | "recess";
+
+export interface BaseplateConnectors {
+  left?: BaseplateConnectorKind;
+  right?: BaseplateConnectorKind;
+  top?: BaseplateConnectorKind;
+  bottom?: BaseplateConnectorKind;
+}
+
+export const connectorProtrusion = (
+  connectors?: BaseplateConnectors
+): { left: number; right: number; top: number; bottom: number } => ({
+  left: connectors?.left === "tab" ? CONNECTOR_PROTRUSION_MM : 0,
+  right: connectors?.right === "tab" ? CONNECTOR_PROTRUSION_MM : 0,
+  top: connectors?.top === "tab" ? CONNECTOR_PROTRUSION_MM : 0,
+  bottom: connectors?.bottom === "tab" ? CONNECTOR_PROTRUSION_MM : 0,
+});
+
+export const connectorWidthsMm = (
+  cellSize: number,
+  kind: BaseplateConnectorKind
+): { neck: number; head: number } => {
+  const neck = unitMath.multiply(cellSize, unitMath.divide(10, 42));
+  const head = unitMath.multiply(cellSize, unitMath.divide(16, 42));
+  if (kind === "recess") {
+    return {
+      neck: unitMath.add(neck, CONNECTOR_CLEARANCE_MM),
+      head: unitMath.add(head, CONNECTOR_CLEARANCE_MM),
+    };
+  }
+  return { neck, head };
+};
+
+export const connectorTrapezoidAreaMm2 = (
+  cellSize: number,
+  kind: BaseplateConnectorKind
+): number => {
+  const { neck, head } = connectorWidthsMm(cellSize, kind);
+  const depth = kind === "tab" ? CONNECTOR_PROTRUSION_MM : CONNECTOR_DEPTH_MM;
+  return unitMath.multiply(unitMath.divide(unitMath.add(neck, head), 2), depth);
+};
+
 export const BIN_BASE_HEIGHT = 7;
 export const STACKING_LIP_INNER_INSET_MM = 1.9;
 export const FOOT_PROFILE: readonly ProfilePoint[] = [

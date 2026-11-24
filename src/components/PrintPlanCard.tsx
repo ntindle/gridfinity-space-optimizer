@@ -14,6 +14,7 @@ import {
   type PrintPartSummary,
 } from "@/utils/printParts";
 import { buildPrintListText } from "@/utils/printList";
+import { connectorProtrusion } from "@/utils/export/gridfinityProfiles";
 import { planPlates, plateStackDepth, usableBed, type Plate } from "@/utils/printPlan";
 import {
   ESTIMATE_MATERIAL_DENSITY_G_PER_CM3,
@@ -41,6 +42,7 @@ interface PrintPlanCardProps {
   screws: boolean;
   scoop: boolean;
   vaseMode: boolean;
+  connectors: boolean;
   stackBins: boolean;
   onStackBinsChange: (value: boolean) => void;
   estimateSettings: EstimateSettings;
@@ -124,6 +126,7 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
   screws,
   scoop,
   vaseMode,
+  connectors,
   stackBins,
   onStackBinsChange,
   estimateSettings,
@@ -152,19 +155,21 @@ const PrintPlanCard: React.FC<PrintPlanCardProps> = ({
         screws,
         scoop,
         vaseMode,
+        connectors,
       }),
-    [layout, bins, numDrawers, printerSize, labelTabs, dividerCount, lids, magnets, screws, scoop, vaseMode]
+    [layout, bins, numDrawers, printerSize, labelTabs, dividerCount, lids, magnets, screws, scoop, vaseMode, connectors]
   );
   const plates: Plate[] = useMemo(
     () =>
       planPlates(
-        parts.map(({ key, width, depth, height, count, kind }) => ({
+        parts.map(({ key, width, depth, height, count, kind, gridGeometry }) => ({
           key,
           width,
           depth,
           height,
           stackable: kind === "bin",
           count,
+          protrusion: connectorProtrusion(gridGeometry?.connectors),
         })),
         printerSize,
         { stackBins: stackBins && !labelTabs }
