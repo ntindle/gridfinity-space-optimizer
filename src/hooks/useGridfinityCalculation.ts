@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { calculateGrids } from '@/utils/gridfinityUtils';
+import { calculateGrids, FULL_GRID_SIZE, HALF_GRID_SIZE } from '@/utils/gridfinityUtils';
+import { applyObstacles } from '@/utils/obstacles';
 import { printerSizes } from '@/lib/utils';
-import type { DrawerSize, PrinterSize, GridfinityResult, LayoutItem } from '@/types';
+import type { DrawerSize, Obstacle, PrinterSize, GridfinityResult, LayoutItem } from '@/types';
 
 export interface CalculationInput {
   drawerSize: DrawerSize | null;
@@ -11,6 +12,7 @@ export interface CalculationInput {
   preferHalfSize: boolean;
   preferUniformBaseplates: boolean;
   numDrawers: number;
+  obstacles?: Obstacle[];
 }
 
 export interface CalculationResultWithDrawers extends Omit<GridfinityResult, 'layout'> {
@@ -32,6 +34,7 @@ export const useGridfinityCalculation = ({
   preferHalfSize,
   preferUniformBaseplates,
   numDrawers,
+  obstacles,
 }: CalculationInput): CalculationOutput => {
   const [result, setResult] = useState<CalculationResultWithDrawers | null>(null);
   const [layout, setLayout] = useState<LayoutItem[]>([]);
@@ -47,15 +50,19 @@ export const useGridfinityCalculation = ({
 
   const calculationResult = useMemo<GridfinityResult | null>(() => {
     if (!drawerSize || !printerSize) return null;
-    
-    return calculateGrids(
-      drawerSize,
-      printerSize,
-      useHalfSize,
-      preferHalfSize,
-      preferUniformBaseplates
+
+    return applyObstacles(
+      calculateGrids(
+        drawerSize,
+        printerSize,
+        useHalfSize,
+        preferHalfSize,
+        preferUniformBaseplates
+      ),
+      obstacles ?? [],
+      useHalfSize ? HALF_GRID_SIZE : FULL_GRID_SIZE
     );
-  }, [drawerSize, printerSize, useHalfSize, preferHalfSize, preferUniformBaseplates]);
+  }, [drawerSize, printerSize, useHalfSize, preferHalfSize, preferUniformBaseplates, obstacles]);
 
   const [prevSynced, setPrevSynced] = useState<{
     calculationResult: GridfinityResult | null;

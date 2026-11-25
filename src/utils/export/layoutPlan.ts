@@ -1,5 +1,5 @@
 import { unitMath } from "@/services/unitMath";
-import type { Bin, LayoutItem } from "@/types";
+import type { Bin, LayoutItem, Obstacle } from "@/types";
 import { binSizeLabel } from "@/utils/bins";
 import { HALF_GRID_SIZE } from "@/utils/gridfinityUtils";
 
@@ -8,9 +8,10 @@ export interface LayoutPlanInput {
   drawerHeight: number;
   layout: LayoutItem[];
   bins: Bin[];
+  obstacles?: Obstacle[];
 }
 
-export type PlanLayer = "drawer" | "baseplate" | "spacer" | "half" | "bin";
+export type PlanLayer = "drawer" | "baseplate" | "spacer" | "half" | "bin" | "obstacle";
 
 export interface PlanRect {
   layer: PlanLayer;
@@ -29,7 +30,7 @@ const labelFor = (width: number, height: number, text: string): PlanRect["text"]
 
 const textHeightFor = (width: number): number => unitMath.min(6, unitMath.divide(width, 5));
 
-export const layoutPlanRects = ({ drawerWidth, drawerHeight, layout, bins }: LayoutPlanInput): PlanRect[] => {
+export const layoutPlanRects = ({ drawerWidth, drawerHeight, layout, bins, obstacles = [] }: LayoutPlanInput): PlanRect[] => {
   const drawer: PlanRect = {
     layer: "drawer",
     x: 0,
@@ -69,5 +70,17 @@ export const layoutPlanRects = ({ drawerWidth, drawerHeight, layout, bins }: Lay
       textHeight: text === null ? null : textHeightFor(bin.width),
     };
   });
-  return [drawer, ...pieces, ...placed];
+  const blocked = obstacles.map((obstacle) => {
+    const text = labelFor(obstacle.width, obstacle.depth, "Obstacle");
+    return {
+      layer: "obstacle" as PlanLayer,
+      x: obstacle.x,
+      y: obstacle.y,
+      width: obstacle.width,
+      height: obstacle.depth,
+      text,
+      textHeight: text === null ? null : textHeightFor(obstacle.width),
+    };
+  });
+  return [drawer, ...pieces, ...blocked, ...placed];
 };

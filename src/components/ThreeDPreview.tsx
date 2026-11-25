@@ -20,11 +20,12 @@ import {
   type PreviewColors,
 } from "@/utils/threeDColors";
 import { Button } from "@/components/ui/button";
-import type { Bin, DrawerSize, LayoutItem } from "@/types";
+import type { Bin, DrawerSize, LayoutItem, Obstacle } from "@/types";
 
 export interface ThreeDPreviewProps {
   layout: LayoutItem[];
   bins: Bin[];
+  obstacles?: Obstacle[];
   drawerMm: DrawerSize;
   binGroupKey: Map<string, string>;
   selectedBinId: string | null;
@@ -39,9 +40,10 @@ const KIND_COLOR: Record<ThreeDBoxKind, keyof PreviewColors> = {
   "half-size": "halfSize",
   spacer: "spacer",
   bin: "bin",
+  obstacle: "obstacle",
 };
 
-const KIND_ORDER: ThreeDBoxKind[] = ["baseplate", "half-size", "spacer", "bin"];
+const KIND_ORDER: ThreeDBoxKind[] = ["baseplate", "half-size", "spacer", "obstacle", "bin"];
 
 interface ViewControlsProps {
   home: [number, number, number];
@@ -136,6 +138,7 @@ const KindMesh: React.FC<KindMeshProps> = ({
 const ThreeDPreview: React.FC<ThreeDPreviewProps> = ({
   layout,
   bins,
+  obstacles = [],
   drawerMm,
   binGroupKey,
   selectedBinId,
@@ -159,8 +162,8 @@ const ThreeDPreview: React.FC<ThreeDPreviewProps> = ({
     [isDark]
   );
   const boxes = useMemo(
-    () => buildThreeDBoxes(layout, bins, drawerMm, binGroupKey),
-    [layout, bins, drawerMm, binGroupKey]
+    () => buildThreeDBoxes(layout, bins, drawerMm, binGroupKey, obstacles),
+    [layout, bins, drawerMm, binGroupKey, obstacles]
   );
   const home = useMemo(() => {
     const maxSide = unitMath.max(drawerMm.width, drawerMm.height);
@@ -195,6 +198,7 @@ const ThreeDPreview: React.FC<ThreeDPreviewProps> = ({
   const isSelected = (box: ThreeDBox): boolean =>
     (box.binId !== null && box.binId === selectedBinId) || box.key === selectedKey;
   const handleSelect = (box: ThreeDBox) => {
+    if (box.kind === "obstacle") return;
     if (box.binId !== null) onSelectBin(box.binId);
     else onSelectPiece(box.key);
   };

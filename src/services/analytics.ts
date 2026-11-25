@@ -19,7 +19,8 @@ export type LayoutChange =
   | "grid"
   | "drawer_count"
   | "bin_options"
-  | "bins";
+  | "bins"
+  | "obstacles";
 
 export type LayoutSource = "saved" | "share_link" | "example";
 
@@ -270,6 +271,7 @@ export const withLayoutTracking = (settings: GridfinitySettings): GridfinitySett
       "grid"
     ),
     setNumDrawers: trackedSetter(settings.setNumDrawers, settings.numDrawers, "drawer_count"),
+    setObstacles: trackedSetter(settings.setObstacles, settings.obstacles, "obstacles"),
     setLabelTabs: trackedSetter(settings.setLabelTabs, settings.labelTabs, "bin_options"),
     setDividerCount: trackedSetter(settings.setDividerCount, settings.dividerCount, "bin_options"),
     setLids: trackedSetter(settings.setLids, settings.lids, "bin_options"),

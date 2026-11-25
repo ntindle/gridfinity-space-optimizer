@@ -18,10 +18,15 @@ const fillFor = (layer: PlanRect["layer"]): string =>
       ? "#f3f4f6"
       : layer === "bin"
         ? "#dbeafe"
-        : "#e5e7eb";
+        : layer === "obstacle"
+          ? "#fee2e2"
+          : "#e5e7eb";
+
+const strokeFor = (layer: PlanRect["layer"]): string =>
+  layer === "obstacle" ? "#b91c1c" : "#111827";
 
 const rect = (item: PlanRect): string =>
-  `<rect x="${trim(item.x)}" y="${trim(item.y)}" width="${trim(item.width)}" height="${trim(item.height)}" fill="${fillFor(item.layer)}" stroke="#111827" stroke-width="1"${item.layer === "spacer" ? ` stroke-dasharray="3 3"` : ""} />`;
+  `<rect x="${trim(item.x)}" y="${trim(item.y)}" width="${trim(item.width)}" height="${trim(item.height)}" fill="${fillFor(item.layer)}" stroke="${strokeFor(item.layer)}" stroke-width="1"${item.layer === "spacer" ? ` stroke-dasharray="3 3"` : item.layer === "obstacle" ? ` stroke-dasharray="4 2"` : ""} />`;
 
 const label = (item: PlanRect): string => {
   if (item.text === null || item.textHeight === null) return "";
@@ -30,8 +35,8 @@ const label = (item: PlanRect): string => {
   return `<text x="${trim(centerX)}" y="${trim(centerY)}" font-family="sans-serif" font-size="${trim(item.textHeight)}" fill="#111827" text-anchor="middle" dominant-baseline="central">${escapeXml(item.text)}</text>`;
 };
 
-export const layoutSvgPlan = ({ drawerWidth, drawerHeight, layout, bins }: LayoutPlanInput): string => {
-  const items = layoutPlanRects({ drawerWidth, drawerHeight, layout, bins });
+export const layoutSvgPlan = ({ drawerWidth, drawerHeight, layout, bins, obstacles }: LayoutPlanInput): string => {
+  const items = layoutPlanRects({ drawerWidth, drawerHeight, layout, bins, obstacles });
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${trim(drawerWidth)} ${trim(drawerHeight)}" width="${trim(drawerWidth)}mm" height="${trim(drawerHeight)}mm" role="img">`,
     `<title>Gridfinity drawer plan</title>`,

@@ -4,12 +4,13 @@ import {
   STACKING_LIP_FILLET_RADIUS,
   VASE_MODE_WALL_MM,
 } from "@/utils/bins";
-import { BASEPLATE_HEIGHT_MM } from "@/utils/printParts";
 
 export interface ProfilePoint {
   inset: number;
   z: number;
 }
+
+export const BASEPLATE_HEIGHT_MM = 5;
 
 export const ARC_SEGMENTS = 8;
 

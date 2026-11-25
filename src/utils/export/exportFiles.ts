@@ -9,7 +9,7 @@ import {
   testFitParts,
   type PrintPartSummary,
 } from "@/utils/printParts";
-import type { Bin, DrawerSize, LayoutItem, PrinterSize } from "@/types";
+import type { Bin, DrawerSize, LayoutItem, Obstacle, PrinterSize } from "@/types";
 import { baseplateMesh, spacerMesh } from "./gridfinityMesh";
 import { layoutDxfPlan } from "./layoutDxf";
 import { layoutSvgPlan } from "./layoutSvg";
@@ -23,6 +23,7 @@ import type { Mesh } from "./mesh";
 export interface ExportRequest {
   layout: LayoutItem[];
   bins: Bin[];
+  obstacles?: Obstacle[];
   numDrawers: number;
   drawerSize: DrawerSize;
   useMm: boolean;
@@ -247,6 +248,8 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       `- ${pluralize(skippedBins, "bin")} that ${skippedBins === 1 ? "doesn't" : "don't"} fit the grid or the printer ${skippedBins === 1 ? "was" : "were"} left out.`,
     testPlate &&
       `- Test fit first: print the test-fit plate first (${describePlate(testPlate, labels)}) to check the fit before the rest.`,
+    (request.obstacles?.length ?? 0) > 0 &&
+      `- Drawer obstacles: ${pluralize(request.obstacles?.length ?? 0, "keep-out area")} marked in the drawer ${request.obstacles?.length === 1 ? "is" : "are"} left empty — no baseplate, spacer, or bin is printed for that space, and the layout plan shows it.`,
     "- Layout plan: layout.svg and layout.dxf are to-scale top views of this drawer (baseplates, spacers, and bins, including any bins left out of the print files) in millimetres, for laser or cutting workflows.",
     "- Print the bin labels from the Bin labels section of the page.",
   ].filter(Boolean);
@@ -280,6 +283,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       drawerHeight: drawer.height,
       layout: request.layout,
       bins: request.bins,
+      obstacles: request.obstacles,
     }),
   ]);
 
@@ -290,6 +294,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       drawerHeight: drawer.height,
       layout: request.layout,
       bins: request.bins,
+      obstacles: request.obstacles,
     }),
   ]);
 

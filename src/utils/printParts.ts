@@ -1,6 +1,10 @@
 import { unitMath } from "@/services/unitMath";
 import { FULL_GRID_SIZE, HALF_GRID_SIZE } from "@/utils/gridfinityUtils";
-import type { BaseplateConnectors } from "@/utils/export/gridfinityProfiles";
+import {
+  BASEPLATE_HEIGHT_MM,
+  connectorWidthsMm,
+  type BaseplateConnectors,
+} from "@/utils/export/gridfinityProfiles";
 import {
   BIN_HEIGHT_UNIT_MM,
   LABEL_TAB_ABOVE_LIP_MM,
@@ -19,7 +23,7 @@ import {
 import { usableBed } from "@/utils/printPlan";
 import type { Bin, LayoutItem, PrinterSize } from "@/types";
 
-export const BASEPLATE_HEIGHT_MM = 5;
+export { BASEPLATE_HEIGHT_MM };
 
 export type PrintPartKind = "bin" | "baseplate" | "spacer" | "lid";
 
@@ -190,24 +194,40 @@ const connectorsFor = (
   enabled: boolean
 ): BaseplateConnectors | undefined => {
   if (!enabled || item.type === "spacer") return undefined;
-  const overlapsX = (other: LayoutItem): boolean =>
-    other.y < unitMath.add(item.y, item.height) && item.y < unitMath.add(other.y, other.height);
-  const overlapsY = (other: LayoutItem): boolean =>
-    other.x < unitMath.add(item.x, item.width) && item.x < unitMath.add(other.x, other.width);
+  const cellSize = item.type === "half-size" ? HALF_GRID_SIZE : FULL_GRID_SIZE;
+  const tabHead = connectorWidthsMm(cellSize, "tab").head;
+  const recessHead = connectorWidthsMm(cellSize, "recess").head;
+  const span = (start: number, size: number, head: number) => {
+    const center = unitMath.add(start, unitMath.divide(size, 2));
+    return {
+      from: unitMath.subtract(center, unitMath.divide(head, 2)),
+      to: unitMath.add(center, unitMath.divide(head, 2)),
+    };
+  };
+  const engages = (tab: { from: number; to: number }, recess: { from: number; to: number }): boolean =>
+    tab.from >= unitMath.subtract(recess.from, 0.001) &&
+    tab.to <= unitMath.add(recess.to, 0.001);
   const neighbour = (edge: "left" | "right" | "top" | "bottom"): boolean =>
     layout.some((other) => {
       if (other === item || other.type !== item.type) return false;
-      if (edge === "left")
-        return (
-          unitMath.add(other.x, other.width) === item.x && overlapsX(other)
-        );
-      if (edge === "right")
-        return other.x === unitMath.add(item.x, item.width) && overlapsX(other);
-      if (edge === "bottom")
-        return (
-          unitMath.add(other.y, other.height) === item.y && overlapsY(other)
-        );
-      return other.y === unitMath.add(item.y, item.height) && overlapsY(other);
+      if (edge === "left" || edge === "right") {
+        const adjacent =
+          edge === "left"
+            ? unitMath.add(other.pixelX, other.pixelWidth) === item.pixelX
+            : other.pixelX === unitMath.add(item.pixelX, item.pixelWidth);
+        if (!adjacent) return false;
+        const own = span(item.pixelY, item.pixelHeight, edge === "left" ? recessHead : tabHead);
+        const theirs = span(other.pixelY, other.pixelHeight, edge === "left" ? tabHead : recessHead);
+        return edge === "left" ? engages(theirs, own) : engages(own, theirs);
+      }
+      const adjacent =
+        edge === "bottom"
+          ? unitMath.add(other.pixelY, other.pixelHeight) === item.pixelY
+          : other.pixelY === unitMath.add(item.pixelY, item.pixelHeight);
+      if (!adjacent) return false;
+      const own = span(item.pixelX, item.pixelWidth, edge === "bottom" ? recessHead : tabHead);
+      const theirs = span(other.pixelX, other.pixelWidth, edge === "bottom" ? tabHead : recessHead);
+      return edge === "bottom" ? engages(theirs, own) : engages(own, theirs);
     });
   const spec: BaseplateConnectors = {};
   if (neighbour("left")) spec.left = "recess";

@@ -17,7 +17,9 @@ const layerName = (layer: PlanRect["layer"]): string =>
         ? "SPACER"
         : layer === "half"
           ? "HALF"
-          : "BIN";
+          : layer === "obstacle"
+            ? "OBSTACLE"
+            : "BIN";
 
 const polyline = (item: PlanRect, drawerHeight: number): string => {
   const yLow = unitMath.subtract(unitMath.subtract(drawerHeight, item.y), item.height);
@@ -68,8 +70,8 @@ const layerEntry = (name: string): string =>
     group(6, "Continuous"),
   ].join("\n");
 
-export const layoutDxfPlan = ({ drawerWidth, drawerHeight, layout, bins }: LayoutPlanInput): string => {
-  const items = layoutPlanRects({ drawerWidth, drawerHeight, layout, bins });
+export const layoutDxfPlan = ({ drawerWidth, drawerHeight, layout, bins, obstacles }: LayoutPlanInput): string => {
+  const items = layoutPlanRects({ drawerWidth, drawerHeight, layout, bins, obstacles });
   const entities = items
     .flatMap((item) => [polyline(item, drawerHeight), text(item, drawerHeight)])
     .filter((entry) => entry.length > 0);
@@ -88,12 +90,13 @@ export const layoutDxfPlan = ({ drawerWidth, drawerHeight, layout, bins }: Layou
     group(2, "TABLES"),
     group(0, "TABLE"),
     group(2, "LAYER"),
-    group(70, "5"),
+    group(70, "6"),
     layerEntry("DRAWER"),
     layerEntry("BASEPLATE"),
     layerEntry("SPACER"),
     layerEntry("HALF"),
     layerEntry("BIN"),
+    layerEntry("OBSTACLE"),
     group(0, "ENDTAB"),
     group(0, "ENDSEC"),
     group(0, "SECTION"),

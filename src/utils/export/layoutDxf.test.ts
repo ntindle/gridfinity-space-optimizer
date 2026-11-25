@@ -103,3 +103,18 @@ describe("layoutDxfPlan", () => {
     expect(dxf).not.toContain("TEXT");
   });
 });
+
+describe("layoutDxfPlan obstacles", () => {
+  it("draws obstacle rects on the OBSTACLE layer", () => {
+    const dxf = layoutDxfPlan({
+      drawerWidth: 381,
+      drawerHeight: 304.8,
+      layout: [],
+      bins: [],
+      obstacles: [{ id: "o1", x: 42, y: 42, width: 84, depth: 42 }],
+    });
+    expect(dxf).toContain("  2\nOBSTACLE");
+    expect(dxf).toContain("  8\nOBSTACLE\n 90\n4");
+    expect(dxf).toContain("  1\nObstacle");
+  });
+});

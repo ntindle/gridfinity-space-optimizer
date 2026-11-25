@@ -54,6 +54,10 @@ export const unitMath = {
   floor: (value: number): number => {
     return math.number(math.floor(math.bignumber(value)));
   },
+
+  ceil: (value: number): number => {
+    return math.number(math.ceil(math.bignumber(value)));
+  },
   
   mod: (a: number, b: number): number => {
     return math.number(math.mod(math.bignumber(a), math.bignumber(b)));

@@ -53,6 +53,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   useMm: false,
   customPrinterSize: { x: 256, y: 256, z: 256 },
   bins: [bin("b1")],
+  obstacles: [],
   testFit: false,
   labelTabs: false,
   dividerCount: 0,

@@ -20,6 +20,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   useMm: false,
   customPrinterSize: { x: 256, y: 256, z: 256 },
   bins: [{ id: "b1", x: 0, y: 0, width: 2, depth: 1, height: 3, label: "Screws" }],
+  obstacles: [],
   testFit: false,
   labelTabs: false,
   dividerCount: 0,
@@ -276,5 +277,32 @@ describe("parseSavedLayouts divider-count migration", () => {
     const parsed = parseSavedLayouts(JSON.stringify([legacy]));
     expect(parsed).toHaveLength(1);
     expect(parsed[0].snapshot.dividerCount).toBe(3);
+  });
+});
+
+describe("parseSavedLayouts obstacles", () => {
+  it("defaults obstacles to empty for legacy snapshots", () => {
+    const legacy = entry({
+      snapshot: { ...snapshot(), obstacles: undefined } as unknown as SavedLayoutSnapshot,
+    });
+    const parsed = parseSavedLayouts(JSON.stringify([legacy]));
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].snapshot.obstacles).toEqual([]);
+  });
+
+  it("keeps valid obstacles and drops junk entries", () => {
+    const withObstacles = entry({
+      snapshot: {
+        ...snapshot(),
+        obstacles: [
+          { id: "o1", x: 42, y: 0, width: 84, depth: 42 },
+          { id: "bad", x: -5, y: 0, width: 42, depth: 42 },
+        ],
+      } as unknown as SavedLayoutSnapshot,
+    });
+    const parsed = parseSavedLayouts(JSON.stringify([withObstacles]));
+    expect(parsed[0].snapshot.obstacles).toEqual([
+      { id: "o1", x: 42, y: 0, width: 84, depth: 42 },
+    ]);
   });
 });

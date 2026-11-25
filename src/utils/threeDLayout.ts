@@ -1,10 +1,11 @@
 import { unitMath } from "@/services/unitMath";
 import { BIN_HEIGHT_UNIT_MM, STACKING_LIP_HEIGHT_MM } from "@/utils/bins";
+import { OBSTACLE_BLOCK_HEIGHT_MM } from "@/utils/obstacles";
 import { previewPieceKey } from "@/utils/previewPieceDetails";
 import { BASEPLATE_HEIGHT_MM } from "@/utils/printParts";
-import type { Bin, DrawerSize, LayoutItem } from "@/types";
+import type { Bin, DrawerSize, LayoutItem, Obstacle } from "@/types";
 
-export type ThreeDBoxKind = "baseplate" | "half-size" | "spacer" | "bin";
+export type ThreeDBoxKind = "baseplate" | "half-size" | "spacer" | "bin" | "obstacle";
 
 export interface ThreeDBox {
   key: string;
@@ -41,7 +42,8 @@ export const buildThreeDBoxes = (
   layout: LayoutItem[],
   bins: Bin[],
   drawerMm: DrawerSize,
-  binGroupKey: Map<string, string> = new Map()
+  binGroupKey: Map<string, string> = new Map(),
+  obstacles: Obstacle[] = []
 ): ThreeDBox[] => {
   const center = (position: number, size: number, drawer: number): number =>
     unitMath.subtract(
@@ -73,6 +75,19 @@ export const buildThreeDBoxes = (
         unitMath.multiply(bin.height, BIN_HEIGHT_UNIT_MM),
         STACKING_LIP_HEIGHT_MM
       ),
+    });
+  }
+  for (const obstacle of obstacles) {
+    boxes.push({
+      key: `obstacle:${obstacle.id}`,
+      kind: "obstacle",
+      binId: null,
+      centerX: center(obstacle.x, obstacle.width, drawerMm.width),
+      centerZ: center(obstacle.y, obstacle.depth, drawerMm.height),
+      width: obstacle.width,
+      depth: obstacle.depth,
+      baseY: 0,
+      height: OBSTACLE_BLOCK_HEIGHT_MM,
     });
   }
   return boxes;
