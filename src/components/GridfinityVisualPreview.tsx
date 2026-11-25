@@ -43,10 +43,11 @@ import BinDetails from "./BinDetails";
 import BinToolbar, { type PreviewView } from "./BinToolbar";
 import PieceSwatch from "./PieceSwatch";
 import { PIECE_TYPE_CLASS } from "@/utils/pieceStyles";
-import type { Bin, DrawerSize, GridCell, LayoutItem, PrinterSize } from "@/types";
+import type { Bin, DrawerSize, GridCell, LayoutItem, Obstacle, PrinterSize } from "@/types";
 
 interface GridfinityVisualPreviewProps {
   layout: LayoutItem[];
+  obstacles?: Obstacle[];
   drawerSize: DrawerSize;
   useMm: boolean;
   numDrawers?: number;
@@ -119,6 +120,7 @@ const useFreeSpace = (
 
 const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
   layout,
+  obstacles = [],
   drawerSize,
   useMm,
   numDrawers = 1,
@@ -558,6 +560,7 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
                 <ThreeD
                   layout={layout}
                   bins={bins}
+                  obstacles={obstacles}
                   drawerMm={drawerMm}
                   binGroupKey={binGroupKey}
                   selectedBinId={selectedBinId}
@@ -610,6 +613,17 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
                     );
                   })}
                 </div>
+                {obstacles.length > 0 ? (
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+                    {obstacles.map((obstacle) => (
+                      <div
+                        key={obstacle.id}
+                        className="obstacle-block absolute"
+                        style={rectStyle(obstacle)}
+                      />
+                    ))}
+                  </div>
+                ) : null}
                 <div
                   role="group"
                   aria-label="Bins in the drawer"
@@ -698,6 +712,12 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
                   {LEGEND_LABELS[type]}
                 </li>
               ))}
+              {obstacles.length > 0 ? (
+                <li className="flex items-center gap-1.5">
+                  <span aria-hidden="true" className="obstacle-swatch size-3" />
+                  Obstacle
+                </li>
+              ) : null}
             </ul>
             {view === "2d" ? (
               <>

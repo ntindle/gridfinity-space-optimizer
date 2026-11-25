@@ -39,6 +39,14 @@ export interface Bin {
   dividerPositions?: number[];
 }
 
+export interface Obstacle {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  depth: number;
+}
+
 export interface GridCell {
   x: number;
   y: number;

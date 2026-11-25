@@ -402,3 +402,27 @@ describe("BinContentsInput", () => {
     expect(onCommit).toHaveBeenCalledWith("M4 nuts");
   });
 });
+
+describe("GridfinityVisualPreview obstacles", () => {
+  it("draws hatched obstacle blocks and a legend entry", () => {
+    const { container } = render(
+      <GridfinityVisualPreview
+        layout={layout}
+        obstacles={[{ id: "o1", x: 42, y: 0, width: 42, depth: 84 }]}
+        drawerSize={DRAWER}
+        useMm={false}
+        bins={[]}
+        onBinsChange={() => {}}
+        printerSize={A1}
+      />
+    );
+    expect(container.querySelectorAll(".obstacle-block")).toHaveLength(1);
+    expect(screen.getByText("Obstacle")).toBeTruthy();
+  });
+
+  it("draws no obstacle blocks without obstacles", () => {
+    const { container } = render(<Harness />);
+    expect(container.querySelectorAll(".obstacle-block")).toHaveLength(0);
+    expect(screen.queryByText("Obstacle")).toBeNull();
+  });
+});

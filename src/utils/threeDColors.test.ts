@@ -119,6 +119,7 @@ describe("sceneColorsForTheme", () => {
       halfSize: "rgb(43, 40, 38)",
       spacer: "rgb(66, 61, 57)",
       bin: "rgb(71, 65, 60)",
+      obstacle: "rgb(90, 40, 36)",
       floor: "rgb(14, 12, 11)",
       selected: "rgb(249, 115, 22)",
     };
@@ -129,6 +130,7 @@ describe("sceneColorsForTheme", () => {
     expect(rgbToOklab(scene.halfSize)?.l).toBeCloseTo(0.62, 2);
     expect(rgbToOklab(scene.spacer)?.l).toBeCloseTo(0.62, 2);
     expect(rgbToOklab(scene.bin)?.l).toBeCloseTo(0.62, 2);
+    expect(rgbToOklab(scene.obstacle)?.l).toBeCloseTo(0.62, 2);
     expect(rgbToOklab(scene.floor)?.l).toBeCloseTo(0.3, 2);
   });
 });
@@ -174,6 +176,7 @@ describe("readPreviewColors", () => {
       halfSize: "rgb(245, 73, 0)",
       spacer: "rgb(245, 73, 0)",
       bin: "rgb(245, 73, 0)",
+      obstacle: "rgb(245, 73, 0)",
       floor: "rgb(245, 73, 0)",
       selected: "rgb(245, 73, 0)",
     });

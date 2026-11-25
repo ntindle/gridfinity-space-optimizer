@@ -105,3 +105,17 @@ describe("layoutSvgPlan", () => {
     expect(svg).not.toContain("<text");
   });
 });
+
+describe("layoutSvgPlan obstacles", () => {
+  it("draws obstacle rects with the obstacle label", () => {
+    const svg = layoutSvgPlan({
+      drawerWidth: 381,
+      drawerHeight: 304.8,
+      layout: [],
+      bins: [],
+      obstacles: [{ id: "o1", x: 42, y: 42, width: 84, depth: 42 }],
+    });
+    expect(svg).toContain('<rect x="42" y="42" width="84" height="42" fill="#fee2e2" stroke="#b91c1c" stroke-width="1" stroke-dasharray="4 2"');
+    expect(svg).toContain(">Obstacle</text>");
+  });
+});

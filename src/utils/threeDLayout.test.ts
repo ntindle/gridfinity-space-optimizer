@@ -125,3 +125,21 @@ describe("boxForPointerClick", () => {
     expect(boxForPointerClick(boxes, undefined, 0)).toBeNull();
   });
 });
+
+describe("buildThreeDBoxes obstacles", () => {
+  it("adds a simple block per obstacle", () => {
+    const boxes = buildThreeDBoxes(layout, bins, drawerMm, new Map(), [
+      { id: "o1", x: 42, y: 0, width: 42, depth: 84 },
+    ]);
+    const blocks = boxes.filter((box) => box.kind === "obstacle");
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      key: "obstacle:o1",
+      binId: null,
+      width: 42,
+      depth: 84,
+      baseY: 0,
+      height: 21,
+    });
+  });
+});

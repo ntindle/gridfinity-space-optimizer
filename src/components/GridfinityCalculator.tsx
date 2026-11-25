@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import DrawerDimensions from "./GridfinityCalculator/DrawerDimensions";
+import DrawerObstacles from "./GridfinityCalculator/DrawerObstacles";
 import PrinterSettings from "./GridfinityCalculator/PrinterSettings";
 import BinOptions from "./GridfinityCalculator/BinOptions";
 import DrawerOptions from "./GridfinityCalculator/DrawerOptions";
@@ -42,6 +43,7 @@ const GridfinityCalculator: React.FC = () => {
     preferHalfSize: settings.preferHalfSize,
     preferUniformBaseplates: settings.preferUniformBaseplates,
     numDrawers: settings.numDrawers,
+    obstacles: settings.obstacles,
   });
 
   useEffect(() => {
@@ -135,6 +137,7 @@ const GridfinityCalculator: React.FC = () => {
     settings.setUseMm(snapshot.useMm);
     settings.setCustomPrinterSize(snapshot.customPrinterSize);
     settings.setBins(snapshot.bins);
+    settings.setObstacles(snapshot.obstacles);
     settings.setTestFit(snapshot.testFit);
     settings.setLabelTabs(snapshot.labelTabs);
     settings.setDividerCount(snapshot.dividerCount);
@@ -158,6 +161,7 @@ const GridfinityCalculator: React.FC = () => {
     useMm: settings.useMm,
     customPrinterSize: settings.customPrinterSize,
     bins: settings.bins,
+    obstacles: settings.obstacles,
     testFit: settings.testFit,
     labelTabs: settings.labelTabs,
     dividerCount: settings.dividerCount,
@@ -219,6 +223,14 @@ const GridfinityCalculator: React.FC = () => {
                 setDrawerSize={settings.setDrawerSize}
                 useMm={settings.useMm}
               />
+              <div className="mt-4 border-t border-border/70 pt-4">
+                <DrawerObstacles
+                  obstacles={settings.obstacles}
+                  setObstacles={settings.setObstacles}
+                  drawerSize={settings.drawerSize}
+                  useMm={settings.useMm}
+                />
+              </div>
               <div className="mt-4 border-t border-border/70 pt-4">
                 <DrawerOptions
                   numDrawers={settings.numDrawers}
@@ -307,6 +319,7 @@ const GridfinityCalculator: React.FC = () => {
                     <DownloadButton
                       layout={layout}
                       bins={settings.bins}
+                      obstacles={settings.obstacles}
                       numDrawers={settings.numDrawers}
                       drawerSize={settings.drawerSize}
                       useMm={settings.useMm}
@@ -334,6 +347,7 @@ const GridfinityCalculator: React.FC = () => {
               <div className="mt-6">
                 <GridfinityVisualPreview
                   layout={layout}
+                  obstacles={settings.obstacles}
                   drawerSize={settings.drawerSize}
                   useMm={settings.useMm}
                   numDrawers={settings.numDrawers}

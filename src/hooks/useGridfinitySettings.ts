@@ -2,12 +2,13 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { usePersistedState } from './usePersistedState';
 import { migrateLegacySettings } from './useLegacyMigration';
 import { sanitizeBins, sanitizeDividerCount } from '@/utils/bins';
+import { sanitizeObstacles } from '@/utils/obstacles';
 import {
   DEFAULT_ESTIMATE_SETTINGS,
   sanitizeEstimateSettings,
   type EstimateSettings,
 } from '@/utils/partVolumes';
-import type { Bin, DrawerSize, PrinterSize } from '@/types';
+import type { Bin, DrawerSize, Obstacle, PrinterSize } from '@/types';
 
 export const TEST_FIT_STORAGE_KEY = 'gridfinity_testFit';
 export const ESTIMATE_SETTINGS_STORAGE_KEY = 'gridfinity_estimateSettings';
@@ -20,6 +21,7 @@ export const SCOOP_STORAGE_KEY = 'gridfinity_scoop';
 export const VASE_MODE_STORAGE_KEY = 'gridfinity_vaseMode';
 export const CONNECTORS_STORAGE_KEY = 'gridfinity_connectors';
 export const STACK_BINS_STORAGE_KEY = 'gridfinity_stackBins';
+export const OBSTACLES_STORAGE_KEY = 'gridfinity_obstacles';
 
 const estimateSettingsStorage = {
   deserialize: (value: string): EstimateSettings =>
@@ -28,6 +30,10 @@ const estimateSettingsStorage = {
 
 const binStorage = {
   deserialize: (value: string): Bin[] => sanitizeBins(JSON.parse(value)),
+};
+
+const obstacleStorage = {
+  deserialize: (value: string): Obstacle[] => sanitizeObstacles(JSON.parse(value)),
 };
 
 export interface GridfinitySettings {
@@ -55,6 +61,9 @@ export interface GridfinitySettings {
 
   bins: Bin[];
   setBins: Dispatch<SetStateAction<Bin[]>>;
+
+  obstacles: Obstacle[];
+  setObstacles: Dispatch<SetStateAction<Obstacle[]>>;
 
   testFit: boolean;
   setTestFit: (value: boolean) => void;
@@ -136,6 +145,12 @@ export const useGridfinitySettings = (): GridfinitySettings => {
   );
 
   const [bins, setBins] = usePersistedState<Bin[]>('gridfinity_bins', [], binStorage);
+
+  const [obstacles, setObstacles] = usePersistedState<Obstacle[]>(
+    OBSTACLES_STORAGE_KEY,
+    [],
+    obstacleStorage
+  );
 
   const [testFit, setTestFit] = usePersistedState<boolean>(TEST_FIT_STORAGE_KEY, false);
 
@@ -228,6 +243,9 @@ export const useGridfinitySettings = (): GridfinitySettings => {
 
     bins,
     setBins,
+
+    obstacles,
+    setObstacles,
 
     testFit,
     setTestFit,

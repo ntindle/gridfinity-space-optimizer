@@ -6,11 +6,12 @@ import { trackFilesDownloaded } from "@/services/analytics";
 import { nextPaint, saveFile } from "@/utils/download";
 import { pluralize } from "@/utils/format";
 import type { ExportRequest } from "@/utils/export/exportFiles";
-import type { Bin, DrawerSize, LayoutItem, PrinterSize } from "@/types";
+import type { Bin, DrawerSize, LayoutItem, Obstacle, PrinterSize } from "@/types";
 
 interface DownloadButtonProps {
   layout: LayoutItem[];
   bins: Bin[];
+  obstacles?: Obstacle[];
   numDrawers: number;
   drawerSize: DrawerSize;
   useMm: boolean;
@@ -31,6 +32,7 @@ interface DownloadButtonProps {
 const DownloadButton: React.FC<DownloadButtonProps> = ({
   layout,
   bins,
+  obstacles,
   numDrawers,
   drawerSize,
   useMm,
@@ -60,6 +62,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
       const request: ExportRequest = {
         layout,
         bins,
+        obstacles,
         numDrawers,
         drawerSize,
         useMm,

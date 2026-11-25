@@ -5,6 +5,7 @@ export interface PreviewColors {
   halfSize: string;
   spacer: string;
   bin: string;
+  obstacle: string;
   floor: string;
   selected: string;
 }
@@ -20,6 +21,7 @@ export const DEFAULT_PREVIEW_COLORS: PreviewColors = {
   halfSize: "#e8f2f5",
   spacer: "#d6d3d1",
   bin: "#f3ead9",
+  obstacle: "#f3c2b8",
   floor: "#f5f5f4",
   selected: "#ea580c",
 };
@@ -29,6 +31,7 @@ const COLOR_TOKENS: Record<keyof PreviewColors, string> = {
   halfSize: "--half",
   spacer: "--spacer-hatch",
   bin: "--bin",
+  obstacle: "--obstacle",
   floor: "--drawer-floor",
   selected: "--brand",
 };
@@ -213,6 +216,7 @@ export const sceneColorsForTheme = (
     halfSize: liftLightness(colors.halfSize, DARK_SCENE_BOX_LIGHTNESS),
     spacer: liftLightness(colors.spacer, DARK_SCENE_BOX_LIGHTNESS),
     bin: liftLightness(colors.bin, DARK_SCENE_BOX_LIGHTNESS),
+    obstacle: liftLightness(colors.obstacle, DARK_SCENE_BOX_LIGHTNESS),
     floor: liftLightness(colors.floor, DARK_SCENE_FLOOR_LIGHTNESS),
     selected: colors.selected,
   };

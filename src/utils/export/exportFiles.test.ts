@@ -562,3 +562,17 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(createPrintFiles(request({ bins })).data).toEqual(createPrintFiles(request({ bins })).data);
   });
 });
+
+describe('createPrintFiles obstacles', { timeout: HEAVY_TIMEOUT }, () => {
+  it('shows obstacles in the plans and notes them in the README', () => {
+    const bundle = createPrintFiles(
+      request({
+        obstacles: [{ id: 'o1', x: 42, y: 0, width: 42, depth: 42 }],
+      })
+    );
+    const entries = files(bundle);
+    expect(strFromU8(entries['layout.svg'])).toContain('>Obstacle</text>');
+    expect(strFromU8(entries['layout.dxf'])).toContain('OBSTACLE');
+    expect(strFromU8(entries['README.txt'])).toContain('Drawer obstacles: 1 keep-out area');
+  });
+});

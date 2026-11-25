@@ -26,6 +26,7 @@ const baseSnapshot = (drawerSize: SavedLayoutSnapshot["drawerSize"]): SavedLayou
   useMm: false,
   customPrinterSize: { x: 200, y: 200, z: 200 },
   bins: [],
+  obstacles: [],
   testFit: false,
   labelTabs: false,
   dividerCount: 0,

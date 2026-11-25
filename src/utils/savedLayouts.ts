@@ -1,10 +1,11 @@
 import { sanitizeBins, sanitizeDividerCount } from "@/utils/bins";
 import { formatDrawerSize } from "@/utils/format";
+import { sanitizeObstacles } from "@/utils/obstacles";
 import {
   sanitizeEstimateSettings,
   type EstimateSettings,
 } from "@/utils/partVolumes";
-import type { Bin, DrawerSize, PrinterSize } from "@/types";
+import type { Bin, DrawerSize, Obstacle, PrinterSize } from "@/types";
 
 export const SAVED_LAYOUTS_KEY = "gridfinity_savedLayouts";
 
@@ -18,6 +19,7 @@ export interface SavedLayoutSnapshot {
   useMm: boolean;
   customPrinterSize: PrinterSize;
   bins: Bin[];
+  obstacles: Obstacle[];
   testFit: boolean;
   labelTabs: boolean;
   dividerCount: number;
@@ -120,6 +122,9 @@ const sanitizeSnapshot = (value: unknown): SavedLayoutSnapshot | null => {
     useMm: value.useMm,
     customPrinterSize: printerSize,
     bins: sanitizeBins(value.bins),
+    obstacles: sanitizeObstacles(
+      (value as unknown as Record<string, unknown>).obstacles
+    ),
     testFit: value.testFit,
     labelTabs: value.labelTabs,
     dividerCount: sanitizeDividerCount(

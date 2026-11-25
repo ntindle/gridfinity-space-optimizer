@@ -388,6 +388,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression — the pair-1 load gap reverses in pair 2 (Lighthouse 67 → 78 branch vs 72 → 76 trunk; TTI gap 390 ms → 93 ms, inside trunk's own 168 ms swing), and layout/share overlap across all four runs (layout 501–529 vs 523–531 ms; share 70–77 vs 71–76 ms). Input-to-preview reads ~2–4 ms slower on the branch in both pairs (39.2/37.5 vs 34.7/35.6 ms), but trunk alone swung 0.9 ms between its own pairs and the drawer-width-edit → preview path is untouched by this diff — the new work is a Bin options switch plus baseplate-mesh generation that runs in the lazy export chunk on download — so the gap is box noise, not a branch effect. Parity +2.0pp (F22 ❌→✅); the new work is a "Connectors between baseplates" switch in Bin options — where the grid is split for the print bed, each split seam gets a dovetail tab on one side and a matching recess on the other, 2.5 mm tall at the base of the 5 mm frame, 2 mm deep with 0.4 mm clearance, so the printed pieces slide together and lock; mesh, estimates, print plan, STL stems, and the download README follow it; persisted as `gridfinity_connectors`, local-only; saved-layout snapshots carry it; no conflicts with bin switches. The connector mesh is verified closed in tests (nine configurations, 42 + 21 mm, 1×1 to 4×3) with mesh volume matching the analytic trapezoid-prism volume to 1e-6. Bundle delta: index chunk 270,455 → 272,648 B (+0.81%) for the switch, settings, and snapshot plumbing; the lazy export chunk 36,763 → 40,813 B (+11.0%) for the connector mesh, seam signatures, and volume.
 
+## 2026-11-25, PR #190 (drawer obstacles, F8)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, two pairs, second reversed).
+
+| Metric | Branch (pair 1 / pair 2) | Trunk (pair 1 / pair 2) |
+| --- | --- | --- |
+| Parity | 73.0% (36 ✅ + 1 🟡 / 50) | 72.0% |
+| Lighthouse perf | 78 / 72 | 79 / 74 |
+| TTI | 3586 / 3814 ms | 3586 / 3643 ms |
+| Input-to-preview (median) | 35.9 / 38.7 ms | 38.2 / 38 ms |
+| Layout task | 4 steps, 549 / 532 ms | 4 steps, 541 / 539 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 75 / 78 ms | 1 click, 69 / 80 ms |
+
+Verdict: no credible regression past noise. Load metrics are level in pair 1 (Lighthouse 78 vs 79, TTI 3586 ms both) and trunk-favoring in pair 2 (Lighthouse 72 vs 74, TTI 3814 vs 3643 ms), but the branch itself swung 228 ms of TTI between pairs and trunk swung 5 Lighthouse points, so the pair-2 load gap sits inside box variation. Interaction metrics overlap across all four runs (input-to-preview 35.9–38.7 vs 38–38.2 ms; layout 532–549 vs 539–541 ms; share 75–78 vs 69–80 ms). With no obstacles set, the measured drawer-width-edit path returns the calculated layout unchanged; the new work is the Drawer obstacles form, the obstacle post-process when zones exist, preview/3D rendering, and plan export. Parity +1.0pp (F8 ❌→🟡); the new work is a Drawer obstacles section in the Drawer card — up to 8 rectangular keep-out zones by distance from the left and top edges plus obstacle width and depth in the active unit. Blocked cells snap outward to the 42/21 mm grid and are subtracted from baseplate, half-size, and spacer pieces with counts recomputed from the transformed layout; bins cannot be placed into blocked cells and existing overlapping bins surface through the off-grid issue UI; baseplate connectors require the centered tab span to engage the matching recess span, so no tab or recess lands on an obstacle-facing or misaligned partial seam. Zones render hatched in the 2D preview, as blocks in the 3D view, and as rects in the SVG/DXF plans; persisted as `gridfinity_obstacles`, local-only, not in share links; saved-layout snapshots carry them with a legacy empty default. Custom perimeters and cutouts remain open. Bundle delta: index chunk 273,114 → 280,641 B (+2.76%) for the obstacles form, settings, post-process, and preview wiring; the lazy export chunk 40,973 → 41,660 B (+1.68%) for plan rects and README notes; the lazy ThreeDPreview chunk 912,794 → 913,126 B (+0.04%) for obstacle blocks.
+
 ## 2026-11-23, PR #188 (vase-mode bins, F20)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, two pairs, second reversed).
