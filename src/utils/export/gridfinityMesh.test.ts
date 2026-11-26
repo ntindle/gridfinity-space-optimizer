@@ -142,6 +142,62 @@ describe('baseplateMesh connectors', () => {
   });
 });
 
+describe('baseplateMesh extensions', () => {
+  it.each([
+    [2, 2, 42, 23.4, 0],
+    [3, 1, 42, 0, 12.5],
+    [2, 3, 42, 23.4, 41.1],
+    [1, 1, 42, 2, 0],
+    [2, 5, 21, 4.5, 9],
+    [1, 2, 42, 39, 39],
+  ])(
+    'builds a closed %i × %i plate with +%f/+%f mm edges on a %i mm grid',
+    (columns, rows, cellSize, extendRight, extendBottom) => {
+      const mesh = baseplateMesh(columns, rows, cellSize, undefined, extendRight, extendBottom);
+      expect(edgeProblems(mesh)).toEqual([]);
+      expect(meshVolume(mesh)).toBeGreaterThan(0);
+      const bounds = meshBounds(mesh);
+      expect(bounds.min).toEqual([0, 0, 0]);
+      expect(bounds.max[0]).toBeCloseTo(columns * cellSize + extendRight, 6);
+      expect(bounds.max[1]).toBeCloseTo(rows * cellSize + extendBottom, 6);
+      expect(bounds.max[2]).toBe(BASEPLATE_HEIGHT);
+    }
+  );
+
+  it.each([
+    [2, 2, 42, 23.4, 0],
+    [2, 3, 42, 23.4, 41.1],
+    [2, 5, 21, 4.5, 9],
+  ])(
+    'matches the analytic volume for %i × %i with extensions',
+    (columns, rows, cellSize, extendRight, extendBottom) => {
+      const volume = meshVolume(
+        baseplateMesh(columns, rows, cellSize, undefined, extendRight, extendBottom)
+      );
+      const expected = baseplateVolumeMm3(
+        columns,
+        rows,
+        cellSize,
+        undefined,
+        extendRight,
+        extendBottom
+      );
+      expect(Math.abs(volume - expected) / expected).toBeLessThan(1e-6);
+    }
+  );
+
+  it('keeps internal connectors closed beside an extension', () => {
+    const mesh = baseplateMesh(2, 2, 42, { left: 'recess', bottom: 'recess' }, 23.4, 0);
+    expect(edgeProblems(mesh)).toEqual([]);
+    expect(meshVolume(mesh)).toBeGreaterThan(0);
+  });
+
+  it('rejects connectors on an extended edge', () => {
+    expect(() => baseplateMesh(2, 2, 42, { right: 'tab' }, 10, 0)).toThrow(/extended edge/);
+    expect(() => baseplateMesh(2, 2, 42, { top: 'tab' }, 0, 10)).toThrow(/extended edge/);
+  });
+});
+
 describe('spacerMesh', () => {
   it('is a closed box with the exact spacer volume', () => {
     const mesh = spacerMesh(25.5, 252);

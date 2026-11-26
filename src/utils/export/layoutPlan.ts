@@ -44,7 +44,7 @@ export const layoutPlanRects = ({ drawerWidth, drawerHeight, layout, bins, obsta
     const layer: PlanLayer = item.type === "spacer" ? "spacer" : item.type === "half-size" ? "half" : "baseplate";
     const cells =
       item.type === "half-size"
-        ? `${trim(unitMath.divide(item.pixelWidth, HALF_GRID_SIZE))} × ${trim(unitMath.divide(item.pixelHeight, HALF_GRID_SIZE))}`
+        ? `${trim(unitMath.divide(unitMath.subtract(item.pixelWidth, item.extendRightMm ?? 0), HALF_GRID_SIZE))} × ${trim(unitMath.divide(unitMath.subtract(item.pixelHeight, item.extendBottomMm ?? 0), HALF_GRID_SIZE))}`
         : `${trim(item.width)} × ${trim(item.height)}`;
     const text = labelFor(item.pixelWidth, item.pixelHeight, cells);
     return {

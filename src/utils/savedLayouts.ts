@@ -30,6 +30,7 @@ export interface SavedLayoutSnapshot {
   vaseMode: boolean;
   connectors: boolean;
   stackBins: boolean;
+  spacerless: boolean;
   estimateSettings: EstimateSettings;
 }
 
@@ -139,6 +140,7 @@ const sanitizeSnapshot = (value: unknown): SavedLayoutSnapshot | null => {
     vaseMode,
     connectors: typeof value.connectors === "boolean" ? value.connectors : false,
     stackBins: typeof value.stackBins === "boolean" ? value.stackBins : false,
+    spacerless: typeof value.spacerless === "boolean" ? value.spacerless : false,
     estimateSettings: sanitizeEstimateSettings(value.estimateSettings),
   };
 };

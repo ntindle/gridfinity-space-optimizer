@@ -281,6 +281,7 @@ export const withLayoutTracking = (settings: GridfinitySettings): GridfinitySett
     setVaseMode: trackedSetter(settings.setVaseMode, settings.vaseMode, "bin_options"),
     setConnectors: trackedSetter(settings.setConnectors, settings.connectors, "bin_options"),
     setStackBins: trackedSetter(settings.setStackBins, settings.stackBins, "bin_options"),
+    setSpacerless: trackedSetter(settings.setSpacerless, settings.spacerless, "bin_options"),
   };
 };
 

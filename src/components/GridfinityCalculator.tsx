@@ -44,6 +44,7 @@ const GridfinityCalculator: React.FC = () => {
     preferUniformBaseplates: settings.preferUniformBaseplates,
     numDrawers: settings.numDrawers,
     obstacles: settings.obstacles,
+    spacerless: settings.spacerless,
   });
 
   useEffect(() => {
@@ -122,6 +123,7 @@ const GridfinityCalculator: React.FC = () => {
       settings.useHalfSize && "Half-size grid",
       settings.preferHalfSize && "Half-size gaps",
       settings.preferUniformBaseplates && !settings.useHalfSize && "Uniform",
+      settings.spacerless && "Spacerless",
       settings.connectors && "Connectors",
     ]
       .filter(Boolean)
@@ -148,6 +150,7 @@ const GridfinityCalculator: React.FC = () => {
     settings.setVaseMode(snapshot.vaseMode);
     settings.setConnectors(snapshot.connectors);
     settings.setStackBins(snapshot.stackBins);
+    settings.setSpacerless(snapshot.spacerless);
     settings.setEstimateSettings(snapshot.estimateSettings);
   };
 
@@ -172,6 +175,7 @@ const GridfinityCalculator: React.FC = () => {
     vaseMode: settings.vaseMode,
     connectors: settings.connectors,
     stackBins: settings.stackBins,
+    spacerless: settings.spacerless,
     estimateSettings: settings.estimateSettings,
   };
 
@@ -288,6 +292,8 @@ const GridfinityCalculator: React.FC = () => {
                 connectors={settings.connectors}
                 setConnectors={settings.setConnectors}
                 stackBins={settings.stackBins}
+                spacerless={settings.spacerless}
+                setSpacerless={settings.setSpacerless}
               />
             </CollapsibleCard>
 

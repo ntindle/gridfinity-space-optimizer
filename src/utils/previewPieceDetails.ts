@@ -26,17 +26,38 @@ const TYPE_LABELS: Record<LayoutItem["type"], string> = {
 export const previewCellSize = (item: LayoutItem): number =>
   item.type === "half-size" ? HALF_GRID_SIZE : FULL_GRID_SIZE;
 
+const extensionLabelFor = (item: LayoutItem): string =>
+  [
+    (item.extendRightMm ?? 0) > 0
+      ? `+${formatGridNumber(item.extendRightMm ?? 0)} mm right edge`
+      : undefined,
+    (item.extendBottomMm ?? 0) > 0
+      ? `+${formatGridNumber(item.extendBottomMm ?? 0)} mm bottom edge`
+      : undefined,
+  ]
+    .filter((segment): segment is string => segment !== undefined)
+    .map((segment) => ` · ${segment}`)
+    .join("");
+
 const gridLabelFor = (item: LayoutItem): string => {
   if (item.type !== "half-size") {
-    return `${formatGridNumber(item.width)} × ${formatGridNumber(item.height)}`;
+    return `${formatGridNumber(item.width)} × ${formatGridNumber(item.height)}${extensionLabelFor(item)}`;
   }
-  return `${formatGridNumber(unitMath.divide(item.pixelWidth, HALF_GRID_SIZE))} × ${formatGridNumber(
-    unitMath.divide(item.pixelHeight, HALF_GRID_SIZE)
-  )}`;
+  const cellWidth = unitMath.subtract(item.pixelWidth, item.extendRightMm ?? 0);
+  const cellHeight = unitMath.subtract(item.pixelHeight, item.extendBottomMm ?? 0);
+  return `${formatGridNumber(unitMath.divide(cellWidth, HALF_GRID_SIZE))} × ${formatGridNumber(
+    unitMath.divide(cellHeight, HALF_GRID_SIZE)
+  )}${extensionLabelFor(item)}`;
 };
 
-export const previewPieceKey = (item: LayoutItem): string =>
-  `${item.type}:${item.width}x${item.height}`;
+export const previewPieceKey = (item: LayoutItem): string => {
+  const extendRight = item.extendRightMm ?? 0;
+  const extendBottom = item.extendBottomMm ?? 0;
+  if (extendRight === 0 && extendBottom === 0) {
+    return `${item.type}:${item.width}x${item.height}`;
+  }
+  return `${item.type}:${item.width}x${item.height}+${extendRight}+${extendBottom}`;
+};
 
 export interface PreviewPieceGroup {
   item: LayoutItem;
@@ -76,7 +97,9 @@ export const getPreviewPieceDetails = (
       (other) =>
         other.type === item.type &&
         other.width === item.width &&
-        other.height === item.height
+        other.height === item.height &&
+        (other.extendRightMm ?? 0) === (item.extendRightMm ?? 0) &&
+        (other.extendBottomMm ?? 0) === (item.extendBottomMm ?? 0)
     ).length,
   };
 };
