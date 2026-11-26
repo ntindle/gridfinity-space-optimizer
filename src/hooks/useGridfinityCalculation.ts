@@ -13,6 +13,7 @@ export interface CalculationInput {
   preferUniformBaseplates: boolean;
   numDrawers: number;
   obstacles?: Obstacle[];
+  spacerless?: boolean;
 }
 
 export interface CalculationResultWithDrawers extends Omit<GridfinityResult, 'layout'> {
@@ -35,6 +36,7 @@ export const useGridfinityCalculation = ({
   preferUniformBaseplates,
   numDrawers,
   obstacles,
+  spacerless,
 }: CalculationInput): CalculationOutput => {
   const [result, setResult] = useState<CalculationResultWithDrawers | null>(null);
   const [layout, setLayout] = useState<LayoutItem[]>([]);
@@ -57,12 +59,13 @@ export const useGridfinityCalculation = ({
         printerSize,
         useHalfSize,
         preferHalfSize,
-        preferUniformBaseplates
+        preferUniformBaseplates,
+        spacerless === true
       ),
       obstacles ?? [],
       useHalfSize ? HALF_GRID_SIZE : FULL_GRID_SIZE
     );
-  }, [drawerSize, printerSize, useHalfSize, preferHalfSize, preferUniformBaseplates, obstacles]);
+  }, [drawerSize, printerSize, useHalfSize, preferHalfSize, preferUniformBaseplates, obstacles, spacerless]);
 
   const [prevSynced, setPrevSynced] = useState<{
     calculationResult: GridfinityResult | null;

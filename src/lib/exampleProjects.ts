@@ -37,6 +37,7 @@ const baseSnapshot = (drawerSize: SavedLayoutSnapshot["drawerSize"]): SavedLayou
   vaseMode: false,
   connectors: false,
   stackBins: false,
+    spacerless: false,
   estimateSettings: DEFAULT_ESTIMATE_SETTINGS,
 });
 

@@ -28,6 +28,8 @@ interface BinOptionsProps {
   connectors: boolean;
   setConnectors: (value: boolean) => void;
   stackBins: boolean;
+  spacerless: boolean;
+  setSpacerless: (value: boolean) => void;
 }
 
 const BinOptions: React.FC<BinOptionsProps> = ({
@@ -54,6 +56,8 @@ const BinOptions: React.FC<BinOptionsProps> = ({
   connectors,
   setConnectors,
   stackBins,
+  spacerless,
+  setSpacerless,
 }) => {
   return (
     <div className="-my-1 divide-y divide-border/70">
@@ -70,8 +74,13 @@ const BinOptions: React.FC<BinOptionsProps> = ({
       <OptionRow
         id="prefer-half-size"
         title="Fill gaps with half-size baseplates"
-        description="Where a spacer would go, use 21 mm baseplate strips that half-size bins fit in."
-        checked={preferHalfSize}
+        description={
+          spacerless
+            ? "Not used with spacerless fitting — the edge baseplates already fill the gaps."
+            : "Where a spacer would go, use 21 mm baseplate strips that half-size bins fit in."
+        }
+        checked={preferHalfSize && !spacerless}
+        disabled={spacerless}
         onCheckedChange={(checked) => {
           setPreferHalfSize(checked);
           if (checked) setUseHalfSize(false);
@@ -88,6 +97,13 @@ const BinOptions: React.FC<BinOptionsProps> = ({
         checked={preferUniformBaseplates && !useHalfSize}
         disabled={useHalfSize}
         onCheckedChange={setPreferUniformBaseplates}
+      />
+      <OptionRow
+        id="spacerless-fitting"
+        title="Spacerless fitting"
+        description="Extend edge baseplates to fill leftover drawer space instead of printing spacers."
+        checked={spacerless}
+        onCheckedChange={setSpacerless}
       />
       <OptionRow
         id="baseplate-connectors"

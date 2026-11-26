@@ -103,7 +103,9 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
         part.gridGeometry.columns,
         part.gridGeometry.rows,
         part.gridGeometry.cellSize,
-        part.gridGeometry.connectors
+        part.gridGeometry.connectors,
+        part.gridGeometry.extendRightMm ?? 0,
+        part.gridGeometry.extendBottomMm ?? 0
       );
     } else {
       throw new Error(`No geometry for ${part.key}`);
@@ -212,6 +214,12 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       "- Half-size baseplates are the same frame on a 21 mm grid.",
     grid.some((part) => part.kind === "spacer") &&
       "- Spacers are solid 5 mm blocks that fill the gap between the grid and the drawer wall.",
+    grid.some(
+      (part) =>
+        (part.gridGeometry?.extendRightMm ?? 0) > 0 ||
+        (part.gridGeometry?.extendBottomMm ?? 0) > 0
+    ) &&
+      "- Spacerless fitting: edge baseplates extend to the drawer wall with a solid ledge at frame height instead of separate spacers; the grid sockets stay on whole cells, so bins sit as usual and the ledge fills the leftover millimetres.",
     grid.some((part) => part.gridGeometry?.connectors !== undefined) &&
       "- Baseplate connectors: split baseplates join by vertical drop-in with a dovetail tab on one side of each split seam and a matching recess on the other, 2.5 mm tall at the base of the 5 mm frame, 2 mm deep with 0.4 mm clearance; lift one plate and lower its recess onto the tab.",
     bins.length > 0 &&
@@ -250,7 +258,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
       `- Test fit first: print the test-fit plate first (${describePlate(testPlate, labels)}) to check the fit before the rest.`,
     (request.obstacles?.length ?? 0) > 0 &&
       `- Drawer obstacles: ${pluralize(request.obstacles?.length ?? 0, "keep-out area")} marked in the drawer ${request.obstacles?.length === 1 ? "is" : "are"} left empty — no baseplate, spacer, or bin is printed for that space, and the layout plan shows it.`,
-    "- Layout plan: layout.svg and layout.dxf are to-scale top views of this drawer (baseplates, spacers, and bins, including any bins left out of the print files) in millimetres, for laser or cutting workflows.",
+    `- Layout plan: layout.svg and layout.dxf are to-scale top views of this drawer (baseplates${grid.some((part) => part.kind === "spacer") ? ", spacers," : ""} and bins, including any bins left out of the print files) in millimetres, for laser or cutting workflows.`,
     "- Print the bin labels from the Bin labels section of the page.",
   ].filter(Boolean);
 

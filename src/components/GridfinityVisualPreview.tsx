@@ -202,8 +202,8 @@ const GridfinityVisualPreview: React.FC<GridfinityVisualPreviewProps> = ({
           height: percent(item.pixelHeight, drawerMm.height),
         },
         cellStyle: {
-          "--cell-w": `calc(100% / ${unitMath.divide(item.pixelWidth, size)})`,
-          "--cell-h": `calc(100% / ${unitMath.divide(item.pixelHeight, size)})`,
+          "--cell-w": `calc(100% / ${unitMath.divide(unitMath.subtract(item.pixelWidth, item.extendRightMm ?? 0), size)})`,
+          "--cell-h": `calc(100% / ${unitMath.divide(unitMath.subtract(item.pixelHeight, item.extendBottomMm ?? 0), size)})`,
         } as React.CSSProperties,
       };
     });

@@ -30,6 +30,7 @@ const snapshot = (): SavedLayoutSnapshot => ({
   vaseMode: false,
   connectors: false,
   stackBins: false,
+    spacerless: false,
   estimateSettings: { material: "PLA", priceUsdPerKg: 20, flowMm3PerS: 8 },
 });
 

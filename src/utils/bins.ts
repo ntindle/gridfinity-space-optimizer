@@ -172,8 +172,10 @@ export const gridCells = (layout: LayoutItem[]): GridCell[] => {
   for (const item of layout) {
     if (item.type === "spacer") continue;
     const size = cellSizeOf(item);
-    const xs = steps(item.pixelX, unitMath.round(unitMath.divide(item.pixelWidth, size), 0), size);
-    const ys = steps(item.pixelY, unitMath.round(unitMath.divide(item.pixelHeight, size), 0), size);
+    const cellWidth = unitMath.subtract(item.pixelWidth, item.extendRightMm ?? 0);
+    const cellHeight = unitMath.subtract(item.pixelHeight, item.extendBottomMm ?? 0);
+    const xs = steps(item.pixelX, unitMath.round(unitMath.divide(cellWidth, size), 0), size);
+    const ys = steps(item.pixelY, unitMath.round(unitMath.divide(cellHeight, size), 0), size);
     for (const y of ys) {
       for (const x of xs) cells.push({ x, y, size });
     }

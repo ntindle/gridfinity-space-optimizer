@@ -148,15 +148,22 @@ export const baseplateVolumeMm3 = (
   columns: number,
   rows: number,
   cellSize: number,
-  connectors?: BaseplateConnectors
+  connectors?: BaseplateConnectors,
+  extendRightMm: number = 0,
+  extendBottomMm: number = 0
 ): number => {
+  const roundedCorners =
+    4 -
+    (extendRightMm > 0 ? 1 : 0) -
+    (extendRightMm > 0 || extendBottomMm > 0 ? 1 : 0) -
+    (extendBottomMm > 0 ? 1 : 0);
   const outlineArea = unitMath.subtract(
     unitMath.multiply(
-      unitMath.multiply(unitMath.multiply(columns, cellSize), rows),
-      cellSize
+      unitMath.add(unitMath.multiply(columns, cellSize), extendRightMm),
+      unitMath.add(unitMath.multiply(rows, cellSize), extendBottomMm)
     ),
     unitMath.multiply(
-      cornerLoss,
+      unitMath.divide(unitMath.multiply(cornerLoss, roundedCorners), 4),
       unitMath.multiply(BASEPLATE_CORNER_RADIUS, BASEPLATE_CORNER_RADIUS)
     )
   );
@@ -515,7 +522,9 @@ export const partVolumeMm3 = (part: PrintPartSummary): number => {
       part.gridGeometry.columns,
       part.gridGeometry.rows,
       part.gridGeometry.cellSize,
-      part.gridGeometry.connectors
+      part.gridGeometry.connectors,
+      part.gridGeometry.extendRightMm ?? 0,
+      part.gridGeometry.extendBottomMm ?? 0
     );
   }
   if (part.kind === "lid") {

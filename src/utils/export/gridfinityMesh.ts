@@ -259,11 +259,72 @@ const buildFloorStrip = (
   }
 };
 
+const extendedOutline = (
+  columns: number,
+  rows: number,
+  cellSize: number,
+  extendRightMm: number,
+  extendBottomMm: number
+): Point[] => {
+  const r = BASEPLATE_CORNER_RADIUS;
+  const cellWidth = columns * cellSize;
+  const cellDepth = rows * cellSize;
+  const width = cellWidth + extendRightMm;
+  const depth = cellDepth + extendBottomMm;
+  const cornerRadius = (extended: boolean): number => (extended ? 0 : r);
+  const radiusBottomRight = cornerRadius(extendRightMm > 0);
+  const radiusTopRight = cornerRadius(extendRightMm > 0 || extendBottomMm > 0);
+  const radiusTopLeft = cornerRadius(extendBottomMm > 0);
+  const seamTriple = (at: number, room: number): number[] =>
+    room >= r ? [at - r, at, at + r] : [at - r, at];
+  const bottomSeams: number[] = [];
+  for (let step = 1; step < columns; step += 1) {
+    bottomSeams.push(...seamTriple(step * cellSize, cellSize));
+  }
+  if (extendRightMm > 0) bottomSeams.push(...seamTriple(cellWidth, extendRightMm));
+  const rightSeams: number[] = [];
+  for (let step = 1; step < rows; step += 1) {
+    rightSeams.push(...seamTriple(step * cellSize, cellSize));
+  }
+  if (extendBottomMm > 0) rightSeams.push(...seamTriple(cellDepth, extendBottomMm));
+  const topSeams: number[] = [];
+  if (extendRightMm > 0) {
+    if (extendRightMm >= r) topSeams.push(cellWidth + r);
+    topSeams.push(cellWidth, cellWidth - r);
+  }
+  for (let step = columns - 1; step >= 1; step -= 1) {
+    topSeams.push(step * cellSize + r, step * cellSize, step * cellSize - r);
+  }
+  const leftSeams: number[] = [];
+  if (extendBottomMm > 0) {
+    if (extendBottomMm >= r) leftSeams.push(cellDepth + r);
+    leftSeams.push(cellDepth, cellDepth - r);
+  }
+  for (let step = rows - 1; step >= 1; step -= 1) {
+    leftSeams.push(step * cellSize + r, step * cellSize, step * cellSize - r);
+  }
+  const corners = roundedCorners(0, 0, width, depth, r);
+  const cornerPoints = (index: number, radius: number): Point[] =>
+    radius === 0 ? [corners[index].vertex] : arc(corners[index], radius);
+  return [
+    ...cornerPoints(0, r),
+    ...bottomSeams.map((x): Point => [x, 0]),
+    ...cornerPoints(1, radiusBottomRight),
+    ...rightSeams.map((y): Point => [width, y]),
+    ...cornerPoints(2, radiusTopRight),
+    ...topSeams.map((x): Point => [x, depth]),
+    ...cornerPoints(3, radiusTopLeft),
+    ...leftSeams.map((y): Point => [0, y]),
+  ];
+};
+
 export const baseplateMesh = (
   columns: number,
   rows: number,
   cellSize: number,
-  connectors?: BaseplateConnectors
+  connectors?: BaseplateConnectors,
+  extendRightMm: number = 0,
+  extendBottomMm: number = 0
 ): Mesh => {
   if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns < 1 || rows < 1) {
     throw new Error("A baseplate needs a whole number of cells");
@@ -271,10 +332,19 @@ export const baseplateMesh = (
   if (cellSize <= 2 * BASEPLATE_CORNER_RADIUS) {
     throw new Error("Baseplate cells are too small for the Gridfinity profile");
   }
+  if (!(extendRightMm >= 0) || !(extendBottomMm >= 0)) {
+    throw new Error("Baseplate extensions cannot be negative");
+  }
+  if (extendRightMm > 0 && connectors?.right !== undefined) {
+    throw new Error("An extended edge cannot carry a connector");
+  }
+  if (extendBottomMm > 0 && connectors?.top !== undefined) {
+    throw new Error("An extended edge cannot carry a connector");
+  }
 
   const builder = createMeshBuilder();
-  const width = columns * cellSize;
-  const depth = rows * cellSize;
+  const width = columns * cellSize + extendRightMm;
+  const depth = rows * cellSize + extendBottomMm;
   const top = BASEPLATE_HEIGHT;
   const isPlateCorner = ([x, y]: Point) => (x === 0 || x === width) && (y === 0 || y === depth);
   const frames =
@@ -399,7 +469,10 @@ export const baseplateMesh = (
     }
   }
 
-  const baseRim = outline(width, depth, cellSize);
+  const baseRim =
+    extendRightMm === 0 && extendBottomMm === 0
+      ? outline(width, depth, cellSize)
+      : extendedOutline(columns, rows, cellSize, extendRightMm, extendBottomMm);
   if (frames.length === 0) {
     const rim = baseRim;
     const plateCenter: Point = [width / 2, depth / 2];
@@ -441,6 +514,70 @@ export const baseplateMesh = (
         builder.triangle(at(p1, 0), at(p2, 0), at(p3, 0), DOWN);
         builder.triangle(at(p1, 0), at(p3, 0), at(p4, 0), DOWN);
       }
+    }
+  }
+
+  if (extendRightMm > 0 || extendBottomMm > 0) {
+    const r = BASEPLATE_CORNER_RADIUS;
+    const cellWidth = columns * cellSize;
+    const cellDepth = rows * cellSize;
+    const rimIndex = (x: number, y: number): number =>
+      baseRim.findIndex(
+        (point) => Math.abs(point[0] - x) < 1e-9 && Math.abs(point[1] - y) < 1e-9
+      );
+    const ledgeFace = (polygon: Point[], z: number, facing: typeof UP): void => {
+      const center: Point = [
+        unitMath.divide(
+          polygon.reduce((sum, point) => unitMath.add(sum, point[0]), 0),
+          polygon.length
+        ),
+        unitMath.divide(
+          polygon.reduce((sum, point) => unitMath.add(sum, point[1]), 0),
+          polygon.length
+        ),
+      ];
+      polygon.forEach((point, index) => {
+        const next = polygon[(index + 1) % polygon.length];
+        builder.triangle(at(center, z), at(point, z), at(next, z), facing);
+      });
+    };
+    if (extendRightMm > 0) {
+      const outer = baseRim.slice(rimIndex(cellWidth, 0), rimIndex(cellWidth, depth) + 1);
+      const inner: Point[] = [];
+      if (extendBottomMm >= r) inner.push([cellWidth, unitMath.add(cellDepth, r)]);
+      if (extendBottomMm > 0) inner.push([cellWidth, cellDepth]);
+      inner.push([cellWidth, unitMath.subtract(cellDepth, r)]);
+      for (let step = rows - 1; step >= 1; step -= 1) {
+        inner.push(
+          [cellWidth, unitMath.add(unitMath.multiply(step, cellSize), r)],
+          [cellWidth, unitMath.multiply(step, cellSize)],
+          [cellWidth, unitMath.subtract(unitMath.multiply(step, cellSize), r)]
+        );
+      }
+      inner.push([cellWidth, r]);
+      const polygon = [...outer, ...inner];
+      ledgeFace(polygon, top, UP);
+      ledgeFace(polygon, 0, DOWN);
+    }
+    if (extendBottomMm > 0) {
+      const outer = baseRim.slice(rimIndex(cellWidth, depth), rimIndex(0, depth) + 1);
+      const inner: Point[] = [[0, cellDepth], [r, cellDepth]];
+      for (let step = 1; step < columns; step += 1) {
+        inner.push(
+          [unitMath.subtract(unitMath.multiply(step, cellSize), r), cellDepth],
+          [unitMath.multiply(step, cellSize), cellDepth],
+          [unitMath.add(unitMath.multiply(step, cellSize), r), cellDepth]
+        );
+      }
+      inner.push([unitMath.subtract(cellWidth, r), cellDepth], [cellWidth, cellDepth]);
+      const polygon = [
+        ...inner,
+        ...(extendBottomMm >= r ? [[cellWidth, unitMath.add(cellDepth, r)] as Point] : []),
+        ...outer,
+        ...(extendBottomMm >= r ? [[0, unitMath.add(cellDepth, r)] as Point] : []),
+      ];
+      ledgeFace(polygon, top, UP);
+      ledgeFace(polygon, 0, DOWN);
     }
   }
 

@@ -55,6 +55,8 @@ export interface PrintPartSummary {
     rows: number;
     cellSize: number;
     connectors?: BaseplateConnectors;
+    extendRightMm?: number;
+    extendBottomMm?: number;
   };
 }
 
@@ -207,6 +209,10 @@ const connectorsFor = (
   const engages = (tab: { from: number; to: number }, recess: { from: number; to: number }): boolean =>
     tab.from >= unitMath.subtract(recess.from, 0.001) &&
     tab.to <= unitMath.add(recess.to, 0.001);
+  const cellWidth = (piece: LayoutItem): number =>
+    unitMath.subtract(piece.pixelWidth, piece.extendRightMm ?? 0);
+  const cellHeight = (piece: LayoutItem): number =>
+    unitMath.subtract(piece.pixelHeight, piece.extendBottomMm ?? 0);
   const neighbour = (edge: "left" | "right" | "top" | "bottom"): boolean =>
     layout.some((other) => {
       if (other === item || other.type !== item.type) return false;
@@ -216,8 +222,8 @@ const connectorsFor = (
             ? unitMath.add(other.pixelX, other.pixelWidth) === item.pixelX
             : other.pixelX === unitMath.add(item.pixelX, item.pixelWidth);
         if (!adjacent) return false;
-        const own = span(item.pixelY, item.pixelHeight, edge === "left" ? recessHead : tabHead);
-        const theirs = span(other.pixelY, other.pixelHeight, edge === "left" ? tabHead : recessHead);
+        const own = span(item.pixelY, cellHeight(item), edge === "left" ? recessHead : tabHead);
+        const theirs = span(other.pixelY, cellHeight(other), edge === "left" ? tabHead : recessHead);
         return edge === "left" ? engages(theirs, own) : engages(own, theirs);
       }
       const adjacent =
@@ -225,8 +231,8 @@ const connectorsFor = (
           ? unitMath.add(other.pixelY, other.pixelHeight) === item.pixelY
           : other.pixelY === unitMath.add(item.pixelY, item.pixelHeight);
       if (!adjacent) return false;
-      const own = span(item.pixelX, item.pixelWidth, edge === "bottom" ? recessHead : tabHead);
-      const theirs = span(other.pixelX, other.pixelWidth, edge === "bottom" ? tabHead : recessHead);
+      const own = span(item.pixelX, cellWidth(item), edge === "bottom" ? recessHead : tabHead);
+      const theirs = span(other.pixelX, cellWidth(other), edge === "bottom" ? tabHead : recessHead);
       return edge === "bottom" ? engages(theirs, own) : engages(own, theirs);
     });
   const spec: BaseplateConnectors = {};
@@ -276,9 +282,24 @@ const gridParts = (
       };
     }
     const cellSize = item.type === "half-size" ? HALF_GRID_SIZE : FULL_GRID_SIZE;
-    const columns = unitMath.round(unitMath.divide(width, cellSize), 0);
-    const rows = unitMath.round(unitMath.divide(depth, cellSize), 0);
-    const label = `${item.type === "half-size" ? "Half-size baseplate" : "Baseplate"} ${columns} × ${rows}${spec === undefined ? "" : " · connectors"}`;
+    const extendRightMm = item.extendRightMm ?? 0;
+    const extendBottomMm = item.extendBottomMm ?? 0;
+    const columns = unitMath.round(
+      unitMath.divide(unitMath.subtract(width, extendRightMm), cellSize),
+      0
+    );
+    const rows = unitMath.round(
+      unitMath.divide(unitMath.subtract(depth, extendBottomMm), cellSize),
+      0
+    );
+    const extensionLabel = [
+      extendRightMm > 0 ? `+${trim(extendRightMm)} mm right edge` : undefined,
+      extendBottomMm > 0 ? `+${trim(extendBottomMm)} mm bottom edge` : undefined,
+    ]
+      .filter((segment): segment is string => segment !== undefined)
+      .map((segment) => ` · ${segment}`)
+      .join("");
+    const label = `${item.type === "half-size" ? "Half-size baseplate" : "Baseplate"} ${columns} × ${rows}${extensionLabel}${spec === undefined ? "" : " · connectors"}`;
     return {
       key,
       kind: "baseplate",
@@ -292,7 +313,14 @@ const gridParts = (
       depth,
       height: BASEPLATE_HEIGHT_MM,
       count: total,
-      gridGeometry: { columns, rows, cellSize, connectors: spec },
+      gridGeometry: {
+        columns,
+        rows,
+        cellSize,
+        connectors: spec,
+        ...(extendRightMm > 0 ? { extendRightMm } : {}),
+        ...(extendBottomMm > 0 ? { extendBottomMm } : {}),
+      },
     };
   });
 };

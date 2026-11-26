@@ -26,6 +26,8 @@ export interface LayoutItem {
   pixelY: number;
   pixelWidth: number;
   pixelHeight: number;
+  extendRightMm?: number;
+  extendBottomMm?: number;
 }
 
 export interface Bin {

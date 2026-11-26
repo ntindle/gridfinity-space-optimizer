@@ -309,10 +309,16 @@ const calculateSmartBaseplates = (
   gridCountY: number,
   maxGridX: number,
   maxGridY: number,
-  minBaseplateSize: number = 2
+  minBaseplateSize: number = 2,
+  edgeCapX?: number,
+  edgeCapY?: number
 ): { layout: number[][]; score: number } | null => {
-  const xDivisions = findDivisions(gridCountX, maxGridX, minBaseplateSize);
-  const yDivisions = findDivisions(gridCountY, maxGridY, minBaseplateSize);
+  const xDivisions = findDivisions(gridCountX, maxGridX, minBaseplateSize).filter(
+    (division) => edgeCapX === undefined || division[division.length - 1] <= edgeCapX
+  );
+  const yDivisions = findDivisions(gridCountY, maxGridY, minBaseplateSize).filter(
+    (division) => edgeCapY === undefined || division[division.length - 1] <= edgeCapY
+  );
   
   if (xDivisions.length === 0 || yDivisions.length === 0) {
     return null;
@@ -347,12 +353,40 @@ const calculateSmartBaseplates = (
   return bestLayout ? { layout: bestLayout, score: bestScore } : null;
 };
 
+export const layoutCountKey = (item: LayoutItem): string => {
+  const extendRight = unitMath.round(item.extendRightMm ?? 0, 2);
+  const extendBottom = unitMath.round(item.extendBottomMm ?? 0, 2);
+  if (extendRight === 0 && extendBottom === 0) {
+    return `${item.width}x${item.height}`;
+  }
+  return `${item.width}x${item.height}+${extendRight}+${extendBottom}`;
+};
+
+const edgeDivision = (total: number, maxCells: number, edgeCap: number): number[] => {
+  if (total <= edgeCap) return [total];
+  let pieces = unitMath.ceil(unitMath.divide(total, maxCells));
+  while (unitMath.add(unitMath.multiply(unitMath.subtract(pieces, 1), maxCells), edgeCap) < total) {
+    pieces = unitMath.add(pieces, 1);
+  }
+  const last = unitMath.min(edgeCap, unitMath.subtract(total, unitMath.subtract(pieces, 1)));
+  const rest = unitMath.subtract(total, last);
+  const restPieces = unitMath.subtract(pieces, 1);
+  const base = unitMath.floor(unitMath.divide(rest, restPieces));
+  const extra = unitMath.subtract(rest, unitMath.multiply(base, restPieces));
+  return [
+    ...Array(extra).fill(unitMath.add(base, 1)),
+    ...Array(unitMath.subtract(restPieces, extra)).fill(base),
+    last,
+  ];
+};
+
 export const calculateGrids = (
   drawerSize: DrawerSize,
   printerSize: PrinterSize,
   useHalfSize: boolean,
   preferHalfSize: boolean,
-  preferUniformBaseplates: boolean = false
+  preferUniformBaseplates: boolean = false,
+  spacerless: boolean = false
 ): GridfinityResult => {
   if (!drawerSize || drawerSize.width <= 0 || drawerSize.height <= 0) {
     return {
@@ -391,10 +425,20 @@ export const calculateGrids = (
     };
   }
 
-  const baseplates: string[] = [];
   let newLayout: LayoutItem[] = [];
   const remainingWidth = unitMath.subtract(drawerWidth, unitMath.multiply(gridCountX, gridSize));
   const remainingHeight = unitMath.subtract(drawerHeight, unitMath.multiply(gridCountY, gridSize));
+
+  const edgeCapX = unitMath.floor(
+    unitMath.divide(unitMath.subtract(effectiveX, remainingWidth), gridSize)
+  );
+  const edgeCapY = unitMath.floor(
+    unitMath.divide(unitMath.subtract(effectiveY, remainingHeight), gridSize)
+  );
+  const spacerlessX =
+    spacerless && !unitMath.approxEqual(remainingWidth, 0, 0.01) && edgeCapX >= 1;
+  const spacerlessY =
+    spacerless && !unitMath.approxEqual(remainingHeight, 0, 0.01) && edgeCapY >= 1;
 
   let useSmartAllocation = false;
 
@@ -402,7 +446,15 @@ export const calculateGrids = (
     const maxGridX = unitMath.divide(maxPrintSizeX, gridSize);
     const maxGridY = unitMath.divide(maxPrintSizeY, gridSize);
     const minBaseplateSize = 2;
-    const smartOption = calculateSmartBaseplates(gridCountX, gridCountY, maxGridX, maxGridY, minBaseplateSize);
+    const smartOption = calculateSmartBaseplates(
+      gridCountX,
+      gridCountY,
+      maxGridX,
+      maxGridY,
+      minBaseplateSize,
+      spacerlessX ? edgeCapX : undefined,
+      spacerlessY ? edgeCapY : undefined
+    );
     
     if (smartOption) {
       const [xDivision, yDivision] = smartOption.layout;
@@ -422,7 +474,6 @@ export const calculateGrids = (
             pixelWidth: unitMath.multiply(width, gridSize),
             pixelHeight: unitMath.multiply(height, gridSize),
           };
-          baseplates.push(`${width}x${height}`);
           newLayout.push(item);
           currentX = unitMath.add(currentX, width);
         }
@@ -436,10 +487,46 @@ export const calculateGrids = (
   }
   
   if (!useSmartAllocation) {
-    for (let y = 0; y < gridCountY; y += unitMath.divide(maxPrintSizeY, gridSize)) {
-      for (let x = 0; x < gridCountX; x += unitMath.divide(maxPrintSizeX, gridSize)) {
-        const width = unitMath.min(unitMath.divide(maxPrintSizeX, gridSize), unitMath.subtract(gridCountX, x));
-        const height = unitMath.min(unitMath.divide(maxPrintSizeY, gridSize), unitMath.subtract(gridCountY, y));
+    const maxCellsX = unitMath.divide(maxPrintSizeX, gridSize);
+    const maxCellsY = unitMath.divide(maxPrintSizeY, gridSize);
+    const xDivision = spacerlessX
+      ? edgeDivision(gridCountX, maxCellsX, edgeCapX)
+      : null;
+    const yDivision = spacerlessY
+      ? edgeDivision(gridCountY, maxCellsY, edgeCapY)
+      : null;
+    const xPieces: { x: number; width: number }[] = [];
+    if (xDivision) {
+      let cursor = 0;
+      for (const width of xDivision) {
+        xPieces.push({ x: cursor, width });
+        cursor = unitMath.add(cursor, width);
+      }
+    } else {
+      for (let x = 0; x < gridCountX; x = unitMath.add(x, maxCellsX)) {
+        xPieces.push({
+          x,
+          width: unitMath.min(maxCellsX, unitMath.subtract(gridCountX, x)),
+        });
+      }
+    }
+    const yPieces: { y: number; height: number }[] = [];
+    if (yDivision) {
+      let cursor = 0;
+      for (const height of yDivision) {
+        yPieces.push({ y: cursor, height });
+        cursor = unitMath.add(cursor, height);
+      }
+    } else {
+      for (let y = 0; y < gridCountY; y = unitMath.add(y, maxCellsY)) {
+        yPieces.push({
+          y,
+          height: unitMath.min(maxCellsY, unitMath.subtract(gridCountY, y)),
+        });
+      }
+    }
+    for (const { y, height } of yPieces) {
+      for (const { x, width } of xPieces) {
         const item: LayoutItem = {
           x,
           y,
@@ -451,31 +538,45 @@ export const calculateGrids = (
           pixelWidth: unitMath.multiply(width, gridSize),
           pixelHeight: unitMath.multiply(height, gridSize),
         };
-        if (useHalfSize) {
-          newLayout.push(item);
-        } else {
-          baseplates.push(`${width}x${height}`);
-          newLayout.push(item);
-        }
+        newLayout.push(item);
       }
     }
   }
 
+  if (spacerlessX || spacerlessY) {
+    newLayout = newLayout.map((item) => {
+      const extended = { ...item };
+      if (spacerlessX && unitMath.add(item.x, item.width) === gridCountX) {
+        extended.pixelWidth = unitMath.add(item.pixelWidth, remainingWidth);
+        extended.extendRightMm = remainingWidth;
+      }
+      if (spacerlessY && unitMath.add(item.y, item.height) === gridCountY) {
+        extended.pixelHeight = unitMath.add(item.pixelHeight, remainingHeight);
+        extended.extendBottomMm = remainingHeight;
+      }
+      return extended;
+    });
+  }
+
   let spacers: LayoutItem[] = [];
 
-  if (!unitMath.approxEqual(remainingWidth, 0, 0.01)) {
+  if (!spacerlessX && !unitMath.approxEqual(remainingWidth, 0, 0.01)) {
+    const spacerPixelHeight = unitMath.add(
+      unitMath.multiply(gridCountY, gridSize),
+      spacerlessY ? remainingHeight : 0
+    );
     spacers = spacers.concat(
       splitSpacerIfNeeded(
         {
           x: gridCountX,
           y: 0,
           width: unitMath.divide(remainingWidth, gridSize),
-          height: gridCountY,
+          height: unitMath.divide(spacerPixelHeight, gridSize),
           type: "spacer",
           pixelX: unitMath.multiply(gridCountX, gridSize),
           pixelY: 0,
           pixelWidth: remainingWidth,
-          pixelHeight: unitMath.multiply(gridCountY, gridSize),
+          pixelHeight: spacerPixelHeight,
         },
         maxPrintSizeX,
         maxPrintSizeY,
@@ -484,18 +585,22 @@ export const calculateGrids = (
     );
   }
 
-  if (!unitMath.approxEqual(remainingHeight, 0, 0.01)) {
+  if (!spacerlessY && !unitMath.approxEqual(remainingHeight, 0, 0.01)) {
+    const spacerPixelWidth = unitMath.add(
+      unitMath.multiply(gridCountX, gridSize),
+      spacerlessX ? remainingWidth : 0
+    );
     spacers = spacers.concat(
       splitSpacerIfNeeded(
         {
           x: 0,
           y: gridCountY,
-          width: gridCountX,
+          width: unitMath.divide(spacerPixelWidth, gridSize),
           height: unitMath.divide(remainingHeight, gridSize),
           type: "spacer",
           pixelX: 0,
           pixelY: unitMath.multiply(gridCountY, gridSize),
-          pixelWidth: unitMath.multiply(gridCountX, gridSize),
+          pixelWidth: spacerPixelWidth,
           pixelHeight: remainingHeight,
         },
         maxPrintSizeX,
@@ -505,7 +610,7 @@ export const calculateGrids = (
     );
   }
 
-  if (!unitMath.approxEqual(remainingWidth, 0, 0.01) && !unitMath.approxEqual(remainingHeight, 0, 0.01)) {
+  if (!spacerlessX && !spacerlessY && !unitMath.approxEqual(remainingWidth, 0, 0.01) && !unitMath.approxEqual(remainingHeight, 0, 0.01)) {
     spacers = spacers.concat(
       splitSpacerIfNeeded(
         {
@@ -528,7 +633,7 @@ export const calculateGrids = (
 
   let halfSizeBins: LayoutItem[] = [];
   let updatedSpacers: LayoutItem[] = [];
-  if (preferHalfSize && !useHalfSize) {
+  if (preferHalfSize && !useHalfSize && !spacerless) {
     spacers.forEach((spacer) => {
       const { halfSizeBins: bins, remainingSpacers } =
         fillSpacerWithHalfSizeBins(spacer);
@@ -547,10 +652,13 @@ export const calculateGrids = (
     newLayout = newLayout.concat(spacers);
   }
 
-  const counts = baseplates.reduce<Record<string, number>>((acc, plate) => {
-    acc[plate] = unitMath.add(acc[plate] || 0, 1);
-    return acc;
-  }, {});
+  const counts = newLayout
+    .filter((item) => item.type === "baseplate")
+    .reduce<Record<string, number>>((acc, item) => {
+      const key = layoutCountKey(item);
+      acc[key] = unitMath.add(acc[key] || 0, 1);
+      return acc;
+    }, {});
 
   const spacerCounts = newLayout
     .filter((item) => item.type === "spacer")
@@ -565,7 +673,7 @@ export const calculateGrids = (
   const halfSizeBinCounts = newLayout
     .filter((item) => item.type === "half-size")
     .reduce<Record<string, number>>((acc, bin) => {
-      const key = `${bin.width}x${bin.height}`;
+      const key = layoutCountKey(bin);
       acc[key] = unitMath.add(acc[key] || 0, 1);
       return acc;
     }, {});

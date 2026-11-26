@@ -388,6 +388,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression — the pair-1 load gap reverses in pair 2 (Lighthouse 67 → 78 branch vs 72 → 76 trunk; TTI gap 390 ms → 93 ms, inside trunk's own 168 ms swing), and layout/share overlap across all four runs (layout 501–529 vs 523–531 ms; share 70–77 vs 71–76 ms). Input-to-preview reads ~2–4 ms slower on the branch in both pairs (39.2/37.5 vs 34.7/35.6 ms), but trunk alone swung 0.9 ms between its own pairs and the drawer-width-edit → preview path is untouched by this diff — the new work is a Bin options switch plus baseplate-mesh generation that runs in the lazy export chunk on download — so the gap is box noise, not a branch effect. Parity +2.0pp (F22 ❌→✅); the new work is a "Connectors between baseplates" switch in Bin options — where the grid is split for the print bed, each split seam gets a dovetail tab on one side and a matching recess on the other, 2.5 mm tall at the base of the 5 mm frame, 2 mm deep with 0.4 mm clearance, so the printed pieces slide together and lock; mesh, estimates, print plan, STL stems, and the download README follow it; persisted as `gridfinity_connectors`, local-only; saved-layout snapshots carry it; no conflicts with bin switches. The connector mesh is verified closed in tests (nine configurations, 42 + 21 mm, 1×1 to 4×3) with mesh volume matching the analytic trapezoid-prism volume to 1e-6. Bundle delta: index chunk 270,455 → 272,648 B (+0.81%) for the switch, settings, and snapshot plumbing; the lazy export chunk 36,763 → 40,813 B (+11.0%) for the connector mesh, seam signatures, and volume.
 
+## 2026-11-26, PR #191 (spacerless fitting, F21)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, two pairs, second reversed).
+
+| Metric | Branch (pair 1 / pair 2) | Trunk (pair 1 / pair 2) |
+| --- | --- | --- |
+| Parity | 75.0% (37 ✅ + 1 🟡 / 50) | 73.0% |
+| Lighthouse perf | 72 / 77 | 73 / 81 |
+| TTI | 3762 / 3629 ms | 3798 / 3490 ms |
+| Input-to-preview (median) | 37.3 / 42.6 ms | 37.9 / 52.9 ms |
+| Layout task | 4 steps, 524 / 495 ms | 4 steps, 542 / 537 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 73 / 75 ms | 1 click, 76 / 76 ms |
+
+Verdict: no credible regression past noise. Load metrics overlap (Lighthouse 72–77 vs 73–81, TTI 3629–3762 vs 3490–3798 ms; trunk itself swung 8 Lighthouse points between pairs), and interaction metrics favor the branch in both pairs (input-to-preview 37.3–42.6 vs 37.9–52.9 ms; layout 495–524 vs 537–542 ms; share 73–75 vs 76 ms). With spacerless fitting off, the measured drawer-width-edit path is unchanged apart from the new switch; the new work is the extension math in `calculateGrids`, the extended baseplate mesh and volume, and extension-aware counts, plans, and piece details. Parity +2.0pp (F21 ❌→✅); the new work is a Spacerless fitting switch in the Grid card — right and bottom edge baseplates extend by the leftover millimetres as a solid frame-height ledge instead of printing spacers, whole-cell sockets and bin placement unchanged, edge pieces narrowed when needed so the extended footprint still fits the bed (falling back to a spacer on an axis the bed cannot reserve), half-size gap filling bypassed while on, obstacle transforms clip extensions at blocked cells, and no connector lands on an extended or obstacle-facing edge; persisted as `gridfinity_spacerless`, local-only, not in share links; saved-layout snapshots carry it. Symmetric distribution remains a follow-up. Bundle delta: index chunk 280,641 → 284,506 B (+1.38%) for the switch, settings, extension math, and preview wiring; the lazy export chunk 41,660 → 43,980 B (+5.57%) for the extended mesh, volume, and README note; the lazy ThreeDPreview chunk unchanged at 913,126 B.
+
 ## 2026-11-25, PR #190 (drawer obstacles, F8)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, two pairs, second reversed).

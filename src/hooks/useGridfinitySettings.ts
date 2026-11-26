@@ -21,6 +21,7 @@ export const SCOOP_STORAGE_KEY = 'gridfinity_scoop';
 export const VASE_MODE_STORAGE_KEY = 'gridfinity_vaseMode';
 export const CONNECTORS_STORAGE_KEY = 'gridfinity_connectors';
 export const STACK_BINS_STORAGE_KEY = 'gridfinity_stackBins';
+export const SPACERLESS_STORAGE_KEY = 'gridfinity_spacerless';
 export const OBSTACLES_STORAGE_KEY = 'gridfinity_obstacles';
 
 const estimateSettingsStorage = {
@@ -94,6 +95,9 @@ export interface GridfinitySettings {
 
   stackBins: boolean;
   setStackBins: (value: boolean) => void;
+
+  spacerless: boolean;
+  setSpacerless: (value: boolean) => void;
 
   estimateSettings: EstimateSettings;
   setEstimateSettings: (settings: EstimateSettings) => void;
@@ -175,6 +179,8 @@ export const useGridfinitySettings = (): GridfinitySettings => {
   const [connectors, setConnectors] = usePersistedState<boolean>(CONNECTORS_STORAGE_KEY, false);
 
   const [stackBins, setStackBins] = usePersistedState<boolean>(STACK_BINS_STORAGE_KEY, false);
+
+  const [spacerless, setSpacerless] = usePersistedState<boolean>(SPACERLESS_STORAGE_KEY, false);
 
   const [estimateSettings, setEstimateSettings] = usePersistedState<EstimateSettings>(
     ESTIMATE_SETTINGS_STORAGE_KEY,
@@ -276,6 +282,9 @@ export const useGridfinitySettings = (): GridfinitySettings => {
 
     stackBins,
     setStackBins,
+
+    spacerless,
+    setSpacerless,
 
     estimateSettings,
     setEstimateSettings,

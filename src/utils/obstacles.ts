@@ -1,5 +1,5 @@
 import { unitMath } from "@/services/unitMath";
-import { FULL_GRID_SIZE, HALF_GRID_SIZE } from "@/utils/gridfinityUtils";
+import { FULL_GRID_SIZE, HALF_GRID_SIZE, layoutCountKey } from "@/utils/gridfinityUtils";
 import type { GridfinityResult, LayoutItem, Obstacle } from "@/types";
 
 export const MAX_OBSTACLES = 8;
@@ -172,7 +172,47 @@ const toLayoutItem = (
   item: LayoutItem,
   rect: ObstacleRect,
   gridSize: number
-): LayoutItem => {
+): LayoutItem | null => {
+  const extendRight = item.extendRightMm ?? 0;
+  const extendBottom = item.extendBottomMm ?? 0;
+  if (extendRight > 0 || extendBottom > 0) {
+    const cellWidth = unitMath.subtract(item.pixelWidth, extendRight);
+    const cellHeight = unitMath.subtract(item.pixelHeight, extendBottom);
+    const cellRight = unitMath.add(item.pixelX, cellWidth);
+    const cellBottom = unitMath.add(item.pixelY, cellHeight);
+    const rectRight = unitMath.add(rect.x, rect.width);
+    const rectBottom = unitMath.add(rect.y, rect.depth);
+    const columns = unitMath.round(
+      unitMath.divide(unitMath.subtract(unitMath.min(rectRight, cellRight), rect.x), gridSize),
+      0
+    );
+    const rows = unitMath.round(
+      unitMath.divide(unitMath.subtract(unitMath.min(rectBottom, cellBottom), rect.y), gridSize),
+      0
+    );
+    if (columns < 1 || rows < 1) return null;
+    const clippedRight = unitMath.max(
+      0,
+      unitMath.subtract(rectRight, unitMath.add(rect.x, unitMath.multiply(columns, gridSize)))
+    );
+    const clippedBottom = unitMath.max(
+      0,
+      unitMath.subtract(rectBottom, unitMath.add(rect.y, unitMath.multiply(rows, gridSize)))
+    );
+    return {
+      type: item.type,
+      x: unitMath.divide(rect.x, gridSize),
+      y: unitMath.divide(rect.y, gridSize),
+      width: columns,
+      height: rows,
+      pixelX: rect.x,
+      pixelY: rect.y,
+      pixelWidth: rect.width,
+      pixelHeight: rect.depth,
+      ...(clippedRight > 0 ? { extendRightMm: clippedRight } : {}),
+      ...(clippedBottom > 0 ? { extendBottomMm: clippedBottom } : {}),
+    };
+  }
   const scale = scaleFor(item, gridSize);
   const width = unitMath.divide(rect.width, scale);
   const height = unitMath.divide(rect.depth, scale);
@@ -203,7 +243,9 @@ const subtractObstaclesFromItem = (
     rects = rects.flatMap((rect) => subtractRect(rect, cut));
     if (rects.length === 0) break;
   }
-  return rects.map((rect) => toLayoutItem(item, rect, gridSize));
+  return rects
+    .map((rect) => toLayoutItem(item, rect, gridSize))
+    .filter((piece): piece is LayoutItem => piece !== null);
 };
 
 const countByKey = (
@@ -229,7 +271,7 @@ export const applyObstacles = (
     subtractObstaclesFromItem(item, obstacles, gridSize)
   );
   return {
-    baseplates: countByKey(layout, "baseplate", (item) => `${item.width}x${item.height}`),
+    baseplates: countByKey(layout, "baseplate", layoutCountKey),
     spacers: countByKey(
       layout,
       "spacer",
@@ -239,7 +281,7 @@ export const applyObstacles = (
           2
         )}mm`
     ),
-    halfSizeBins: countByKey(layout, "half-size", (item) => `${item.width}x${item.height}`),
+    halfSizeBins: countByKey(layout, "half-size", layoutCountKey),
     layout,
   };
 };

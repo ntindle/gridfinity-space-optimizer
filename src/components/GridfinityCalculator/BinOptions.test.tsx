@@ -32,6 +32,8 @@ const renderOptions = (overrides: Partial<ComponentProps<typeof BinOptions>> = {
     connectors: false,
     setConnectors: vi.fn(),
     stackBins: false,
+    spacerless: false,
+    setSpacerless: vi.fn(),
     ...overrides,
   };
   render(<BinOptions {...props} />);
@@ -55,6 +57,25 @@ describe('BinOptions', () => {
 
     expect(props.setUseHalfSize).toHaveBeenCalledWith(true);
     expect(props.setPreferHalfSize).toHaveBeenCalledWith(false);
+  });
+
+  it('toggles spacerless fitting', async () => {
+    const user = userEvent.setup();
+    const props = renderOptions();
+
+    await user.click(screen.getByRole('switch', { name: 'Spacerless fitting' }));
+
+    expect(props.setSpacerless).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('switch', { name: 'Spacerless fitting' })).toHaveAccessibleDescription(
+      /instead of printing spacers/
+    );
+  });
+
+  it('disables the gap filler while spacerless fitting is on', () => {
+    renderOptions({ spacerless: true, preferHalfSize: true });
+    expect(
+      screen.getByRole('switch', { name: 'Fill gaps with half-size baseplates' })
+    ).toBeDisabled();
   });
 
   it('toggles label tabs on bins', async () => {
