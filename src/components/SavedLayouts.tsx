@@ -5,7 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import CollapsibleCard from "@/components/CollapsibleCard";
 import { layoutSummary, track, trackLayoutLoaded } from "@/services/analytics";
+import { saveFile } from "@/utils/download";
 import { formatDrawerSize, pluralize } from "@/utils/format";
+import {
+  LAYOUT_FILE_MAX_BYTES,
+  layoutFileName,
+  parseLayoutFile,
+  serializeLayoutFile,
+} from "@/utils/layoutFile";
 import {
   SAVED_LAYOUTS_KEY,
   createSavedLayoutId,
@@ -28,7 +35,9 @@ const SavedLayouts: React.FC<SavedLayoutsProps> = ({ snapshot, onRestore }) => {
     parseSavedLayouts(window.localStorage.getItem(SAVED_LAYOUTS_KEY))
   );
   const [name, setName] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
   const inputId = useId();
+  const importId = useId();
 
   const persist = (layouts: SavedLayout[]) => {
     window.localStorage.setItem(SAVED_LAYOUTS_KEY, serializeSavedLayouts(layouts));
@@ -63,6 +72,66 @@ const SavedLayouts: React.FC<SavedLayoutsProps> = ({ snapshot, onRestore }) => {
     persist(removeSavedLayout(saved, layout.id));
   };
 
+  const handleExport = () => {
+    const trimmed = name.trim();
+    const entryName = trimmed === "" ? defaultSavedLayoutName(snapshot) : trimmed;
+    saveFile(
+      layoutFileName(entryName),
+      serializeLayoutFile(snapshot, entryName),
+      "application/json"
+    );
+    toast.success(`Downloaded "${entryName}"`, {
+      description: "Import the JSON file later to restore this layout.",
+    });
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const fail = () => {
+      setImportError("That file is not a valid Gridfinity layout JSON file.");
+      toast.error("Could not import that file", {
+        description: "Choose a layout JSON file downloaded from this site.",
+      });
+    };
+    if (file.size > LAYOUT_FILE_MAX_BYTES) {
+      fail();
+      return;
+    }
+    try {
+      const text =
+        typeof file.text === "function"
+          ? await file.text()
+          : await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(String(reader.result ?? ""));
+              reader.onerror = () => reject(reader.error);
+              reader.readAsText(file);
+            });
+      const parsed = parseLayoutFile(text);
+      if (parsed === null) {
+        fail();
+        return;
+      }
+      const entry: SavedLayout = {
+        id: createSavedLayoutId(),
+        name: parsed.name,
+        createdAt: new Date().toISOString(),
+        snapshot: parsed.snapshot,
+      };
+      persist(upsertSavedLayout(saved, entry));
+      trackLayoutLoaded("import", parsed.snapshot);
+      onRestore(parsed.snapshot);
+      setImportError(null);
+      toast.success(`Imported "${parsed.name}"`, {
+        description: "It replaces the current layout and is saved on this device.",
+      });
+    } catch {
+      fail();
+    }
+  };
+
   return (
     <CollapsibleCard
       title="Saved layouts"
@@ -83,6 +152,26 @@ const SavedLayouts: React.FC<SavedLayoutsProps> = ({ snapshot, onRestore }) => {
             Save
           </Button>
         </div>
+        <div className="mt-3 flex flex-wrap items-end gap-2">
+          <Button type="button" variant="outline" onClick={handleExport}>
+            Download layout JSON
+          </Button>
+          <div className="min-w-0">
+            <Label htmlFor={importId}>Import layout file</Label>
+            <Input
+              id={importId}
+              type="file"
+              accept=".json,application/json"
+              className="mt-1.5"
+              onChange={handleImport}
+            />
+          </div>
+        </div>
+        {importError !== null && (
+          <p role="alert" className="mt-2 text-[13px] leading-snug text-destructive">
+            {importError}
+          </p>
+        )}
       </div>
       {saved.length === 0 ? (
         <p className="mt-3 text-[13px] leading-snug text-muted-foreground">

@@ -492,18 +492,26 @@ export const groupBins = (
   );
 };
 
-const isNonNegative = (value: unknown): value is number =>
-  typeof value === "number" && Number.isFinite(value) && value >= 0;
+export const MAX_BINS = 1000;
+const MAX_BIN_STEPS = 1000;
+const MAX_BIN_MM = unitMath.multiply(MAX_BIN_STEPS, HALF_GRID_SIZE);
+
+const isBoundedCoordinate = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= MAX_BIN_MM;
+
+const isBoundedSize = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0 && value <= MAX_BIN_MM;
 
 export const sanitizeBins = (value: unknown): Bin[] => {
   if (!Array.isArray(value)) return [];
   const seen = new Set<string>();
   const bins: Bin[] = [];
   for (const candidate of value) {
+    if (bins.length >= MAX_BINS) break;
     if (typeof candidate !== "object" || candidate === null) continue;
     const raw = candidate as Record<string, unknown>;
-    if (!isNonNegative(raw.x) || !isNonNegative(raw.y)) continue;
-    if (!isNonNegative(raw.width) || !isNonNegative(raw.depth) || raw.width === 0 || raw.depth === 0) continue;
+    if (!isBoundedCoordinate(raw.x) || !isBoundedCoordinate(raw.y)) continue;
+    if (!isBoundedSize(raw.width) || !isBoundedSize(raw.depth)) continue;
     const height =
       typeof raw.height === "number" && Number.isFinite(raw.height)
         ? unitMath.min(MAX_BIN_HEIGHT, unitMath.max(MIN_BIN_HEIGHT, unitMath.round(raw.height, 0)))
