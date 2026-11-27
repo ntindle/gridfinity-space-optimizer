@@ -1,3 +1,4 @@
+import { unitMath } from "@/services/unitMath";
 import { sanitizeBins, sanitizeDividerCount } from "@/utils/bins";
 import { formatDrawerSize } from "@/utils/format";
 import { sanitizeObstacles } from "@/utils/obstacles";
@@ -85,9 +86,29 @@ const isSnapshot = (value: unknown): value is SavedLayoutSnapshot => {
   );
 };
 
+const MAX_DRAWER_INCHES = 200;
+const MAX_PRINTER_MM = 2000;
+
+const sanitizeDrawerSize = (value: unknown): DrawerSize | null => {
+  if (!isDrawerSize(value)) return null;
+  if (value.width <= 0 || value.height <= 0) return null;
+  return {
+    width: unitMath.min(MAX_DRAWER_INCHES, value.width),
+    height: unitMath.min(MAX_DRAWER_INCHES, value.height),
+  };
+};
+
+const sanitizeNumDrawers = (value: number): number =>
+  unitMath.min(100, unitMath.max(1, unitMath.round(value, 0)));
+
 const sanitizePrinterSize = (value: unknown): PrinterSize | null => {
   if (!isPrinterSize(value)) return null;
-  const printer: PrinterSize = { x: value.x, y: value.y, z: value.z };
+  if (value.x <= 0 || value.y <= 0 || value.z <= 0) return null;
+  const printer: PrinterSize = {
+    x: unitMath.min(MAX_PRINTER_MM, value.x),
+    y: unitMath.min(MAX_PRINTER_MM, value.y),
+    z: unitMath.min(MAX_PRINTER_MM, value.z),
+  };
   const zone = (value as unknown as Record<string, unknown>).exclusionZone;
   if (typeof zone === "object" && zone !== null && !Array.isArray(zone)) {
     const record = zone as Record<string, unknown>;
@@ -103,8 +124,10 @@ const sanitizePrinterSize = (value: unknown): PrinterSize | null => {
   return printer;
 };
 
-const sanitizeSnapshot = (value: unknown): SavedLayoutSnapshot | null => {
+export const sanitizeSnapshot = (value: unknown): SavedLayoutSnapshot | null => {
   if (!isSnapshot(value)) return null;
+  const drawerSize = sanitizeDrawerSize(value.drawerSize);
+  if (drawerSize === null) return null;
   const printerSize = sanitizePrinterSize(value.customPrinterSize);
   if (printerSize === null) return null;
   const scoop = typeof value.scoop === "boolean" ? value.scoop : false;
@@ -114,12 +137,12 @@ const sanitizeSnapshot = (value: unknown): SavedLayoutSnapshot | null => {
       ? value.vaseMode
       : false;
   return {
-    drawerSize: value.drawerSize,
+    drawerSize,
     selectedPrinter: value.selectedPrinter,
     useHalfSize: value.useHalfSize,
-    preferHalfSize: value.preferHalfSize,
+    preferHalfSize: value.useHalfSize ? false : value.preferHalfSize,
     preferUniformBaseplates: value.preferUniformBaseplates,
-    numDrawers: value.numDrawers,
+    numDrawers: sanitizeNumDrawers(value.numDrawers),
     useMm: value.useMm,
     customPrinterSize: printerSize,
     bins: sanitizeBins(value.bins),

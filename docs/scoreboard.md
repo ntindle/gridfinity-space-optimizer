@@ -388,6 +388,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression — the pair-1 load gap reverses in pair 2 (Lighthouse 67 → 78 branch vs 72 → 76 trunk; TTI gap 390 ms → 93 ms, inside trunk's own 168 ms swing), and layout/share overlap across all four runs (layout 501–529 vs 523–531 ms; share 70–77 vs 71–76 ms). Input-to-preview reads ~2–4 ms slower on the branch in both pairs (39.2/37.5 vs 34.7/35.6 ms), but trunk alone swung 0.9 ms between its own pairs and the drawer-width-edit → preview path is untouched by this diff — the new work is a Bin options switch plus baseplate-mesh generation that runs in the lazy export chunk on download — so the gap is box noise, not a branch effect. Parity +2.0pp (F22 ❌→✅); the new work is a "Connectors between baseplates" switch in Bin options — where the grid is split for the print bed, each split seam gets a dovetail tab on one side and a matching recess on the other, 2.5 mm tall at the base of the 5 mm frame, 2 mm deep with 0.4 mm clearance, so the printed pieces slide together and lock; mesh, estimates, print plan, STL stems, and the download README follow it; persisted as `gridfinity_connectors`, local-only; saved-layout snapshots carry it; no conflicts with bin switches. The connector mesh is verified closed in tests (nine configurations, 42 + 21 mm, 1×1 to 4×3) with mesh volume matching the analytic trapezoid-prism volume to 1e-6. Bundle delta: index chunk 270,455 → 272,648 B (+0.81%) for the switch, settings, and snapshot plumbing; the lazy export chunk 36,763 → 40,813 B (+11.0%) for the connector mesh, seam signatures, and volume.
 
+## 2026-11-27, PR #192 (layout JSON import/export, F40)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, two pairs, second reversed, plus a third pair to check an input-to-preview outlier).
+
+| Metric | Branch (pair 1 / pair 2 / pair 3) | Trunk (pair 1 / pair 2 / pair 3) |
+| --- | --- | --- |
+| Parity | 77.0% (38 ✅ + 1 🟡 / 50) | 75.0% |
+| Lighthouse perf | 74 / 79 / 74 | 74 / 72 / 77 |
+| TTI | 3725 / 3527 / 3729 ms | 3748 / 3719 / 3581 ms |
+| Input-to-preview (median) | 39.1 / 48.0 / 36.8 ms | 38.8 / 32.7 / 43.2 ms |
+| Layout task | 4 steps, 505 / 496 / 504 ms | 4 steps, 506 / 502 / 504 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 76 / 76 / 75 ms | 1 click, 78 / 77 / 76 ms |
+
+Verdict: no credible regression past noise. Load metrics overlap (Lighthouse 74–79 vs 72–77, TTI 3527–3729 vs 3581–3748 ms), and layout/share are level or branch-favoring in every pair. Input-to-preview pair 2 read 48.0 vs 32.7 ms, but the branch itself swung 39.1 → 48.0 → 36.8 ms across pairs while trunk swung 38.8 → 32.7 → 43.2 ms, and pair 3 reversed the gap (36.8 vs 43.2 ms); the drawer-width-edit → preview path is untouched by this diff — the new work is a download button and file input in the collapsed Saved layouts card plus JSON serialize/parse on click — so the pair-2 gap is box noise, not a branch effect. Parity +2.0pp (F40 ❌→✅); the new work is layout JSON import/export in Saved layouts — Download layout JSON saves the current layout as a versioned .json file with a slugified filename, and Import layout file loads one back through the saved-layout snapshot, sanitized on import (legacy defaults, tampered bins/obstacles cleaned, scoop+vase resolves to scoop), upserting it into the saved list; files over 1 MB are rejected before reading and a bad file leaves the layout and saved list untouched; no new localStorage key and no share-format change; CSV and STL import remain open. Bundle delta: index chunk 284,506 → 286,968 B (+0.87%) for the layout-file utils, Saved layouts controls, and the import-sanitization bounds added in the review fix round; the lazy export and ThreeDPreview chunks unchanged.
+
 ## 2026-11-26, PR #191 (spacerless fitting, F21)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, two pairs, second reversed).

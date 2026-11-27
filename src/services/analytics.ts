@@ -22,7 +22,7 @@ export type LayoutChange =
   | "bins"
   | "obstacles";
 
-export type LayoutSource = "saved" | "share_link" | "example";
+export type LayoutSource = "saved" | "share_link" | "example" | "import";
 
 export type LayoutSummary = {
   drawer_width_mm: number;
