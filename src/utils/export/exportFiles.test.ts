@@ -54,6 +54,8 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(names).toContain('stl/baseplate-6x6-x2.stl');
     expect(names).toContain('stl/spacer-25.5x252mm-x1.stl');
     expect(names.filter((name) => name.startsWith('stl/'))).toHaveLength(9);
+    expect(names).toContain('step/baseplate-6x6-x2.step');
+    expect(names.filter((name) => name.startsWith('step/'))).toHaveLength(9);
     expect(names.filter((name) => name.startsWith('3mf/'))).toEqual([
       '3mf/plate-1-baseplates-x2.3mf',
       '3mf/plate-2-baseplates.3mf',
@@ -82,6 +84,23 @@ describe('createPrintFiles', { timeout: HEAVY_TIMEOUT }, () => {
     expect(dxf).toContain('  8\nBIN\n 90\n4\n 70\n1\n 10\n0\n 20\n59.6\n 10\n84\n 20\n59.6\n 10\n84\n 20\n101.6\n 10\n0\n 20\n101.6');
     expect(dxf).toContain('  0\nTEXT\n  8\nBIN\n 10\n42\n 20\n80.6\n 40\n6\n  1\nScrews');
     expect(strFromU8(entries['README.txt'])).toContain('layout.svg and layout.dxf');
+  });
+
+  it('bundles a faceted STEP file per part mirroring the STL names', () => {
+    const bundle = createPrintFiles(request({ bins: [bin({ id: 'a', label: 'Screws' })] }));
+    const entries = files(bundle);
+    const names = Object.keys(entries);
+    const stlNames = names.filter((name) => name.startsWith('stl/'));
+    const stepNames = names.filter((name) => name.startsWith('step/'));
+    expect(stepNames).toEqual(
+      stlNames.map((name) => name.replace('stl/', 'step/').replace('.stl', '.step'))
+    );
+    const step = strFromU8(entries[stepNames[0]]);
+    const stem = stepNames[0].replace('step/', '').replace(/-x\d+\.step$/, '');
+    expect(step).toContain("FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 }'));");
+    expect(step).toContain(`MANIFOLD_SOLID_BREP('${stem}'`);
+    expect(step).toContain('SI_UNIT(.MILLI.,.METRE.)');
+    expect(strFromU8(entries['README.txt'])).toContain('STEP files: the step/ folder');
   });
 
   it('lays each plate out inside the printer bed', () => {
