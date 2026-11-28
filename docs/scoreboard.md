@@ -404,6 +404,22 @@ Branch vs trunk measured back-to-back on the same box, local preview (`node scri
 
 Verdict: no credible regression past noise. Load metrics overlap (Lighthouse 74–79 vs 72–77, TTI 3527–3729 vs 3581–3748 ms), and layout/share are level or branch-favoring in every pair. Input-to-preview pair 2 read 48.0 vs 32.7 ms, but the branch itself swung 39.1 → 48.0 → 36.8 ms across pairs while trunk swung 38.8 → 32.7 → 43.2 ms, and pair 3 reversed the gap (36.8 vs 43.2 ms); the drawer-width-edit → preview path is untouched by this diff — the new work is a download button and file input in the collapsed Saved layouts card plus JSON serialize/parse on click — so the pair-2 gap is box noise, not a branch effect. Parity +2.0pp (F40 ❌→✅); the new work is layout JSON import/export in Saved layouts — Download layout JSON saves the current layout as a versioned .json file with a slugified filename, and Import layout file loads one back through the saved-layout snapshot, sanitized on import (legacy defaults, tampered bins/obstacles cleaned, scoop+vase resolves to scoop), upserting it into the saved list; files over 1 MB are rejected before reading and a bad file leaves the layout and saved list untouched; no new localStorage key and no share-format change; CSV and STL import remain open. Bundle delta: index chunk 284,506 → 286,968 B (+0.87%) for the layout-file utils, Saved layouts controls, and the import-sanitization bounds added in the review fix round; the lazy export and ThreeDPreview chunks unchanged.
 
+## 2026-11-28, PR #193 (STEP export, F26)
+
+Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, two pairs, second reversed, plus a third pair to check the load-metric gap).
+
+| Metric | Branch (pair 1 / pair 2 / pair 3) | Trunk (pair 1 / pair 2 / pair 3) |
+| --- | --- | --- |
+| Parity | 79.0% (39 ✅ + 1 🟡 / 50) | 77.0% |
+| Lighthouse perf | 74 / 72 / 69 | 80 / 78 / 74 |
+| TTI | 3652 / 3881 / 3808 ms | 3511 / 3576 / 3717 ms |
+| Input-to-preview (median) | 36.5 / 38.2 / 34.3 ms | 43.2 / 34.4 / 69.6 ms |
+| Layout task | 4 steps, 577 / 533 / 520 ms | 4 steps, 495 / 518 / 605 ms |
+| Export task | supported | supported |
+| Share task | 1 click, 79 / 76 / 78 ms | 1 click, 75 / 71 / 84 ms |
+
+Verdict: no credible regression past noise. Load metrics favor trunk in all three pairs (Lighthouse −5 to −6, TTI +91 to +305 ms), but both sides drift down together across the session (trunk 80 → 78 → 74, branch 74 → 72 → 69) and the served load code is identical — the index chunk is byte-identical modulo chunk-hash names and the CSS is byte-identical — so the gap is box noise, not a branch effect; the new work sits in the lazy export chunk and only runs on download. Interaction metrics overlap or flip across pairs (input-to-preview branch-favoring in pairs 1 and 3, layout and share flipping to branch-favoring in pair 3). Parity +2.0pp (F26 ❌→✅); the Download files zip gains one .step per distinct part beside its STL, mirroring the STL name and quantity — an AP214 faceted B-rep in millimetres generated from the same closed meshes, one planar face per triangle over deduped vertices and edges, structurally validated (closed shell, edge-loop chaining, positive signed volume); no CAD-kernel validation claimed; faceted, not parametric, and the README says so. Bundle delta: index chunk unchanged at 286,968 B; the lazy export chunk 43,980 → 48,170 B (+9.5%) for the STEP writer; the lazy ThreeDPreview chunk unchanged at 913,126 B.
+
 ## 2026-11-26, PR #191 (spacerless fitting, F21)
 
 Branch vs trunk measured back-to-back on the same box, local preview (`node scripts/measure.mjs --n=15 --lh=3`, two pairs, second reversed).

@@ -16,6 +16,7 @@ import { layoutSvgPlan } from "./layoutSvg";
 import { binMesh } from "./binMesh";
 import { lidMesh } from "./lidMesh";
 import { meshToStl } from "./stl";
+import { meshToStep } from "./step";
 import { createThreeMf, quarterTurn, translation } from "./threeMf";
 import { createZip, type ZipEntry } from "./zip";
 import type { Mesh } from "./mesh";
@@ -120,6 +121,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     const file = `stl/${part.stem}-x${part.count}.stl`;
     files.set(part.key, file);
     entries.push([file, meshToStl(meshFor(part), part.label)]);
+    entries.push([`step/${part.stem}-x${part.count}.step`, meshToStep(meshFor(part), part.stem)]);
   }
 
   const byKey = new Map(exportParts.map((part) => [part.key, part]));
@@ -259,6 +261,7 @@ export const createPrintFiles = (request: ExportRequest): ExportBundle => {
     (request.obstacles?.length ?? 0) > 0 &&
       `- Drawer obstacles: ${pluralize(request.obstacles?.length ?? 0, "keep-out area")} marked in the drawer ${request.obstacles?.length === 1 ? "is" : "are"} left empty — no baseplate, spacer, or bin is printed for that space, and the layout plan shows it.`,
     `- Layout plan: layout.svg and layout.dxf are to-scale top views of this drawer (baseplates${grid.some((part) => part.kind === "spacer") ? ", spacers," : ""} and bins, including any bins left out of the print files) in millimetres, for laser or cutting workflows.`,
+    "- STEP files: the step/ folder holds one .step file per distinct part next to its STL, an AP214 faceted solid in millimetres made from the same closed mesh; the faces are flat triangles, not editable parametric features.",
     "- Print the bin labels from the Bin labels section of the page.",
   ].filter(Boolean);
 
